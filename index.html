@@ -4,849 +4,1785 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Personal OS — רואי קליין</title>
-<script src="https://apis.google.com/js/api.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0d0d0f;--bg2:#141417;--bg3:#1a1a1f;--bg4:#22222a;
-  --border:#2a2a35;--border2:#35354a;
-  --text:#e8e8f0;--text2:#9999b0;--text3:#55556a;
-  --accent:#7c6ff7;--accent2:#5a54c4;--accent-glow:rgba(124,111,247,0.15);
-  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);
-  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);
-  --red:#f87171;--red-bg:rgba(248,113,113,0.1);
-  --blue:#60a5fa;--blue-bg:rgba(96,165,250,0.1);
-  --teal:#2dd4bf;--teal-bg:rgba(45,212,191,0.1);
-  --radius:12px;--radius-sm:8px;
+  --bg:#f7f6f2;--bg2:#ffffff;--bg3:#f0eee9;--bg4:#e5e2db;
+  --border:#ddd9d0;--border2:#c8c3b8;
+  --text:#1a1814;--text2:#5a554a;--text3:#9a9388;
+  --accent:#6c63ff;--accent2:#5a52e0;--accent-light:#ede9ff;
+  --green:#16a34a;--green-bg:#dcfce7;
+  --amber:#d97706;--amber-bg:#fef3c7;
+  --red:#dc2626;--red-bg:#fee2e2;
+  --blue:#2563eb;--blue-bg:#dbeafe;
+  --teal:#0d9488;--teal-bg:#ccfbf1;
+  --orange:#ea580c;--orange-bg:#ffedd5;
+  --purple:#7c3aed;--purple-bg:#ede9fe;
+  --pink:#db2777;--pink-bg:#fce7f3;
+  --radius:14px;--radius-sm:9px;--radius-xs:6px;
+  --shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 12px rgba(0,0,0,0.04);
+  --shadow-md:0 2px 8px rgba(0,0,0,0.08),0 8px 24px rgba(0,0,0,0.06);
 }
-body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-.app{display:grid;grid-template-columns:220px 1fr;grid-template-rows:56px 1fr;height:100vh}
-.sidebar{grid-row:1/3;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column}
-.logo{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-.logo-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700}
-.logo-text{font-size:14px;font-weight:700}
-.logo-sub{font-size:10px;color:var(--text3)}
-.nav{padding:12px 0;flex:1;overflow-y:auto}
-.nav-section{padding:6px 16px 4px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-weight:500}
-.nav-item{display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;transition:all 0.15s;font-size:13px;color:var(--text2);position:relative}
-.nav-item:hover{background:var(--bg3);color:var(--text)}
-.nav-item.active{background:var(--accent-glow);color:var(--accent);font-weight:500}
-.nav-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent)}
-.nav-icon{width:16px;text-align:center;font-size:14px;flex-shrink:0}
-.nav-badge{margin-right:auto;background:var(--accent);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600}
-.sidebar-bottom{padding:12px;border-top:1px solid var(--border)}
-.voice-btn{width:100%;padding:10px;background:var(--accent-glow);border:1px solid var(--accent2);border-radius:var(--radius-sm);color:var(--accent);font-size:13px;font-family:'Heebo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;font-weight:500}
-.voice-btn:hover{background:rgba(124,111,247,0.25)}
-.voice-btn.listening{background:var(--red-bg);border-color:var(--red);color:var(--red);animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
-.topbar{grid-column:2;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px}
-.topbar-date{font-size:13px;color:var(--text2)}
-.topbar-title{font-size:15px;font-weight:600}
-.topbar-spacer{flex:1}
-.gcal-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);padding:4px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;cursor:pointer}
-.gcal-dot{width:7px;height:7px;border-radius:50%;background:var(--amber)}
-.gcal-dot.connected{background:var(--green)}
-.topbar-avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
-.main{grid-column:2;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
-.card-title{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;font-weight:500;margin-bottom:14px}
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden}
-.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--stat-color,var(--accent))}
-.stat-label{font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:500}
-.stat-value{font-size:24px;font-weight:700;line-height:1}
-.stat-sub{font-size:11px;color:var(--text2);margin-top:6px}
-.stat-green{--stat-color:var(--green)}
-.stat-amber{--stat-color:var(--amber)}
-.stat-blue{--stat-color:var(--blue)}
-.stat-teal{--stat-color:var(--teal)}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.three-col{display:grid;grid-template-columns:2fr 1fr;gap:20px}
-.task-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer}
-.task-item:last-child{border-bottom:none;padding-bottom:0}
-.task-item:first-child{padding-top:0}
-.task-check{width:18px;height:18px;border:1.5px solid var(--border2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
-.task-check.done{background:var(--green);border-color:var(--green)}
-.task-text{font-size:13px;color:var(--text);flex:1}
-.task-text.done{text-decoration:line-through;color:var(--text3)}
-.task-tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
-.tag-work{background:var(--blue-bg);color:var(--blue)}
-.tag-health{background:var(--green-bg);color:var(--green)}
-.tag-family{background:var(--amber-bg);color:var(--amber)}
-.tag-project{background:var(--accent-glow);color:var(--accent)}
-.add-task{display:flex;gap:8px;margin-top:12px}
-.add-task input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-size:13px;font-family:'Heebo',sans-serif;outline:none;direction:rtl}
-.add-task input:focus{border-color:var(--accent)}
-.btn-sm{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 14px;font-size:12px;font-family:'Heebo',sans-serif;cursor:pointer;font-weight:500;white-space:nowrap}
-.btn-sm:hover{background:var(--accent2)}
-.btn-google{background:#4285f4;color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 16px;font-size:13px;font-family:'Heebo',sans-serif;cursor:pointer;font-weight:500}
-.btn-google:hover{background:#3367d6}
-.event-item{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)}
-.event-item:last-child{border-bottom:none;padding-bottom:0}
-.event-time{font-size:11px;color:var(--text3);width:48px;flex-shrink:0;padding-top:2px}
-.event-bar{width:3px;border-radius:2px;background:#4285f4;flex-shrink:0;min-height:30px}
-.event-bar.gcal{background:#4285f4}
-.event-name{font-size:13px;color:var(--text);font-weight:500}
-.event-loc{font-size:11px;color:var(--text3);margin-top:2px}
-.project-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden}
-.project-card:hover{border-color:var(--border2);transform:translateY(-1px)}
-.project-card::before{content:'';position:absolute;top:0;right:0;width:3px;height:100%;background:var(--proj-color,var(--accent))}
-.project-name{font-size:13px;font-weight:600;margin-bottom:6px}
-.project-progress-bar{height:4px;background:var(--bg4);border-radius:2px;margin-bottom:6px;overflow:hidden}
-.project-fill{height:100%;border-radius:2px;transition:width 0.5s}
-.project-meta{display:flex;justify-content:space-between;font-size:11px;color:var(--text3)}
-.projects-grid{display:flex;flex-direction:column;gap:10px}
-.habit-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
-.habit-row:last-child{border-bottom:none;padding-bottom:0}
-.habit-name{font-size:13px;flex:1}
-.habit-dots{display:flex;gap:4px}
-.habit-dot{width:20px;height:20px;border-radius:4px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:9px;cursor:pointer;transition:background 0.15s;border:1px solid var(--border);color:var(--text3)}
-.habit-dot.done{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+/* LAYOUT */
+.app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:60px 1fr;height:100vh}
+@media(max-width:768px){.app{grid-template-columns:1fr;grid-template-rows:56px 1fr}}
+.sidebar{grid-row:1/3;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+@media(max-width:768px){.sidebar{display:none;position:fixed;inset:0 auto 0 0;width:260px;z-index:200}.sidebar.open{display:flex}}
+.logo{padding:16px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,#6c63ff,#7c3aed);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:700;flex-shrink:0}
+.logo-text{font-size:14px;font-weight:700}.logo-sub{font-size:10px;color:var(--text3)}
+.nav{flex:1;overflow-y:auto;padding:8px 0}
+.nav-sec{padding:8px 16px 3px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;font-weight:600}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;transition:all 0.12s;font-size:13px;color:var(--text2);position:relative}
+.ni:hover{background:var(--bg3);color:var(--text)}
+.ni.active{background:var(--accent-light);color:var(--accent);font-weight:600}
+.ni.active::before{content:'';position:absolute;right:0;top:4px;bottom:4px;width:3px;background:var(--accent);border-radius:2px 0 0 2px}
+.ni-icon{width:17px;text-align:center;font-size:14px;flex-shrink:0}
+.nbadge{margin-right:auto;background:var(--accent);color:#fff;font-size:10px;padding:1px 6px;border-radius:20px;font-weight:600}
+.ntag{margin-right:auto;font-size:9px;padding:2px 6px;border-radius:4px}
+.sidebar-btm{padding:10px;border-top:1px solid var(--border)}
+.vbtn{width:100%;padding:9px;background:var(--accent-light);border:1.5px solid var(--accent);border-radius:var(--radius-sm);color:var(--accent);font-size:13px;font-family:'Heebo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-weight:600;transition:all 0.2s}
+.vbtn:hover{background:var(--accent);color:#fff}
+.vbtn.on{background:var(--red-bg);border-color:var(--red);color:var(--red);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.55}}
+/* TOPBAR */
+.topbar{grid-column:2;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 22px;gap:10px}
+@media(max-width:768px){.topbar{grid-column:1}}
+.tb-title{font-size:15px;font-weight:700}.tb-date{font-size:11px;color:var(--text3)}
+.tb-space{flex:1}
+.tb-search{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;font-family:'Heebo',sans-serif;outline:none;width:180px;direction:rtl;color:var(--text)}
+.gcal-btn{font-size:11px;color:#fff;padding:6px 12px;background:#4285f4;border:none;border-radius:20px;cursor:pointer;font-family:'Heebo',sans-serif;font-weight:500;white-space:nowrap}
+.gcal-btn.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green)}
+.ava{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0}
+.mob-menu{display:none;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2)}
+@media(max-width:768px){.mob-menu{display:block}.tb-search{display:none}}
+/* MAIN */
+.main{grid-column:2;overflow-y:auto;padding:22px;display:flex;flex-direction:column;gap:18px}
+@media(max-width:768px){.main{grid-column:1;padding:14px;gap:14px}}
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.ct{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;font-weight:600}
+.ca{font-size:12px;color:var(--accent);cursor:pointer;font-weight:500}
+/* STATS */
+.sr{display:grid;gap:10px}
+.s4{grid-template-columns:repeat(4,1fr)}.s3{grid-template-columns:repeat(3,1fr)}.s2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:768px){.s4,.s3{grid-template-columns:repeat(2,1fr)}}
+.sc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);position:relative;overflow:hidden;cursor:pointer;transition:all 0.15s}
+.sc:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--sc,#6c63ff)}
+.sl{font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:500}
+.sv{font-size:24px;font-weight:700;line-height:1}
+.ss{font-size:11px;color:var(--text2);margin-top:5px}
+.sc-g{--sc:var(--green)}.sc-b{--sc:var(--blue)}.sc-a{--sc:var(--amber)}.sc-t{--sc:var(--teal)}.sc-p{--sc:var(--purple)}.sc-o{--sc:var(--orange)}.sc-r{--sc:var(--red)}
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.g31{display:grid;grid-template-columns:2fr 1fr;gap:18px}
+.g13{display:grid;grid-template-columns:1fr 2fr;gap:18px}
+@media(max-width:768px){.g2,.g31,.g13{grid-template-columns:1fr}}
+/* INPUTS */
+.inp{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 11px;color:var(--text);font-size:13px;font-family:'Heebo',sans-serif;outline:none;direction:rtl;transition:border 0.15s}
+.inp:focus{border-color:var(--accent);background:var(--bg2)}
+.inp-full{width:100%}
+textarea.inp{resize:vertical;line-height:1.6}
+select.inp{cursor:pointer}
+.irow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+/* BUTTONS */
+.btn{border:none;border-radius:var(--radius-sm);padding:8px 14px;font-size:13px;font-family:'Heebo',sans-serif;cursor:pointer;font-weight:500;transition:all 0.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.bp{background:var(--accent);color:#fff}.bp:hover{background:var(--accent2)}
+.bs{background:var(--bg3);color:var(--text);border:1px solid var(--border)}.bs:hover{background:var(--bg4)}
+.bg{background:var(--green);color:#fff}.bg:hover{opacity:0.9}
+.bsm{padding:5px 10px;font-size:12px}
+.bxs{padding:3px 8px;font-size:11px}
+.bi{padding:6px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);cursor:pointer;font-size:13px;line-height:1;transition:all 0.15s}
+.bi:hover{border-color:var(--accent)}
+/* TASKS */
+.ti{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s}
+.ti:last-child{border-bottom:none;padding-bottom:0}
+.ti:first-child{padding-top:0}
+.tck{width:19px;height:19px;border:2px solid var(--border2);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s;margin-top:1px}
+.tck.done{background:var(--green);border-color:var(--green)}
+.ttxt{font-size:13px;color:var(--text);flex:1;line-height:1.4}
+.ttxt.done{text-decoration:line-through;color:var(--text3)}
+.ttag{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap}
+.tw{background:var(--blue-bg);color:var(--blue)}.th{background:var(--green-bg);color:var(--green)}
+.tf{background:var(--amber-bg);color:var(--amber)}.tp{background:var(--purple-bg);color:var(--purple)}
+.to{background:var(--teal-bg);color:var(--teal)}.ti2{background:var(--pink-bg);color:var(--pink)}
+.tprog{margin-top:4px;height:3px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.tprog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s}
+.tstatus{font-size:10px;color:var(--text3);margin-top:2px}
+/* WEEK GRID */
+.wg-wrap{overflow-x:auto}
+.wg{display:grid;grid-template-columns:52px repeat(7,1fr);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;min-width:600px}
+.wg-hdr{background:var(--bg3);padding:7px 4px;text-align:center;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border);border-right:1px solid var(--border);position:sticky;top:0;z-index:2}
+.wg-hdr:last-child{border-right:none}
+.wg-time{background:var(--bg3);padding:5px 6px;font-size:10px;color:var(--text3);border-bottom:1px solid var(--border);border-right:1px solid var(--border);display:flex;align-items:flex-start}
+.wg-cell{background:var(--bg2);border-bottom:1px solid var(--border);border-right:1px solid var(--border);min-height:40px;padding:2px;position:relative;transition:background 0.1s}
+.wg-cell:hover{background:var(--accent-light)}
+.wg-cell.selecting{background:rgba(108,99,255,0.12)}
+.wg-cell.selected{background:rgba(108,99,255,0.18)}
+.wg-cell:last-child{border-right:none}
+.wg-ev{border-radius:4px;padding:2px 5px;margin-bottom:2px;font-size:10px;line-height:1.3;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:2px;overflow:hidden}
+.wg-ev-del{background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:9px;padding:0;flex-shrink:0}
+/* AI CHAT */
+.aic{display:flex;flex-direction:column;gap:8px;overflow-y:auto;margin-bottom:10px;padding-right:2px}
+.msg{display:flex;gap:7px;align-items:flex-start}
+.msg.u{flex-direction:row-reverse}
+.mav{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.mav.ai{background:linear-gradient(135deg,#6c63ff,#7c3aed);color:#fff}
+.mav.u{background:var(--bg4);color:var(--text2)}
+.mb{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:8px 11px;font-size:13px;max-width:85%;line-height:1.5}
+.msg.u .mb{background:var(--accent-light);border-color:var(--accent)}
+.crow{display:flex;gap:7px}
+.micb{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 9px;cursor:pointer;font-size:14px;transition:all 0.15s;flex-shrink:0}
+.micb:hover{border-color:var(--accent)}.micb.on{background:var(--red-bg);border-color:var(--red);animation:pulse 1s infinite}
+/* BADGES */
+.bdg{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500}
+.bdg-g{background:var(--green-bg);color:var(--green)}.bdg-a{background:var(--amber-bg);color:var(--amber)}
+.bdg-r{background:var(--red-bg);color:var(--red)}.bdg-b{background:var(--blue-bg);color:var(--blue)}
+.bdg-p{background:var(--purple-bg);color:var(--purple)}.bdg-gr{background:var(--bg4);color:var(--text2)}
+.bdg-t{background:var(--teal-bg);color:var(--teal)}
+/* PROG BAR */
+.pb{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.pf{height:100%;border-radius:3px;transition:width 0.5s}
+/* JOBS */
+.jc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;margin-bottom:8px}
+.jt{font-size:13px;font-weight:600}.jco{font-size:11px;color:var(--text2);margin-top:2px}
+.jm{display:flex;gap:7px;margin-top:8px;align-items:center;flex-wrap:wrap}
+.mb2{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;flex:1;min-width:60px}
+.mf{height:100%;border-radius:3px}
+/* MEAL */
+.meal{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.macro-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.macro-c{text-align:center;background:var(--bg3);border-radius:var(--radius-xs);padding:8px 4px;border:1px solid var(--border)}
+/* WORKOUT */
+.wo{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px}
+.wo-ex{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.wo-ex:last-child{border-bottom:none;padding-bottom:0}
+/* REMINDER */
+.rem{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;display:flex;gap:10px;align-items:center;margin-bottom:7px}
+.rem-time{font-size:11px;font-weight:600;color:var(--accent);white-space:nowrap;flex-shrink:0}
+.rem-text{font-size:13px;flex:1}
+/* IDEAS */
+.idea{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;cursor:pointer;transition:all 0.15s}
+.idea:hover{border-color:var(--accent);background:var(--bg2)}
+/* APT */
+.aptc{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;margin-bottom:8px;cursor:pointer;transition:all 0.15s}
+.aptc:hover{border-color:var(--teal)}
+/* ROADMAP */
+.rm-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.rm-item:last-child{border-bottom:none}
+.rm-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:4px}
+/* RING */
+.ring-wrap{display:flex;align-items:center;gap:14px}
+.ring-svg{transform:rotate(-90deg);flex-shrink:0}
+/* PROFILE BOX */
+.pbox{background:linear-gradient(135deg,var(--accent-light),var(--purple-bg));border:1px solid var(--accent);border-radius:var(--radius);padding:18px}
+/* FLOAT CHAT */
+.fc{position:fixed;bottom:22px;left:22px;z-index:300}
+.fc-btn{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#7c3aed);border:none;cursor:pointer;color:#fff;font-size:20px;box-shadow:0 4px 18px rgba(108,99,255,0.35);display:flex;align-items:center;justify-content:center;transition:transform 0.2s}
+.fc-btn:hover{transform:scale(1.08)}
+.fc-panel{position:absolute;bottom:62px;left:0;width:350px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);display:none;flex-direction:column;overflow:hidden;max-height:480px}
+.fc-panel.open{display:flex}
+.fc-hdr{padding:11px 14px;background:linear-gradient(135deg,#6c63ff,#7c3aed);display:flex;align-items:center;gap:8px}
+.fc-title{font-size:13px;font-weight:600;color:#fff;flex:1}
+.fc-x{background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:15px}
+.fc-body{padding:11px;flex:1;overflow-y:auto;max-height:320px}
+.fc-foot{padding:9px;border-top:1px solid var(--border);background:var(--bg3)}
+@media(max-width:768px){.fc-panel{width:calc(100vw - 44px);left:-14px}}
+/* PAGES */
 .page{display:none}
-.page.active{display:flex;flex-direction:column;gap:20px}
-.ai-chat{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;margin-bottom:12px}
-.msg{display:flex;gap:8px;align-items:flex-start}
-.msg.user{flex-direction:row-reverse}
-.msg-avatar{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
-.msg-avatar.ai{background:var(--accent);color:#fff}
-.msg-avatar.user{background:var(--bg4);color:var(--text2)}
-.msg-bubble{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:13px;color:var(--text);max-width:85%;line-height:1.5}
-.msg.user .msg-bubble{background:var(--accent-glow);border-color:var(--accent2)}
-.chat-input-row{display:flex;gap:8px}
-.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;color:var(--text);font-size:13px;font-family:'Heebo',sans-serif;outline:none;direction:rtl}
-.chat-input:focus{border-color:var(--accent)}
-.mic-btn{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;cursor:pointer;color:var(--text2);font-size:14px;transition:all 0.2s}
-.mic-btn:hover{border-color:var(--accent);color:var(--accent)}
-.mic-btn.active{background:var(--red-bg);border-color:var(--red);color:var(--red);animation:pulse 1s infinite}
-.cal-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
-.cal-day{flex-shrink:0;width:50px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 4px;text-align:center;cursor:pointer;transition:all 0.15s}
-.cal-day:hover{border-color:var(--border2)}
-.cal-day.today{background:var(--accent-glow);border-color:var(--accent)}
-.cal-day-name{font-size:10px;color:var(--text3);margin-bottom:4px}
-.cal-day-num{font-size:16px;font-weight:600}
-.cal-day.today .cal-day-num{color:var(--accent)}
-.cal-day-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);margin:4px auto 0;opacity:0}
-.cal-day.has-event .cal-day-dot{opacity:1}
-.ring-container{display:flex;align-items:center;gap:16px}
-.ring-svg{transform:rotate(-90deg)}
-.gcal-connect-banner{background:var(--blue-bg);border:1px solid var(--blue);border-radius:var(--radius-sm);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px}
-.gcal-connect-banner p{font-size:13px;color:var(--blue)}
-.add-event-form{display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
-.add-event-form input{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-size:13px;font-family:'Heebo',sans-serif;outline:none;direction:rtl;width:100%}
-.add-event-form input:focus{border-color:var(--accent)}
-.add-event-row{display:flex;gap:8px}
-textarea{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;color:var(--text);font-family:'Heebo',sans-serif;font-size:14px;line-height:1.7;resize:vertical;outline:none;direction:rtl;width:100%}
-textarea:focus{border-color:var(--accent)}
-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:var(--radius-sm);font-family:'Heebo',sans-serif;font-size:12px}
+.page.active{display:flex;flex-direction:column;gap:18px}
+/* NOTIF */
+.notif{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:9px 20px;border-radius:var(--radius-sm);font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap}
+.notif.show{opacity:1}
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:400;display:none;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg2);border-radius:var(--radius);padding:22px;width:380px;max-width:90vw;box-shadow:var(--shadow-md)}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:16px}
+/* WATER */
+.water-drops{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.drop{width:32px;height:32px;border-radius:50%;border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:all 0.15s;background:var(--bg3)}
+.drop.filled{background:var(--blue);border-color:var(--blue)}
+/* SUGGESTION CHIPS */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{padding:4px 10px;border-radius:20px;font-size:11px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:all 0.15s;color:var(--text2)}
+.chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
 </style>
 </head>
 <body>
+<div class="notif" id="notif"></div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-content"></div>
+</div>
+
 <div class="app">
-  <aside class="sidebar">
-    <div class="logo">
-      <div class="logo-icon">OS</div>
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-icon">POS</div>
+    <div><div class="logo-text">Personal OS</div><div class="logo-sub">רואי קליין</div></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-sec">ראשי</div>
+    <div class="ni active" onclick="goPage('dashboard',this)"><span class="ni-icon">🏠</span>דשבורד<span class="nbadge" id="nb">0</span></div>
+    <div class="ni" onclick="goPage('agenda',this)"><span class="ni-icon">📅</span>לוז שבועי</div>
+    <div class="ni" onclick="goPage('tasks',this)"><span class="ni-icon">✅</span>משימות</div>
+    <div class="ni" onclick="goPage('reminders',this)"><span class="ni-icon">🔔</span>תזכורות</div>
+    <div class="nav-sec">פרויקטים</div>
+    <div class="ni" onclick="goPage('jobs',this)"><span class="ni-icon">💼</span>חיפוש עבודה<span class="ntag" style="background:var(--blue-bg);color:var(--blue)">פעיל</span></div>
+    <div class="ni" onclick="goPage('upselles',this)"><span class="ni-icon">🚀</span>Upselles<span class="ntag" style="background:var(--purple-bg);color:var(--purple)">MVP</span></div>
+    <div class="ni" onclick="goPage('health',this)"><span class="ni-icon">💪</span>כושר ותזונה</div>
+    <div class="ni" onclick="goPage('apartment',this)"><span class="ni-icon">🏡</span>מציאת דירה</div>
+    <div class="ni" onclick="goPage('family',this)"><span class="ni-icon">👨‍👩‍👧</span>זמן משפחתי</div>
+    <div class="nav-sec">כלים</div>
+    <div class="ni" onclick="goPage('ideas',this)"><span class="ni-icon">💡</span>רעיונות</div>
+    <div class="ni" onclick="goPage('journal',this)"><span class="ni-icon">✍️</span>יומן</div>
+    <div class="ni" onclick="goPage('goals',this)"><span class="ni-icon">🎯</span>מטרות</div>
+  </nav>
+  <div class="sidebar-btm">
+    <button class="vbtn" id="vbtn" onclick="toggleVoice()">🎙 <span id="vlbl">דבר עם הסוכן</span></button>
+  </div>
+</aside>
+
+<header class="topbar">
+  <button class="mob-menu" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+  <div><div class="tb-title" id="pt">דשבורד</div><div class="tb-date" id="td"></div></div>
+  <div class="tb-space"></div>
+  <input class="tb-search inp" placeholder="חיפוש...">
+  <button class="gcal-btn" id="gcal-btn" onclick="connectCal()">📅 Calendar</button>
+  <div class="ava">ר</div>
+</header>
+
+<main class="main" id="main">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="sr s4">
+    <div class="sc sc-p" onclick="goPage('tasks',null)">
+      <div class="sl">משימות פתוחות</div><div class="sv" id="ds-tasks">—</div>
+      <div class="ss" id="ds-tasks-s">טוען...</div>
+    </div>
+    <div class="sc sc-b" onclick="goPage('agenda',null)">
+      <div class="sl">אירועים היום</div><div class="sv" id="ds-ev">—</div>
+      <div class="ss" id="ds-ev-s">חבר Calendar</div>
+    </div>
+    <div class="sc sc-g" onclick="goPage('health',null)">
+      <div class="sl">קלוריות</div><div class="sv" id="ds-kcal">0</div>
+      <div class="ss" id="ds-kcal-s">יעד: —</div>
+    </div>
+    <div class="sc sc-a">
+      <div class="sl">התקדמות שבועית</div><div class="sv" id="ds-week">0%</div>
+      <div class="ss" id="ds-week-s">0/0 משימות</div>
+    </div>
+  </div>
+  <!-- Progress by category -->
+  <div class="card">
+    <div class="ch"><div class="ct">התקדמות לפי תחום</div></div>
+    <div id="cat-progress"></div>
+  </div>
+  <div class="g31">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="ch"><div class="ct">משימות היום</div><span class="ca" onclick="goPage('tasks',null)">הכל →</span></div>
+        <div id="dash-tasks"></div>
+        <div class="irow">
+          <input class="inp" style="flex:1" id="qt" placeholder="משימה מהירה..." onkeydown="if(event.key==='Enter')qTask()">
+          <select class="inp" id="qt-cat" style="padding:6px 8px">
+            <option value="work">💼</option><option value="health">💪</option>
+            <option value="family">👨‍👩‍👧</option><option value="project">🚀</option><option value="home">🏡</option>
+          </select>
+          <button class="btn bp bsm" onclick="qTask()">+</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">פרויקטים</div></div>
+        <div id="dash-proj"></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="ch"><div class="ct">אירועים היום</div></div>
+        <div id="dash-ev"><div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">📅 חבר Google Calendar</div></div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">הרגלים</div></div>
+        <div id="dash-habits"></div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">תזכורות קרובות</div><span class="ca" onclick="goPage('reminders',null)">כל →</span></div>
+        <div id="dash-reminders"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AGENDA -->
+<div class="page" id="page-agenda">
+  <div class="card">
+    <div class="ch">
+      <div class="ct">🗓️ לוז שבועי חכם</div>
+      <div style="display:flex;gap:7px">
+        <button class="btn bs bsm" onclick="syncTasks()">🔄 סנכרן משימות</button>
+        <button class="btn bp bsm" onclick="openWeekAI()">🤖 עוזר AI</button>
+      </div>
+    </div>
+    <!-- Week AI Chat -->
+    <div id="week-ai-wrap" style="display:none;margin-bottom:14px;padding:12px;background:var(--accent-light);border-radius:var(--radius-sm);border:1px solid var(--accent)">
+      <div class="ct" style="margin-bottom:8px;color:var(--accent)">🤖 עוזר לוז שבועי — ספר לי על הפגישות והפעילויות שלך</div>
+      <div class="aic" id="week-chat" style="max-height:180px"></div>
+      <div class="crow">
+        <button class="micb" id="mic-week" onclick="toggleMic('week')">🎙</button>
+        <input class="inp" style="flex:1" id="week-input" placeholder="יש לי אימון כל יום ב-7 בבוקר, ישיבה שלישי 10..." onkeydown="if(event.key==='Enter')sendWeekAI()">
+        <button class="btn bp bsm" onclick="sendWeekAI()">↗</button>
+      </div>
+      <div class="chips" id="week-chips">
+        <div class="chip" onclick="setWI('הוסף אימון כל יום 7:00-8:00')">🏋️ אימון יומי</div>
+        <div class="chip" onclick="setWI('הוסף עבודה מ-9:00 עד 18:00 ימים א-ה')">💼 שעות עבודה</div>
+        <div class="chip" onclick="setWI('פגישה קבועה ביום שלישי 10:00')">📍 פגישה קבועה</div>
+        <div class="chip" onclick="setWI('הוסף זמן משפחתי שישי ערב')">👨‍👩‍👧 שישי משפחה</div>
+      </div>
+    </div>
+    <!-- Grid selection info -->
+    <div id="sel-info" style="display:none;background:var(--accent-light);border:1px solid var(--accent);border-radius:var(--radius-xs);padding:7px 12px;margin-bottom:10px;font-size:12px;color:var(--accent)"></div>
+    <div class="wg-wrap">
+      <div class="wg" id="week-grid"></div>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--text3);display:flex;gap:16px;flex-wrap:wrap">
+      <span>לחיצה אחת — בחר תא</span>
+      <span>גרור — בחר טווח שעות</span>
+      <span>לחיצה כפולה — ערוך אירוע</span>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><div class="ct">הוסף לקאלנדר</div></div>
+      <input class="inp inp-full" id="ev-name" placeholder="שם האירוע" style="margin-bottom:6px">
+      <div class="irow" style="margin-top:0">
+        <input class="inp" type="date" id="ev-date" style="flex:1">
+        <input class="inp" type="time" id="ev-time" style="flex:1">
+        <input class="inp" id="ev-dur" type="number" placeholder="דק'" style="width:60px">
+      </div>
+      <div class="irow">
+        <select class="inp" id="ev-proj" style="flex:1">
+          <option value="">ללא שיוך</option>
+          <option value="jobs">💼 חיפוש עבודה</option>
+          <option value="upselles">🚀 Upselles</option>
+          <option value="health">💪 כושר</option>
+          <option value="apartment">🏡 דירה</option>
+          <option value="family">👨‍👩‍👧 משפחה</option>
+        </select>
+        <select class="inp" id="ev-repeat" style="flex:1">
+          <option value="once">חד פעמי</option>
+          <option value="weekly">שבועי קבוע</option>
+          <option value="daily">יומי</option>
+        </select>
+        <button class="btn bp bsm" onclick="addCalEvent()">הוסף</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">סיכום שבועי</div></div>
+      <div class="ring-wrap" style="margin-bottom:12px">
+        <svg width="68" height="68" class="ring-svg">
+          <circle fill="none" stroke="var(--bg4)" stroke-width="8" cx="34" cy="34" r="26"/>
+          <circle fill="none" stroke="var(--accent)" stroke-width="8" cx="34" cy="34" r="26" stroke-linecap="round" stroke-dasharray="163" id="wr" stroke-dashoffset="163"/>
+        </svg>
+        <div>
+          <div style="font-size:20px;font-weight:700;color:var(--accent)" id="wp">0%</div>
+          <div style="font-size:11px;color:var(--text3)">השבוע הושלם</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px" id="wd">0/0 משימות</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TASKS -->
+<div class="page" id="page-tasks">
+  <div class="card">
+    <div class="ch">
+      <div class="ct">כל המשימות</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <select class="inp" id="tf-cat" onchange="renderAllTasks()" style="padding:4px 7px;font-size:12px">
+          <option value="all">כל הקטגוריות</option>
+          <option value="work">💼 עבודה</option><option value="health">💪 בריאות</option>
+          <option value="family">👨‍👩‍👧 משפחה</option><option value="project">🚀 פרויקט</option><option value="home">🏡 דירה</option>
+        </select>
+        <select class="inp" id="tf-per" onchange="renderAllTasks()" style="padding:4px 7px;font-size:12px">
+          <option value="all">כל התקופות</option>
+          <option value="daily">יומי</option><option value="weekly">שבועי</option>
+          <option value="monthly">חודשי</option><option value="once">חד פעמי</option>
+        </select>
+        <select class="inp" id="tf-proj" onchange="renderAllTasks()" style="padding:4px 7px;font-size:12px">
+          <option value="all">כל הפרויקטים</option>
+          <option value="jobs">חיפוש עבודה</option><option value="upselles">Upselles</option>
+          <option value="health">כושר</option><option value="apartment">דירה</option><option value="none">כללי</option>
+        </select>
+      </div>
+    </div>
+    <div id="all-tasks"></div>
+    <div class="irow" style="margin-top:14px;flex-wrap:wrap">
+      <input class="inp" style="flex:1;min-width:150px" id="nt" placeholder="משימה חדשה..." onkeydown="if(event.key==='Enter')addTask()">
+      <select class="inp" id="nt-cat" style="font-size:12px">
+        <option value="work">💼 עבודה</option><option value="health">💪 בריאות</option>
+        <option value="family">👨‍👩‍👧 משפחה</option><option value="project">🚀 פרויקט</option><option value="home">🏡 דירה</option>
+      </select>
+      <select class="inp" id="nt-per" style="font-size:12px">
+        <option value="once">חד פעמי</option><option value="daily">יומי</option>
+        <option value="weekly">שבועי</option><option value="monthly">חודשי</option>
+      </select>
+      <select class="inp" id="nt-proj" style="font-size:12px">
+        <option value="none">ללא פרויקט</option>
+        <option value="jobs">💼 עבודה</option><option value="upselles">🚀 Upselles</option>
+        <option value="health">💪 כושר</option><option value="apartment">🏡 דירה</option>
+      </select>
+      <button class="btn bp" onclick="addTask()">הוסף</button>
+    </div>
+  </div>
+</div>
+
+<!-- REMINDERS -->
+<div class="page" id="page-reminders">
+  <div class="card">
+    <div class="ch"><div class="ct">🔔 תזכורות מתוזמנות</div><button class="btn bp bsm" onclick="addReminder()">+ תזכורת</button></div>
+    <div id="reminders-list"></div>
+  </div>
+</div>
+
+<!-- JOBS -->
+<div class="page" id="page-jobs">
+  <div class="pbox">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
       <div>
-        <div class="logo-text">Personal OS</div>
-        <div class="logo-sub">רואי קליין</div>
+        <div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:4px">רואי קליין — פרופיל מקצועי</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.7">M.Sc Data Science & AI (Bar-Ilan) | B.A. Economics & Business (88)<br>Upselles Founder | ניתוח נתונים • KPI • Product • Python • SQL<br>מחפש: AI Analyst / Growth / Product Manager / Analytics</div>
+      </div>
+      <button class="btn bs bsm" onclick="editProfile()">✏️ ערוך</button>
+    </div>
+  </div>
+  <div class="sr s3">
+    <div class="sc sc-b"><div class="sl">נשלחו</div><div class="sv" id="j-s">0</div></div>
+    <div class="sc sc-a"><div class="sl">ממתין</div><div class="sv" id="j-w">0</div></div>
+    <div class="sc sc-g"><div class="sl">ראיונות</div><div class="sv" id="j-i">0</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><div class="ct">🤖 סוכן חיפוש + ניתוח משרות</div></div>
+      <div class="chips">
+        <div class="chip" onclick="setJobInput('חפש לי משרות Data Analyst בתל אביב')">🔍 חפש משרות</div>
+        <div class="chip" onclick="setJobInput('הדבק קישור למשרה לניתוח מלא')">📋 נתח משרה</div>
+        <div class="chip" onclick="setJobInput('התאם לי קורות חיים למשרה זו')">📄 התאם CV</div>
+      </div>
+      <div class="aic" id="jobs-chat" style="max-height:240px">
+        <div class="msg"><div class="mav ai">AI</div><div class="mb">שלום רואי! אני מנתח משרות בזמן אמת. הדבק קישור לניתוח מלא עם אחוזי התאמה + CV מותאם כ-PDF מוכן לשליחה. או בקש ממני לחפש משרות.</div></div>
+      </div>
+      <div class="crow">
+        <button class="micb" id="mic-jobs" onclick="toggleMic('jobs')">🎙</button>
+        <input class="inp" style="flex:1" id="jobs-inp" placeholder="קישור למשרה / בקש חיפוש..." onkeydown="if(event.key==='Enter')sendChat('jobs')">
+        <button class="btn bp bsm" onclick="sendChat('jobs')">↗</button>
       </div>
     </div>
-    <nav class="nav">
-      <div class="nav-section">ראשי</div>
-      <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">⊞</span> דשבורד</div>
-      <div class="nav-item" onclick="showPage('agenda',this)"><span class="nav-icon">◷</span> סדר יום</div>
-      <div class="nav-item" onclick="showPage('tasks',this)"><span class="nav-icon">✓</span> משימות <span class="nav-badge" id="task-badge">5</span></div>
-      <div class="nav-section">פרויקטים</div>
-      <div class="nav-item" onclick="showPage('jobs',this)"><span class="nav-icon">◈</span> חיפוש עבודה</div>
-      <div class="nav-item" onclick="showPage('health',this)"><span class="nav-icon">◎</span> בריאות ואוכל</div>
-      <div class="nav-item" onclick="showPage('upselles',this)"><span class="nav-icon">◆</span> Upselles</div>
-      <div class="nav-item" onclick="showPage('family',this)"><span class="nav-icon">◑</span> זמן משפחתי</div>
-      <div class="nav-section">כלים</div>
-      <div class="nav-item" onclick="showPage('journal',this)"><span class="nav-icon">✎</span> יומן כתיבה</div>
-      <div class="nav-item" onclick="showPage('goals',this)"><span class="nav-icon">◉</span> מטרות ויעדים</div>
-    </nav>
-    <div class="sidebar-bottom">
-      <button class="voice-btn" id="main-voice-btn" onclick="toggleMainVoice()">
-        🎙 <span id="voice-label">דבר עם הסוכן</span>
-      </button>
-    </div>
-  </aside>
-
-  <header class="topbar">
-    <div>
-      <div class="topbar-title" id="page-title">דשבורד</div>
-      <div class="topbar-date" id="topbar-date"></div>
-    </div>
-    <div class="topbar-spacer"></div>
-    <button id="gcal-status-btn" onclick="connectGoogleCalendar()" style="display:flex;align-items:center;gap:8px;font-size:13px;color:#fff;padding:8px 16px;background:#4285f4;border:none;border-radius:8px;cursor:pointer;font-family:Heebo,sans-serif;font-weight:500;pointer-events:all;z-index:999">
-      <span>📅</span>
-      <span id="gcal-status-label">חבר Google Calendar</span>
-    </button>
-    <div class="topbar-avatar">ר</div>
-  </header>
-
-  <main class="main">
-
-    <!-- DASHBOARD -->
-    <div class="page active" id="page-dashboard">
-      <div class="stats-row">
-        <div class="stat-card stat-green">
-          <div class="stat-label">משימות פתוחות</div>
-          <div class="stat-value" id="stat-tasks">5</div>
-          <div class="stat-sub" id="stat-tasks-sub">2 הושלמו היום</div>
-        </div>
-        <div class="stat-card stat-blue">
-          <div class="stat-label">אירועים היום</div>
-          <div class="stat-value" id="stat-events">—</div>
-          <div class="stat-sub" id="stat-events-sub">חבר Calendar לצפייה</div>
-        </div>
-        <div class="stat-card stat-amber">
-          <div class="stat-label">התקדמות שבועית</div>
-          <div class="stat-value">68%</div>
-          <div class="stat-sub">17/25 משימות</div>
-        </div>
-        <div class="stat-card stat-teal">
-          <div class="stat-label">צעדים היום</div>
-          <div class="stat-value">6,240</div>
-          <div class="stat-sub">יעד: 10,000</div>
+    <div class="card">
+      <div class="ch">
+        <div class="ct">משרות במעקב</div>
+        <div style="display:flex;gap:6px">
+          <select class="inp" id="jf-cat" onchange="renderJobs()" style="padding:3px 6px;font-size:11px">
+            <option value="all">כולן</option>
+            <option value="AI Analyst">AI Analyst</option><option value="Growth">Growth</option>
+            <option value="Product">Product</option><option value="Analytics">Analytics</option>
+          </select>
+          <button class="btn bs bxs" onclick="addJobManual()">+ ידני</button>
         </div>
       </div>
-      <div class="three-col">
-        <div class="card">
-          <div class="card-title">משימות להיום</div>
-          <div id="tasks-list"></div>
-          <div class="add-task">
-            <input type="text" id="new-task-input" placeholder="הוסף משימה..." onkeydown="if(event.key==='Enter')addTask()">
-            <button class="btn-sm" onclick="addTask()">+ הוסף</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">אירועים היום</div>
-          <div id="events-today"></div>
-        </div>
-      </div>
-      <div class="two-col">
-        <div class="card">
-          <div class="card-title">פרויקטים פעילים</div>
-          <div class="projects-grid" id="projects-list"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">הרגלים יומיים</div>
-          <div id="habits-list"></div>
-        </div>
-      </div>
+      <div id="jobs-list"></div>
     </div>
+  </div>
+</div>
 
-    <!-- AGENDA -->
-    <div class="page" id="page-agenda">
+<!-- UPSELLES -->
+<div class="page" id="page-upselles">
+  <div class="pbox" style="background:linear-gradient(135deg,var(--purple-bg),#fdf4ff)">
+    <div style="font-size:15px;font-weight:700;color:var(--purple);margin-bottom:5px">🚀 Upselles</div>
+    <div style="font-size:11px;color:var(--text2);line-height:1.7">פלטפורמה: עסקים + סלזמנים פרילנס | Marketplace • CRM משותף • מעקב real-time<br>MVP ~80% | שלב: Pilot + לקוחות ראשונים | GTM: ישראל → ארה"ב</div>
+  </div>
+  <div class="sr s4">
+    <div class="sc sc-g"><div class="sl">הכנסה</div><div class="sv" id="u-rev">₪0</div></div>
+    <div class="sc sc-b"><div class="sl">לידים</div><div class="sv" id="u-leads-n">0</div></div>
+    <div class="sc sc-a"><div class="sl">מיילים</div><div class="sv" id="u-emails">0</div></div>
+    <div class="sc sc-p"><div class="sl">המרה</div><div class="sv" id="u-conv">0%</div></div>
+  </div>
+  <div class="g2">
+    <div style="display:flex;flex-direction:column;gap:14px">
       <div class="card">
-        <div class="card-title">השבוע</div>
-        <div class="cal-strip" id="cal-strip"></div>
+        <div class="ch"><div class="ct">🗺️ Roadmap</div><button class="btn bs bsm" onclick="addRmItem()">+ פיצ'ר</button></div>
+        <div id="rm-list"></div>
       </div>
-      <div class="two-col">
-        <div class="card">
-          <div class="card-title">אירועים — <span id="selected-day-label"></span></div>
-          <div id="agenda-events"><div style="color:var(--text3);font-size:13px;text-align:center;padding:16px">חבר Google Calendar לצפייה באירועים</div></div>
-          <div class="add-event-form">
-            <div style="font-size:12px;color:var(--text3);margin-bottom:2px">הוסף אירוע לקאלנדר</div>
-            <input type="text" id="ev-title" placeholder="שם האירוע">
-            <div class="add-event-row">
-              <input type="date" id="ev-date" style="flex:1">
-              <input type="time" id="ev-time" style="flex:1">
-              <button class="btn-sm" onclick="addCalendarEvent()">הוסף</button>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">סיכום שבועי</div>
-          <div class="ring-container" style="margin-bottom:16px">
-            <svg width="70" height="70" style="transform:rotate(-90deg)">
-              <circle fill="none" stroke="var(--bg4)" stroke-width="8" cx="35" cy="35" r="27"/>
-              <circle fill="none" stroke="var(--green)" stroke-width="8" cx="35" cy="35" r="27" stroke-linecap="round" stroke-dasharray="170" stroke-dashoffset="54"/>
-            </svg>
-            <div>
-              <div style="font-size:20px;font-weight:700;color:var(--green)">68%</div>
-              <div style="font-size:11px;color:var(--text3)">השבוע הושלם</div>
-            </div>
-          </div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.8">17 מתוך 25 משימות ✓<br>3 פגישות התקיימו<br>2 יעדים קודמו</div>
-        </div>
+      <!-- Workspace -->
+      <div class="card">
+        <div class="ch"><div class="ct">📝 מרחב עבודה</div><button class="btn bs bsm" onclick="saveWorkspace()">💾 שמור</button></div>
+        <textarea class="inp inp-full" id="workspace" rows="6" placeholder="רשימות, מחשבות, תכניות, עדכונים... הכל כאן"></textarea>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px" id="ws-saved"></div>
       </div>
     </div>
-
-    <!-- TASKS -->
-    <div class="page" id="page-tasks">
+    <div style="display:flex;flex-direction:column;gap:14px">
       <div class="card">
-        <div class="card-title">כל המשימות</div>
-        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-          <button class="btn-sm" style="background:var(--bg3);color:var(--text);border:1px solid var(--border)" onclick="filterTasks('all')">הכל</button>
-          <button class="btn-sm" style="background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue)" onclick="filterTasks('work')">עבודה</button>
-          <button class="btn-sm" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green)" onclick="filterTasks('health')">בריאות</button>
-          <button class="btn-sm" style="background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber)" onclick="filterTasks('family')">משפחה</button>
-          <button class="btn-sm" style="background:var(--accent-glow);color:var(--accent);border:1px solid var(--accent2)" onclick="filterTasks('project')">פרויקטים</button>
+        <div class="ch"><div class="ct">🎯 סוכן עסקי</div></div>
+        <div class="chips">
+          <div class="chip" onclick="setUI('כתוב לי מייל שיווקי ל-SMB')">✉️ מייל שיווקי</div>
+          <div class="chip" onclick="setUI('נתח את התחרות שלי')">🔍 ניתוח תחרות</div>
+          <div class="chip" onclick="setUI('עזור לי עם GTM לארה\"ב')">🌍 GTM</div>
         </div>
-        <div id="all-tasks-list"></div>
-        <div class="add-task" style="margin-top:14px">
-          <input type="text" id="new-task2" class="chat-input" placeholder="משימה חדשה..." onkeydown="if(event.key==='Enter')addTask2()">
-          <select id="task-cat"><option value="work">עבודה</option><option value="health">בריאות</option><option value="family">משפחה</option><option value="project">פרויקט</option></select>
-          <button class="btn-sm" onclick="addTask2()">הוסף</button>
+        <div class="aic" id="upselles-chat" style="max-height:180px">
+          <div class="msg"><div class="mav ai">AI</div><div class="mb">אני הסוכן האסטרטגי של Upselles. מכיר את המוצר לעומק. כתיבת מיילים, ניהול לידים, ניתוח תחרות, GTM — מה צריך?</div></div>
         </div>
-      </div>
-    </div>
-
-    <!-- JOBS -->
-    <div class="page" id="page-jobs">
-      <div class="stats-row" style="grid-template-columns:repeat(3,1fr)">
-        <div class="stat-card stat-blue"><div class="stat-label">נשלחו</div><div class="stat-value" id="jobs-sent">12</div></div>
-        <div class="stat-card stat-amber"><div class="stat-label">ממתין</div><div class="stat-value" id="jobs-waiting">7</div></div>
-        <div class="stat-card stat-green"><div class="stat-label">ראיונות</div><div class="stat-value" id="jobs-interviews">2</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">סוכן ניתוח משרות — AI</div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.6">
-          פרופיל: כלכלה + BA (88), M.Sc Data Science & AI (Bar-Ilan), ניתוח נתונים, KPI, Excel, SPSS<br>
-          מחפש: AI Analyst / Growth / Product / Analytics
-        </div>
-        <div class="ai-chat" id="jobs-chat">
-          <div class="msg"><div class="msg-avatar ai">AI</div><div class="msg-bubble">שלום רועי! תדביק קישור למשרה ואנתח עבורך: אחוזי התאמה לפרופיל שלך, קטגוריה (AI/Growth/Product/Analytics), ציון 0-100, והמלצה האם לשלוח.</div></div>
-        </div>
-        <div class="chat-input-row">
-          <button class="mic-btn" id="mic-jobs" onclick="toggleMic('jobs')">🎙</button>
-          <input class="chat-input" id="jobs-input" placeholder="הדבק קישור משרה או תיאור..." onkeydown="if(event.key==='Enter')sendMsg('jobs')">
-          <button class="btn-sm" onclick="sendMsg('jobs')">נתח ↗</button>
+        <div class="crow">
+          <button class="micb" id="mic-upselles" onclick="toggleMic('upselles')">🎙</button>
+          <input class="inp" style="flex:1" id="upselles-inp" placeholder="אסטרטגיה / מייל / ניתוח..." onkeydown="if(event.key==='Enter')sendChat('upselles')">
+          <button class="btn bp bsm" onclick="sendChat('upselles')">↗</button>
         </div>
       </div>
       <div class="card">
-        <div class="card-title">משרות במעקב</div>
-        <div id="jobs-tracker-list" style="display:flex;flex-direction:column;gap:8px">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg3);border-radius:var(--radius-sm);border:1px solid var(--border)">
-            <div><div style="font-size:13px;font-weight:500">Junior Data Analyst — Google</div><div style="font-size:11px;color:var(--text3);margin-top:2px">נשלח 25.4 | התאמה: 87%</div></div>
-            <span style="font-size:10px;padding:3px 8px;border-radius:10px;background:var(--amber-bg);color:var(--amber)">ממתין</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg3);border-radius:var(--radius-sm);border:1px solid var(--border)">
-            <div><div style="font-size:13px;font-weight:500">Growth Analyst — Monday.com</div><div style="font-size:11px;color:var(--text3);margin-top:2px">נשלח 22.4 | התאמה: 82%</div></div>
-            <span style="font-size:10px;padding:3px 8px;border-radius:10px;background:var(--blue-bg);color:var(--blue)">ראיון</span>
-          </div>
-        </div>
+        <div class="ch"><div class="ct">לידים</div><button class="btn bs bxs" onclick="addLead()">+ ליד</button></div>
+        <div id="leads-list"></div>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- HEALTH -->
-    <div class="page" id="page-health">
-      <div class="stats-row">
-        <div class="stat-card stat-green"><div class="stat-label">קלוריות</div><div class="stat-value">1,840</div><div class="stat-sub">יעד: 2,200</div></div>
-        <div class="stat-card stat-blue"><div class="stat-label">חלבון</div><div class="stat-value">112g</div><div class="stat-sub">יעד: 150g</div></div>
-        <div class="stat-card stat-teal"><div class="stat-label">צעדים</div><div class="stat-value">6,240</div><div class="stat-sub">יעד: 10,000</div></div>
-        <div class="stat-card stat-amber"><div class="stat-label">אימונים</div><div class="stat-value">3</div><div class="stat-sub">יעד שבועי: 4</div></div>
-      </div>
-      <div class="two-col">
-        <div class="card">
-          <div class="card-title">תפריט היום</div>
-          <div id="meals-list" style="display:flex;flex-direction:column;gap:8px">
-            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;justify-content:space-between">
-              <div><div style="font-size:13px;font-weight:500">08:00 — חביתה + לחם שיפון</div><div style="font-size:11px;color:var(--text3);margin-top:2px">380 קל׳ | 22g חלבון</div></div>
-              <span style="color:var(--green);font-size:16px">✓</span>
-            </div>
-            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;justify-content:space-between">
-              <div><div style="font-size:13px;font-weight:500">13:00 — סלט טונה</div><div style="font-size:11px;color:var(--text3);margin-top:2px">320 קל׳ | 35g חלבון</div></div>
-              <span style="color:var(--green);font-size:16px">✓</span>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">סוכן תזונה ואימונים</div>
-          <div class="ai-chat" id="health-chat" style="max-height:180px">
-            <div class="msg"><div class="msg-avatar ai">AI</div><div class="msg-bubble">אמור לי מה אכלת, כמה צעדים עשית, או בקש מתכון שמתאים לתפריט שלך.</div></div>
-          </div>
-          <div class="chat-input-row">
-            <button class="mic-btn" id="mic-health" onclick="toggleMic('health')">🎙</button>
-            <input class="chat-input" id="health-input" placeholder="אכלתי... / חפש מתכון..." onkeydown="if(event.key==='Enter')sendMsg('health')">
-            <button class="btn-sm" onclick="sendMsg('health')">שלח ↗</button>
-          </div>
+<!-- HEALTH -->
+<div class="page" id="page-health">
+  <div class="pbox" style="background:linear-gradient(135deg,var(--green-bg),#f0fdf4)">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:6px">💪 פרופיל גוף</div>
+        <div style="display:flex;gap:20px">
+          <div><div style="font-size:10px;color:var(--text3)">משקל</div><div style="font-size:18px;font-weight:700" id="hp-w">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3)">מטרה</div><div style="font-size:18px;font-weight:700;color:var(--green)" id="hp-g">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3)">גובה</div><div style="font-size:18px;font-weight:700" id="hp-h">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3)">BMI</div><div style="font-size:18px;font-weight:700" id="hp-bmi">—</div></div>
         </div>
       </div>
+      <button class="btn bg bsm" onclick="editBodyProfile()">✏️ עדכן</button>
     </div>
-
-    <!-- UPSELLES -->
-    <div class="page" id="page-upselles">
-      <div class="stats-row" style="grid-template-columns:repeat(3,1fr)">
-        <div class="stat-card stat-green"><div class="stat-label">הכנסה החודש</div><div class="stat-value">₪0</div></div>
-        <div class="stat-card stat-blue"><div class="stat-label">לידים פעילים</div><div class="stat-value" id="leads-count">0</div></div>
-        <div class="stat-card stat-amber"><div class="stat-label">מיילים שנשלחו</div><div class="stat-value">0</div></div>
-      </div>
-      <div class="two-col">
-        <div class="card">
-          <div class="card-title">סוכן שיווק — Upselles</div>
-          <div class="ai-chat" id="upselles-chat">
-            <div class="msg"><div class="msg-avatar ai">AI</div><div class="msg-bubble">אני סוכן Upselles. אני יכול לנסח מיילים שיווקיים, לנהל לידים ולעקוב אחר התקדמות. במה להתחיל?</div></div>
-          </div>
-          <div class="chat-input-row">
-            <button class="mic-btn" id="mic-upselles" onclick="toggleMic('upselles')">🎙</button>
-            <input class="chat-input" id="upselles-input" placeholder="כתוב מייל ל... / הוסף ליד..." onkeydown="if(event.key==='Enter')sendMsg('upselles')">
-            <button class="btn-sm" onclick="sendMsg('upselles')">שלח ↗</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">רשימת לידים</div>
-          <div id="leads-list" style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">אין לידים עדיין</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- FAMILY -->
-    <div class="page" id="page-family">
+  </div>
+  <div class="sr s4">
+    <div class="sc sc-g"><div class="sl">קלוריות</div><div class="sv" id="h-kcal">0</div><div class="ss" id="h-kcal-s">יעד: —</div></div>
+    <div class="sc sc-b"><div class="sl">חלבון</div><div class="sv" id="h-prot">0g</div><div class="ss" id="h-prot-s">יעד: —</div></div>
+    <div class="sc sc-a"><div class="sl">אימונים</div><div class="sv" id="h-wo">0</div><div class="ss">יעד: 4/שבוע</div></div>
+    <div class="sc sc-t"><div class="sl">מים</div><div class="sv" id="h-water">0/8</div><div class="ss">כוסות</div></div>
+  </div>
+  <div class="g2">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <!-- FOOD -->
       <div class="card">
-        <div class="card-title">בלוז שבועי משפחתי</div>
-        <div id="family-week" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px"></div>
-      </div>
-      <div class="two-col">
-        <div class="card">
-          <div class="card-title">אירועים משפחתיים</div>
-          <div id="family-events" style="color:var(--text3);font-size:13px">הוסף דרך הסוכן</div>
+        <div class="ch"><div class="ct">🍽️ מה אכלתי</div><button class="btn bs bsm" onclick="addMealManual()">+ ארוחה</button></div>
+        <div id="meals-list"></div>
+        <div class="macro-g">
+          <div class="macro-c"><div style="font-size:16px;font-weight:700" id="m-k">0</div><div style="font-size:10px;color:var(--text3)">קל׳</div><div class="pb" style="margin-top:5px"><div class="pf" id="m-k-b" style="background:var(--green);width:0%"></div></div></div>
+          <div class="macro-c"><div style="font-size:16px;font-weight:700" id="m-p">0g</div><div style="font-size:10px;color:var(--text3)">חלבון</div><div class="pb" style="margin-top:5px"><div class="pf" id="m-p-b" style="background:var(--blue);width:0%"></div></div></div>
+          <div class="macro-c"><div style="font-size:16px;font-weight:700" id="m-c">0g</div><div style="font-size:10px;color:var(--text3)">פחמימות</div><div class="pb" style="margin-top:5px"><div class="pf" id="m-c-b" style="background:var(--amber);width:0%"></div></div></div>
         </div>
-        <div class="card">
-          <div class="card-title">סוכן זמן משפחתי</div>
-          <div class="ai-chat" id="family-chat" style="max-height:160px">
-            <div class="msg"><div class="msg-avatar ai">AI</div><div class="msg-bubble">עוזר לתכנן זמן איכות משפחתי. הצע פעילויות, תזמן אירועים, חלק את הבלוז.</div></div>
+        <!-- Meal suggestions -->
+        <div style="margin-top:12px">
+          <div class="ct" style="margin-bottom:6px">הצעות ארוחה</div>
+          <div style="display:flex;gap:6px;margin-bottom:6px">
+            <button class="btn bs bxs" onclick="getMealSug('בוקר')" style="flex:1">🌅 בוקר</button>
+            <button class="btn bs bxs" onclick="getMealSug('צהריים')" style="flex:1">☀️ צהריים</button>
+            <button class="btn bs bxs" onclick="getMealSug('ערב')" style="flex:1">🌙 ערב</button>
+            <button class="btn bs bxs" onclick="getMealSug('חטיף')" style="flex:1">🍎 חטיף</button>
           </div>
-          <div class="chat-input-row">
-            <input class="chat-input" id="family-input" placeholder="הוסף אירוע / בקש הצעות..." onkeydown="if(event.key==='Enter')sendMsg('family')">
-            <button class="btn-sm" onclick="sendMsg('family')">שלח ↗</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- JOURNAL -->
-    <div class="page" id="page-journal">
-      <div class="two-col">
-        <div class="card">
-          <div class="card-title">כתיבה חופשית</div>
-          <textarea id="journal-text" rows="12" placeholder="מה על ליבך היום?..."></textarea>
-          <div style="display:flex;gap:8px;margin-top:10px">
-            <button class="btn-sm" onclick="saveJournal()">שמור</button>
-            <button class="btn-sm" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)" onclick="analyzeJournal()">✨ נתח עם AI</button>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:16px">
-          <div class="card">
-            <div class="card-title">ערכים קודמים</div>
-            <div id="journal-entries" style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text2)">
-              <div style="padding:8px;background:var(--bg3);border-radius:var(--radius-sm);cursor:pointer">28 באפריל</div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-title">ניתוח AI</div>
-            <div id="journal-analysis" style="font-size:13px;color:var(--text2);line-height:1.6">כתוב ביומן ולחץ "נתח עם AI".</div>
-          </div>
+          <div id="meal-sug" style="font-size:12px;color:var(--text2);min-height:30px"></div>
         </div>
       </div>
-    </div>
-
-    <!-- GOALS -->
-    <div class="page" id="page-goals">
+      <!-- WATER -->
       <div class="card">
-        <div class="card-title">מטרות ויעדים</div>
-        <div id="goals-list" style="display:flex;flex-direction:column;gap:12px"></div>
-        <button class="btn-sm" style="margin-top:14px" onclick="addGoal()">+ מטרה חדשה</button>
+        <div class="ch"><div class="ct">💧 מים</div><button class="btn bs bsm" onclick="resetWater()">איפוס</button></div>
+        <div class="water-drops" id="water-drops"></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px">לחץ על כוס להוספה</div>
       </div>
     </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <!-- WORKOUT LOG -->
+      <div class="card">
+        <div class="ch"><div class="ct">🏋️ יומן אימונים</div><button class="btn bp bsm" onclick="addWorkout()">+ אימון</button></div>
+        <div id="workouts-list"></div>
+      </div>
+      <!-- AI TRAINER -->
+      <div class="card">
+        <div class="ch"><div class="ct">🤖 מאמן אישי AI</div></div>
+        <div class="chips">
+          <div class="chip" onclick="setHI('אכלתי ')">🍽️ רשום ארוחה</div>
+          <div class="chip" onclick="setHI('עשיתי אימון ')">🏋️ רשום אימון</div>
+          <div class="chip" onclick="setHI('המלץ לי ארוחת בוקר בריאה')">💡 המלצה</div>
+        </div>
+        <div class="aic" id="health-chat" style="max-height:160px">
+          <div class="msg"><div class="mav ai">AI</div><div class="mb">אני המאמן שלך! ספר מה אכלת ואחשב מאקרו, עדכן אימון ואנתח, ובקש המלצות תזונה לפי היעדים שלך.</div></div>
+        </div>
+        <div class="crow">
+          <button class="micb" id="mic-health" onclick="toggleMic('health')">🎙</button>
+          <input class="inp" style="flex:1" id="health-inp" placeholder="אכלתי / אימון / המלצה..." onkeydown="if(event.key==='Enter')sendChat('health')">
+          <button class="btn bp bsm" onclick="sendChat('health')">↗</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-  </main>
+<!-- APARTMENT -->
+<div class="page" id="page-apartment">
+  <div class="pbox" style="background:linear-gradient(135deg,var(--teal-bg),#f0fdfa)">
+    <div style="font-size:14px;font-weight:700;color:var(--teal);margin-bottom:3px">🏡 חיפוש דירה — תל אביב</div>
+    <div style="font-size:11px;color:var(--text2)">אזור: דיזינגוף — כרם התימנים | קרוב לים | חדר בדירת שותפים</div>
+  </div>
+  <div class="sr s3">
+    <div class="sc sc-t"><div class="sl">במעקב</div><div class="sv" id="apt-n">0</div></div>
+    <div class="sc sc-b"><div class="sl">פגישות</div><div class="sv" id="apt-m">0</div></div>
+    <div class="sc sc-g"><div class="sl">מועמדות חמות</div><div class="sv" id="apt-h">0</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ch">
+        <div class="ct">דירות במעקב</div>
+        <div style="display:flex;gap:6px">
+          <select class="inp" id="af-s" onchange="renderApts()" style="padding:3px 6px;font-size:11px">
+            <option value="all">כולן</option><option value="active">מעניין</option>
+            <option value="viewing">לראות</option><option value="applied">יצרתי קשר</option>
+          </select>
+          <button class="btn bp bsm" onclick="addApt()">+ הוסף</button>
+        </div>
+      </div>
+      <div id="apt-list"></div>
+      <!-- FB import placeholder -->
+      <div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:var(--radius-xs);border:1px dashed var(--border2);text-align:center">
+        <div style="font-size:12px;color:var(--text3)">📱 Import מפייסבוק — הדבק קישור לדירה</div>
+        <div class="irow" style="margin-top:7px">
+          <input class="inp" style="flex:1" id="fb-link" placeholder="https://facebook.com/groups/...">
+          <button class="btn bp bsm" onclick="importFB()">Import</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">🤖 סוכן דירה</div></div>
+      <div class="chips">
+        <div class="chip" onclick="setAI('נסח הודעה לבעל דירה')">✉️ הודעה</div>
+        <div class="chip" onclick="setAI('השווה בין הדירות שלי')">⚖️ השוואה</div>
+        <div class="chip" onclick="setAI('מה לבדוק בסיור דירה?')">📋 רשימת בדיקה</div>
+      </div>
+      <div class="aic" id="apt-chat" style="max-height:200px">
+        <div class="msg"><div class="mav ai">AI</div><div class="mb">אני עוזר לך למצוא דירה! ניסוח הודעות לבעלי דירות, קביעת סיורים, השוואת אפשרויות ועוד.</div></div>
+      </div>
+      <div class="crow">
+        <button class="micb" id="mic-apt" onclick="toggleMic('apt')">🎙</button>
+        <input class="inp" style="flex:1" id="apt-inp" placeholder="הודעה / שאלה / סיור..." onkeydown="if(event.key==='Enter')sendChat('apt')">
+        <button class="btn bp bsm" onclick="sendChat('apt')">↗</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAMILY -->
+<div class="page" id="page-family">
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><div class="ct">👨‍👩‍👧 בלוז שבועי משפחתי</div></div>
+      <div id="fam-week" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px"></div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">🤖 סוכן משפחה</div></div>
+      <div class="aic" id="family-chat" style="max-height:200px">
+        <div class="msg"><div class="mav ai">AI</div><div class="mb">עוזר לתכנן זמן משפחתי. הצעות פעילויות, תזמון אירועים וחלוקת הבלוז.</div></div>
+      </div>
+      <div class="crow">
+        <input class="inp" style="flex:1" id="family-inp" placeholder="הצע פעילות / תזמן..." onkeydown="if(event.key==='Enter')sendChat('family')">
+        <button class="btn bp bsm" onclick="sendChat('family')">↗</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IDEAS -->
+<div class="page" id="page-ideas">
+  <div class="card">
+    <div class="ch"><div class="ct">💡 בנק רעיונות</div><button class="btn bp bsm" onclick="addIdea()">+ רעיון</button></div>
+    <div class="irow" style="margin-bottom:12px">
+      <input class="inp" style="flex:1" id="idea-inp" placeholder="רעיון חדש..." onkeydown="if(event.key==='Enter')addIdeaFromInput()">
+      <select class="inp" id="idea-cat" style="font-size:12px">
+        <option value="general">💡 כללי</option><option value="upselles">🚀 Upselles</option>
+        <option value="product">📱 מוצר</option><option value="life">🌱 חיים</option><option value="tech">💻 טכנולוגיה</option>
+      </select>
+      <button class="btn bp" onclick="addIdeaFromInput()">הוסף</button>
+    </div>
+    <div id="ideas-list"></div>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ct">🤖 עוזר רעיונות AI</div></div>
+    <div class="aic" id="ideas-chat" style="max-height:200px">
+      <div class="msg"><div class="mav ai">AI</div><div class="mb">אני עוזר לפתח רעיונות! ספר לי על רעיון ואעזור לפתח אותו, לזהות הזדמנויות או לחשוב על מימוש.</div></div>
+    </div>
+    <div class="crow">
+      <button class="micb" id="mic-ideas" onclick="toggleMic('ideas')">🎙</button>
+      <input class="inp" style="flex:1" id="ideas-inp" placeholder="פתח רעיון / רעיון חדש..." onkeydown="if(event.key==='Enter')sendChat('ideas')">
+      <button class="btn bp bsm" onclick="sendChat('ideas')">↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOURNAL -->
+<div class="page" id="page-journal">
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><div class="ct">✍️ יומן — <span id="jdate"></span></div></div>
+      <textarea class="inp inp-full" id="jtext" rows="11" placeholder="מה על ליבך היום?..."></textarea>
+      <div class="irow" style="margin-top:8px">
+        <button class="btn bp bsm" onclick="saveJournal()">💾 שמור</button>
+        <button class="btn bs bsm" onclick="analyzeJournal()">✨ נתח AI</button>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="ct" style="margin-bottom:10px">ערכים קודמים</div>
+        <div id="jentries"></div>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:10px">ניתוח AI</div>
+        <div id="janalysis" style="font-size:13px;color:var(--text2);line-height:1.6">כתוב ביומן ולחץ "נתח AI"</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GOALS -->
+<div class="page" id="page-goals">
+  <div class="card">
+    <div class="ch"><div class="ct">🎯 מטרות 2025</div><button class="btn bp bsm" onclick="addGoal()">+ מטרה</button></div>
+    <div id="goals-list"></div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- FLOAT CHAT -->
+<div class="fc">
+  <div class="fc-panel" id="fcp">
+    <div class="fc-hdr">
+      <div style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.5);animation:pulse 2s infinite"></div>
+      <div class="fc-title">Personal OS — סוכן ראשי</div>
+      <button class="fc-x" onclick="toggleFC()">✕</button>
+    </div>
+    <div class="fc-body"><div class="aic" id="main-chat" style="max-height:280px">
+      <div class="msg"><div class="mav ai">AI</div><div class="mb">היי רואי! אני הסוכן המרכזי שלך. ניהול משימות, ניתוח, עדכון פרויקטים — הכל ממקום אחד. גם בקול! 🎙</div></div>
+    </div></div>
+    <div class="fc-foot">
+      <div class="crow">
+        <button class="micb" id="mic-main" onclick="toggleMic('main')" style="padding:6px 8px">🎙</button>
+        <input class="inp" style="flex:1" id="main-inp" placeholder="שאל כל דבר..." onkeydown="if(event.key==='Enter')sendChat('main')">
+        <button class="btn bp bsm" onclick="sendChat('main')">↗</button>
+      </div>
+    </div>
+  </div>
+  <button class="fc-btn" onclick="toggleFC()">💬</button>
 </div>
 
 <script>
-const CLIENT_ID = '786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/calendar';
-const CLAUDE_API = 'https://api.anthropic.com/v1/messages';
-const DAYS_HE = ['א\'','ב\'','ג\'','ד\'','ה\'','ו\'','ש\''];
-const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+const MO=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+const DH=["א'","ב'","ג'","ד'","ה'","ו'","ש'"];
+const DF=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+const HRS=['06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00'];
+const PROJ_COLORS={jobs:'var(--blue)',upselles:'var(--purple)',health:'var(--green)',apartment:'var(--teal)',family:'var(--amber)',none:'var(--text3)'};
+const PROJ_NAMES={jobs:'💼 חיפוש עבודה',upselles:'🚀 Upselles',health:'💪 כושר',apartment:'🏡 דירה',family:'👨‍👩‍👧 משפחה',none:'כללי'};
 
-let accessToken = null, gapiLoaded = false;
+let S=JSON.parse(localStorage.getItem('pos3')||'null')||{
+  tasks:[
+    {id:1,text:'שלוח קורות חיים ל-3 חברות',done:false,cat:'work',period:'daily',proj:'jobs',progress:0,status:''},
+    {id:2,text:'אימון בוקר',done:false,cat:'health',period:'daily',proj:'health',progress:0,status:''},
+    {id:3,text:'עדכון Upselles Roadmap',done:false,cat:'project',period:'weekly',proj:'upselles',progress:30,status:'בפיתוח'},
+    {id:4,text:'ארוחת ערב משפחתית',done:false,cat:'family',period:'weekly',proj:'family',progress:0,status:''},
+  ],
+  habits:[
+    {name:'שתיית מים 2L',days:[1,1,1,0,1,0,0]},
+    {name:'מדיטציה 10 דק׳',days:[1,0,1,1,0,0,0]},
+    {name:'קריאה 20 דק׳',days:[1,1,0,1,1,0,0]},
+    {name:'10,000 צעדים',days:[0,1,0,0,0,0,0]},
+  ],
+  projects:[
+    {id:'jobs',name:'חיפוש עבודה',progress:45,color:'var(--blue)'},
+    {id:'upselles',name:'Upselles',progress:80,color:'var(--purple)'},
+    {id:'health',name:'כושר ותזונה',progress:55,color:'var(--green)'},
+    {id:'apartment',name:'מציאת דירה',progress:20,color:'var(--teal)'},
+    {id:'family',name:'זמן משפחתי',progress:65,color:'var(--amber)'},
+  ],
+  goals:[
+    {text:'מצוא עבודה כ-AI Product/Growth',progress:40,emoji:'💼'},
+    {text:'השקת Upselles + לקוח ראשון',progress:25,emoji:'🚀'},
+    {text:'הגעה למשקל יעד',progress:0,emoji:'💪'},
+    {text:'מציאת דירה בת"א',progress:15,emoji:'🏡'},
+  ],
+  meals:[],workouts:[],water:0,
+  bodyProfile:{weight:'',goal:'',height:'',kcal:'',protein:''},
+  weekEvents:{},
+  jobs:[
+    {title:'Junior Data Analyst',company:'Google Israel',cat:'Analytics',status:'waiting',match:87,date:'25.4',link:''},
+    {title:'Growth Analyst',company:'Monday.com',cat:'Growth',status:'interview',match:82,date:'22.4',link:''},
+  ],
+  apts:[],leads:[],
+  reminders:[
+    {id:1,text:'שלוח CV ל-3 חברות',date:'2026-04-29',time:'09:00',done:false},
+    {id:2,text:'אימון כושר',date:'2026-04-28',time:'07:00',done:false,repeat:'daily'},
+  ],
+  ideas:[
+    {id:1,text:'אפליקציה שמחברת בין Upselles לLinkedIn לאוטומטי',cat:'upselles',date:'28.4',starred:false},
+  ],
+  journalEntries:[],
+  workspace:'',
+  roadmap:[
+    {title:'Marketplace',sub:'גילוי סלזמנים',status:'done'},
+    {title:'CRM משותף',sub:'בסיסי',status:'done'},
+    {title:'מערכת תשלומים',sub:'בפיתוח',status:'wip'},
+    {title:'שיפור UX + Trust',sub:'בפיתוח',status:'wip'},
+    {title:'Real-time dashboard',sub:'מתוכנן',status:'planned'},
+    {title:'Pilot — לקוחות ראשונים',sub:'מתוכנן',status:'planned'},
+  ],
+};
+function save(){localStorage.setItem('pos3',JSON.stringify(S))}
 
-let state = {
-  tasks: [
-    {id:1,text:'שלוח קורות חיים ל-3 חברות',done:false,cat:'work'},
-    {id:2,text:'אימון בוקר',done:true,cat:'health'},
-    {id:3,text:'פגישה עם יועץ',done:false,cat:'work'},
-    {id:4,text:'ארוחת ערב משפחתית',done:false,cat:'family'},
-    {id:5,text:'לקרוא פרק בספר',done:false,cat:'project'},
-  ],
-  habits: [
-    {name:'שתיית מים 2L',days:[true,true,true,false,true,false,false]},
-    {name:'מדיטציה 10 דקות',days:[true,false,true,true,false,false,false]},
-    {name:'קריאה 20 דקות',days:[true,true,false,true,true,false,false]},
-    {name:'10,000 צעדים',days:[false,true,false,false,false,false,false]},
-  ],
-  projects: [
-    {id:1,name:'חיפוש עבודה',progress:45,tasks:12,color:'#60a5fa'},
-    {id:2,name:'Upselles',progress:20,tasks:8,color:'#7c6ff7'},
-    {id:3,name:'בריאות ואימונים',progress:75,tasks:6,color:'#4ade80'},
-    {id:4,name:'זמן משפחתי',progress:60,tasks:4,color:'#fbbf24'},
-  ],
-  goals: [
-    {text:'מצוא עבודה כ-AI Product/Growth',progress:40},
-    {text:'ירידה ל-80 ק"ג',progress:30},
-    {text:'הכנסה ראשונה מ-Upselles',progress:10},
-  ],
-  taskFilter: 'all',
-  chatHistory: { jobs: [], health: [], upselles: [], family: [] }
+// CLAUDE CV
+const CV=`רואי קליין — פרופיל מקצועי:
+• M.Sc Data Science & AI (Bar-Ilan 2025-2027), B.A. Economics & Business (ממוצע 88)
+• Upselles Founder — SaaS פלטפורמה דו-צדדית, Product flows, CRM, GTM
+• סוחר עצמאי חוזים עתידיים NQ100/S&P500 (2022-2024) — ניתוח טכני, ניהול סיכונים, KPI
+• מנהל משמרת Funky Sicilia, שירות צבאי IDF (SAP)
+• מיומנויות: ניתוח נתונים, Product Thinking, Python, SQL, Excel, Machine Learning
+• מחפש: AI Analyst / Growth Analyst / Product Manager / Analytics
+• חוזקות: אנליטי, יצירתי, execution, תקשורת בינאישית`;
+const UPSELLES=`Upselles: פלטפורמה המחברת עסקים+סלזמנים פרילנס. Marketplace, CRM משותף, real-time tracking. MVP 80%, Pilot+לקוח ראשון. ישראל→ארה"ב.`;
+
+const SYS={
+  jobs:`אתה סוכן חיפוש עבודה מקצועי בעברית עם גישה לאינטרנט. ${CV} כשמנתח משרה: תן ציון 0-100, קטגוריה, 3 חוזקות, 2 חסרונות, המלצה. כשמבקשים CV מותאם: כתוב קורות חיים מותאמים בפורמט מקצועי שמדגיש את הרלוונטי למשרה. ענה בעברית.`,
+  health:`אתה מאמן כושר ודיאטן מוסמך בעברית. כשמדווחים על ארוחה חשב: קלוריות, חלבון, פחמימות. כשמציעים ארוחה ציין את הפירוט התזונתי. תן המלצות מותאמות ליעדים. ענה קצר וממוקד.`,
+  upselles:`אתה סוכן עסקי ואסטרטגי בעברית. ${UPSELLES} מומחה ב: מיילים שיווקיים, ניהול לידים, ניתוח תחרות, GTM, Roadmap. ענה מקצועי.`,
+  apt:`אתה סוכן מציאת דירה בת"א בעברית. רואי מחפש חדר בדירת שותפים, אזור דיזינגוף-כרם התימנים, קרוב לים. עזור: ניסוח הודעות, השוואת דירות, קביעת סיורים. ענה ממוקד.`,
+  family:`אתה עוזר לתכנון זמן משפחתי בעברית. הצע פעילויות, תזמן, חלק זמן איכות. ענה חמים.`,
+  ideas:`אתה עוזר לפיתוח רעיונות בעברית. עזור להרחיב, לזהות הזדמנויות, לחשוב על מימוש. ענה יצירתי.`,
+  main:`אתה סוכן Personal OS של רואי קליין בעברית. ${CV} ${UPSELLES} עזור לנהל משימות, לוז, פרויקטים, מטרות. ענה קצר וממוקד.`,
+  week:`אתה עוזר לבניית לוז שבועי חכם בעברית. המשתמש מספר על פגישות, פעילויות, הרגלים. תבנה לו מערכת שעות מסודרת. ענה עם רשימת אירועים ברורה בפורמט: [יום]-[שעה שעת_סיום]: [שם האירוע]. לדוגמה: ראשון-07:00-08:00:אימון כושר`
 };
 
-const systemPrompts = {
-  jobs: `אתה סוכן חיפוש עבודה חכם בעברית. פרופיל המשתמש: רואי קליין, כלכלה + BA (ממוצע 88), לומד M.Sc Data Science & AI בבר-אילן. ניסיון: סוחר עצמאי חוזים עתידיים, מנהל משמרת. מיומנויות: ניתוח נתונים, KPI, Excel, SPSS. מחפש: AI Analyst / Growth / Product Manager / Analytics. כשמקבלים משרה, תנתח: 1) ציון התאמה 0-100 2) קטגוריה 3) 3 נקודות חוזקה 4) 2 חסרונות 5) המלצה האם לשלוח. ענה בעברית בצורה מובנית.`,
-  health: `אתה דיאטן וסוכן כושר בעברית. עזור למשתמש לעקוב אחר תזונה, לחפש מתכונים בריאים ולנהל אימונים. ענה קצר וממוקד.`,
-  upselles: `אתה סוכן שיווק ומכירות בעברית עבור עסק בשם Upselles. עזור לכתוב מיילים שיווקיים, לנהל לידים ולעקוב אחר התקדמות עסקית. ענה מקצועי וממוקד.`,
-  family: `אתה עוזר לתכנון זמן משפחתי בעברית. הצע פעילויות, עזור לתזמן אירועים ולחלק זמן איכות עם המשפחה. ענה חמים וממוקד.`,
-  main: `אתה עוזר אישי חכם בעברית של רואי קליין. אתה מנהל מערכת ניהול עצמי אישית. עזור לנהל משימות, אירועים, פרויקטים ומטרות. ענה קצר וממוקד.`
-};
-
-function init() {
-  document.getElementById('topbar-date').textContent = formatDate(new Date());
-  renderTasks(); renderProjects(); renderHabits(); renderGoals();
-  renderCalStrip(); renderAllTasks(); renderFamilyWeek();
-  document.getElementById('ev-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('events-today').innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:16px">חבר Google Calendar</div>';
-  loadGoogleAPIs();
+function init(){
+  const d=new Date();
+  document.getElementById('td').textContent=`${d.getDate()} ב${MO[d.getMonth()]} ${d.getFullYear()}`;
+  document.getElementById('jdate').textContent=`${d.getDate()} ב${MO[d.getMonth()]}`;
+  document.getElementById('ev-date').value=d.toISOString().split('T')[0];
+  renderAll();buildWeekGrid();renderCalStrip();renderGoals();
+  renderFamWeek();renderRoadmap();renderReminders();renderIdeas();
+  renderBodyProfile();renderWater();renderWorkouts();renderJEntries();renderLeads();
+  updateWeekRing();checkCalToken();
 }
 
-function loadGoogleAPIs() {
-  gapi.load('client', async () => {
-    await gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'] });
-    gapiLoaded = true;
-    // Check if returning from OAuth redirect
-    const params = new URLSearchParams(window.location.hash.replace('#','?') || window.location.search);
-    const token = params.get('access_token');
-    if(token) {
-      accessToken = token;
-      gapi.client.setToken({ access_token: token });
-      onGoogleToken({ access_token: token });
-      // Clean URL
-      history.replaceState({}, document.title, window.location.pathname);
+function renderAll(){
+  renderDashTasks();renderDashProj();renderDashHabits();renderDashReminders();
+  renderAllTasks();renderMeals();renderJobs();renderApts();updateStats();updateCatProgress();
+}
+
+function goPage(p,el){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const T={dashboard:'דשבורד',agenda:'לוז שבועי',tasks:'משימות',reminders:'תזכורות',jobs:'חיפוש עבודה',upselles:'Upselles',health:'כושר ותזונה',apartment:'מציאת דירה',family:'זמן משפחתי',ideas:'רעיונות',journal:'יומן',goals:'מטרות'};
+  document.getElementById('pt').textContent=T[p]||p;
+  if(p==='agenda')buildWeekGrid();
+}
+
+// TASKS
+const CATS={work:'💼',health:'💪',family:'👨‍👩‍👧',project:'🚀',home:'🏡'};
+const CTAGS={work:'tw',health:'th',family:'tf',project:'tp',home:'to'};
+const PERS={daily:'יומי',weekly:'שבועי',monthly:'חודשי',once:'חד'};
+
+function taskHTML(t,full=false){
+  const prog=t.progress||0;
+  return`<div class="ti" onclick="toggleTask(${t.id})">
+    <div class="tck ${t.done?'done':''}">${t.done?'<span style="color:#fff;font-size:10px;font-weight:700">✓</span>':''}</div>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span class="ttxt ${t.done?'done':''}">${t.text}</span>
+        <span class="ttag ${CTAGS[t.cat]||'tw'}">${CATS[t.cat]||t.cat}</span>
+        <span class="bdg bdg-gr" style="font-size:9px">${PERS[t.period]||''}</span>
+        ${t.proj&&t.proj!=='none'?`<span class="bdg" style="background:${PROJ_COLORS[t.proj]||'var(--bg4)'};color:#fff;font-size:9px">${t.proj}</span>`:''}
+      </div>
+      ${prog>0?`<div class="tprog"><div class="tprog-fill" style="width:${prog}%"></div></div>`:''}
+      ${t.status?`<div class="tstatus">${t.status}</div>`:''}
+    </div>
+    ${full?`<div style="display:flex;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
+      <input type="range" min="0" max="100" value="${prog}" style="width:50px" onchange="setTaskProg(${t.id},this.value)" title="התקדמות">
+      <button class="bi" onclick="editTaskStatus(${t.id})" title="סטטוס">📝</button>
+      <button class="bi" onclick="deleteTask(${t.id})">✕</button>
+    </div>`:''}
+  </div>`;
+}
+function renderDashTasks(){
+  const tasks=S.tasks.filter(t=>!t.done).slice(0,6);
+  document.getElementById('dash-tasks').innerHTML=tasks.map(t=>taskHTML(t)).join('')||'<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">אין משימות פתוחות 🎉</div>';
+}
+function renderAllTasks(){
+  const cat=document.getElementById('tf-cat')?.value||'all';
+  const per=document.getElementById('tf-per')?.value||'all';
+  const proj=document.getElementById('tf-proj')?.value||'all';
+  let tasks=S.tasks.filter(t=>(cat==='all'||t.cat===cat)&&(per==='all'||t.period===per)&&(proj==='all'||t.proj===proj));
+  document.getElementById('all-tasks').innerHTML=tasks.map(t=>taskHTML(t,true)).join('')||'<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px">אין משימות</div>';
+}
+function toggleTask(id){const t=S.tasks.find(x=>x.id===id);if(t){t.done=!t.done;save();renderAll();updateWeekRing();}}
+function deleteTask(id){S.tasks=S.tasks.filter(x=>x.id!==id);save();renderAll();}
+function setTaskProg(id,v){const t=S.tasks.find(x=>x.id===id);if(t){t.progress=parseInt(v);save();renderAllTasks();updateCatProgress();}}
+function editTaskStatus(id){
+  const t=S.tasks.find(x=>x.id===id);if(!t)return;
+  const s=prompt('סטטוס:',t.status||'');if(s!==null){t.status=s;save();renderAllTasks();}
+}
+function qTask(){
+  const inp=document.getElementById('qt');if(!inp.value.trim())return;
+  const cat=document.getElementById('qt-cat').value;
+  // Check duplicate
+  if(S.tasks.some(t=>t.text===inp.value.trim())){showNotif('⚠️ משימה זו כבר קיימת');return;}
+  S.tasks.unshift({id:Date.now(),text:inp.value.trim(),done:false,cat,period:'once',proj:'none',progress:0,status:''});
+  inp.value='';save();renderAll();showNotif('✓ משימה נוספה');
+}
+function addTask(){
+  const txt=document.getElementById('nt').value.trim();if(!txt)return;
+  if(S.tasks.some(t=>t.text===txt)){showNotif('⚠️ משימה כבר קיימת');return;}
+  S.tasks.unshift({id:Date.now(),text:txt,done:false,
+    cat:document.getElementById('nt-cat').value,
+    period:document.getElementById('nt-per').value,
+    proj:document.getElementById('nt-proj').value,
+    progress:0,status:''});
+  document.getElementById('nt').value='';save();renderAll();showNotif('✓ נוסף');
+}
+
+// STATS
+function updateStats(){
+  const open=S.tasks.filter(t=>!t.done).length;
+  const done=S.tasks.length-open;
+  document.getElementById('ds-tasks').textContent=open;
+  document.getElementById('ds-tasks-s').textContent=`${done} הושלמו`;
+  document.getElementById('nb').textContent=open;
+  const pct=S.tasks.length>0?Math.round(done/S.tasks.length*100):0;
+  document.getElementById('ds-week').textContent=pct+'%';
+  document.getElementById('ds-week-s').textContent=`${done}/${S.tasks.length}`;
+  const kcal=S.meals.reduce((a,m)=>a+m.kcal,0);
+  document.getElementById('ds-kcal').textContent=kcal;
+  document.getElementById('ds-kcal-s').textContent=`יעד: ${S.bodyProfile.kcal||'—'}`;
+  // health page
+  const prot=S.meals.reduce((a,m)=>a+m.protein,0);
+  const carb=S.meals.reduce((a,m)=>a+(m.carb||0),0);
+  document.getElementById('h-kcal').textContent=kcal;
+  document.getElementById('h-prot').textContent=prot+'g';
+  document.getElementById('h-kcal-s').textContent=`יעד: ${S.bodyProfile.kcal||'—'}`;
+  document.getElementById('h-prot-s').textContent=`יעד: ${S.bodyProfile.protein||'—'}g`;
+  document.getElementById('h-wo').textContent=S.workouts.length;
+  document.getElementById('h-water').textContent=`${S.water}/8`;
+  // macros
+  document.getElementById('m-k').textContent=kcal;
+  document.getElementById('m-p').textContent=prot+'g';
+  document.getElementById('m-c').textContent=carb+'g';
+  const kt=parseInt(S.bodyProfile.kcal)||2000,pt=parseInt(S.bodyProfile.protein)||150;
+  document.getElementById('m-k-b').style.width=Math.min(100,kcal/kt*100)+'%';
+  document.getElementById('m-p-b').style.width=Math.min(100,prot/pt*100)+'%';
+  document.getElementById('m-c-b').style.width=Math.min(100,carb/250*100)+'%';
+}
+
+function updateCatProgress(){
+  const cats=['work','health','family','project','home'];
+  const labels={work:'💼 עבודה',health:'💪 בריאות',family:'👨‍👩‍👧 משפחה',project:'🚀 פרויקטים',home:'🏡 דירה'};
+  const colors={work:'var(--blue)',health:'var(--green)',family:'var(--amber)',project:'var(--purple)',home:'var(--teal)'};
+  let html='<div style="display:flex;flex-direction:column;gap:8px">';
+  cats.forEach(c=>{
+    const all=S.tasks.filter(t=>t.cat===c);
+    if(!all.length)return;
+    const done=all.filter(t=>t.done).length;
+    const pct=Math.round(done/all.length*100);
+    html+=`<div style="display:flex;align-items:center;gap:10px">
+      <div style="width:90px;font-size:12px;color:var(--text2)">${labels[c]}</div>
+      <div class="pb" style="flex:1"><div class="pf" style="width:${pct}%;background:${colors[c]}"></div></div>
+      <div style="font-size:11px;color:var(--text3);width:50px">${done}/${all.length} (${pct}%)</div>
+    </div>`;
+  });
+  html+='</div>';
+  document.getElementById('cat-progress').innerHTML=html;
+}
+
+// HABITS
+function renderDashHabits(){
+  document.getElementById('dash-habits').innerHTML=S.habits.map((h,hi)=>`
+    <div class="ti" style="cursor:default">
+      <div style="font-size:12px;flex:1">${h.name}</div>
+      <div style="display:flex;gap:3px">${h.days.map((d,di)=>`<div class="drop" style="width:24px;height:24px;font-size:11px;${d?'background:var(--green);border-color:var(--green);':''}" onclick="toggleHabit(${hi},${di})">${d?'✓':DH[di]}</div>`).join('')}</div>
+    </div>`).join('');
+}
+function toggleHabit(hi,di){S.habits[hi].days[di]=S.habits[hi].days[di]?0:1;save();renderDashHabits();}
+
+// PROJECTS
+function renderDashProj(){
+  document.getElementById('dash-proj').innerHTML=S.projects.map(p=>`
+    <div class="ti" onclick="goPage('${p.id}',null)" style="cursor:pointer">
+      <div style="font-size:13px;flex:1;font-weight:500">${p.name}</div>
+      <div class="pb" style="width:80px"><div class="pf" style="width:${p.progress}%;background:${p.color}"></div></div>
+      <div style="font-size:11px;color:var(--text3);width:35px;text-align:left">${p.progress}%</div>
+    </div>`).join('');
+}
+
+// WEEK GRID
+let selStart=null,selEnd=null,isDragging=false;
+function buildWeekGrid(){
+  const g=document.getElementById('week-grid');
+  let html='<div class="wg-hdr" style="font-size:10px">שעה</div>';
+  const today=new Date().getDay();
+  DF.forEach((d,i)=>{
+    const isToday=i===today;
+    html+=`<div class="wg-hdr" style="${isToday?'background:var(--accent-light);color:var(--accent)':''}">${d}${isToday?' ●':''}</div>`;
+  });
+  HRS.forEach((h,hi)=>{
+    html+=`<div class="wg-time">${h}</div>`;
+    for(let d=0;d<7;d++){
+      const key=`${d}-${h}`;
+      const evs=S.weekEvents[key]||[];
+      html+=`<div class="wg-cell" id="wc-${d}-${hi}" 
+        onmousedown="startSel(${d},${hi})" 
+        onmousemove="moveSel(${d},${hi})"
+        onmouseup="endSel(${d},${hi},'${h}')"
+        ondblclick="editCellEvents(${d},'${h}')"
+        ondragover="event.preventDefault()"
+        ontouchstart="startSel(${d},${hi})"
+        ontouchmove="event.preventDefault()"
+        ontouchend="endSel(${d},${hi},'${h}')">
+        ${evs.map(e=>`<div class="wg-ev" style="background:${e.color||'var(--accent)'}">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${e.text}</span>
+          <button class="wg-ev-del" onclick="event.stopPropagation();delWeekEv('${key}',${e.id})">✕</button>
+        </div>`).join('')}
+      </div>`;
     }
   });
+  g.innerHTML=html;
 }
 
-function connectGoogleCalendar() {
-  const redirectUri = encodeURIComponent(window.location.href.split('?')[0].split('#')[0]);
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=${encodeURIComponent(SCOPES)}&prompt=consent`;
-  window.location.href = url;
+function startSel(d,hi){isDragging=true;selStart={d,hi};selEnd={d,hi};highlightSel();}
+function moveSel(d,hi){if(!isDragging)return;selEnd={d,hi};highlightSel();}
+function endSel(d,hi,h){
+  if(!isDragging)return;isDragging=false;
+  if(selStart&&selEnd&&(selStart.d!==d||selStart.hi!==selEnd.hi)){
+    const info=document.getElementById('sel-info');
+    const startH=HRS[Math.min(selStart.hi,selEnd.hi)];
+    const endH=HRS[Math.min(Math.max(selStart.hi,selEnd.hi)+1,HRS.length-1)];
+    const dayName=DF[d];
+    info.style.display='block';
+    info.innerHTML=`נבחר: <strong>${dayName} ${startH}–${endH}</strong> &nbsp; 
+      <button class="btn bp bxs" onclick="addRangeEvent(${d},${Math.min(selStart.hi,selEnd.hi)},${Math.max(selStart.hi,selEnd.hi)})">+ הוסף אירוע</button>
+      <button class="btn bs bxs" onclick="clearSel()">ביטול</button>`;
+  }
+  clearSelHighlight();
+}
+function highlightSel(){
+  document.querySelectorAll('.wg-cell').forEach(c=>c.classList.remove('selecting'));
+  if(!selStart||!selEnd)return;
+  const minHi=Math.min(selStart.hi,selEnd.hi),maxHi=Math.max(selStart.hi,selEnd.hi);
+  const minD=Math.min(selStart.d,selEnd.d),maxD=Math.max(selStart.d,selEnd.d);
+  for(let d=minD;d<=maxD;d++)for(let hi=minHi;hi<=maxHi;hi++){
+    const el=document.getElementById(`wc-${d}-${hi}`);
+    if(el)el.classList.add('selecting');
+  }
+}
+function clearSelHighlight(){document.querySelectorAll('.wg-cell').forEach(c=>c.classList.remove('selecting'));}
+function clearSel(){selStart=null;selEnd=null;clearSelHighlight();document.getElementById('sel-info').style.display='none';}
+
+function addRangeEvent(day,hiStart,hiEnd){
+  const txt=prompt(`הוסף ל${DF[day]} ${HRS[hiStart]}–${HRS[Math.min(hiEnd+1,HRS.length-1)]}:`);
+  if(!txt)return;
+  const proj=prompt('שיוך לפרויקט? (jobs/upselles/health/apartment/family/ריק):','');
+  const colors={jobs:'#2563eb',upselles:'#7c3aed',health:'#16a34a',apartment:'#0d9488',family:'#d97706'};
+  const color=colors[proj]||'#6c63ff';
+  for(let hi=hiStart;hi<=hiEnd;hi++){
+    const key=`${day}-${HRS[hi]}`;
+    if(!S.weekEvents[key])S.weekEvents[key]=[];
+    if(hi===hiStart){S.weekEvents[key].push({id:Date.now()+hi,text:txt+(hiStart!==hiEnd?` (${HRS[hiStart]}-${HRS[Math.min(hiEnd+1,HRS.length-1)]})`:'')+( proj?` [${proj}]`:''),color});}
+    else S.weekEvents[key].push({id:Date.now()+hi,text:'↑',color});
+  }
+  save();clearSel();buildWeekGrid();
+  document.getElementById('sel-info').style.display='none';
+}
+function editCellEvents(d,h){
+  const key=`${d}-${h}`;
+  const txt=prompt(`עדכן/הוסף ל${DF[d]} ${h}:`);
+  if(!txt)return;
+  const proj=prompt('שיוך לפרויקט? (jobs/upselles/health/apartment/family/ריק):','');
+  const colors={jobs:'#2563eb',upselles:'#7c3aed',health:'#16a34a',apartment:'#0d9488',family:'#d97706'};
+  if(!S.weekEvents[key])S.weekEvents[key]=[];
+  S.weekEvents[key].push({id:Date.now(),text:txt+(proj?` [${proj}]`:''),color:colors[proj]||'#6c63ff'});
+  save();buildWeekGrid();
+}
+function delWeekEv(key,id){S.weekEvents[key]=(S.weekEvents[key]||[]).filter(e=>e.id!==id);save();buildWeekGrid();}
+
+function syncTasks(){
+  const today=new Date().getDay();
+  const daily=S.tasks.filter(t=>t.period==='daily'&&!t.done);
+  const slots=['07:00','08:00','09:00','10:00','14:00','15:00','16:00'];
+  daily.forEach((t,i)=>{
+    const slot=slots[i%slots.length];
+    const key=`${today}-${slot}`;
+    if(!S.weekEvents[key])S.weekEvents[key]=[];
+    if(!S.weekEvents[key].some(e=>e.text.includes(t.text))){
+      const proj=t.proj||'none';
+      const colors={jobs:'#2563eb',upselles:'#7c3aed',health:'#16a34a',apartment:'#0d9488',family:'#d97706'};
+      S.weekEvents[key].push({id:Date.now()+i,text:t.text,color:colors[proj]||'#6c63ff'});
+    }
+  });
+  save();buildWeekGrid();showNotif('✓ משימות סונכרנו');
 }
 
-function onGoogleToken(resp) {
-  if(!resp.access_token) return;
-  accessToken = resp.access_token;
-  document.getElementById('gcal-dot').style.background = '#4ade80';
-  document.getElementById('gcal-status-label').textContent = 'Google Calendar מחובר ✓';
-  document.getElementById('gcal-status-btn').style.background = '#166534';
-  loadTodayEvents();
+function openWeekAI(){
+  const w=document.getElementById('week-ai-wrap');
+  w.style.display=w.style.display==='none'?'block':'none';
 }
-
-
-
-async function loadTodayEvents() {
-  if (!accessToken) return;
-  const now = new Date(); now.setHours(0,0,0,0);
-  const end = new Date(); end.setHours(23,59,59,999);
-  try {
-    const res = await gapi.client.calendar.events.list({
-      calendarId: 'primary', timeMin: now.toISOString(), timeMax: end.toISOString(),
-      singleEvents: true, orderBy: 'startTime', maxResults: 10
-    });
-    const items = res.result.items || [];
-    document.getElementById('stat-events').textContent = items.length;
-    document.getElementById('stat-events-sub').textContent = items.length ? `${items[0].summary}` : 'אין אירועים';
-    const html = items.length ? items.map(ev => {
-      const t = ev.start.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) : 'כל היום';
-      return `<div class="event-item"><div class="event-time">${t}</div><div class="event-bar gcal"></div><div><div class="event-name">${ev.summary||'ללא שם'}</div>${ev.location?`<div class="event-loc">${ev.location}</div>`:''}</div></div>`;
-    }).join('') : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:16px">אין אירועים היום</div>';
-    document.getElementById('events-today').innerHTML = html;
-    loadAgendaEvents(new Date());
-  } catch(e) { console.error(e); }
-}
-
-async function loadAgendaEvents(date) {
-  if (!accessToken) { document.getElementById('agenda-events').innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:16px">חבר Google Calendar</div>'; return; }
-  const start = new Date(date); start.setHours(0,0,0,0);
-  const end = new Date(date); end.setHours(23,59,59,999);
-  try {
-    const res = await gapi.client.calendar.events.list({
-      calendarId: 'primary', timeMin: start.toISOString(), timeMax: end.toISOString(),
-      singleEvents: true, orderBy: 'startTime', maxResults: 20
-    });
-    const items = res.result.items || [];
-    document.getElementById('agenda-events').innerHTML = items.length ? items.map(ev => {
-      const t = ev.start.dateTime ? new Date(ev.start.dateTime).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) : 'כל היום';
-      return `<div class="event-item"><div class="event-time">${t}</div><div class="event-bar gcal"></div><div><div class="event-name">${ev.summary||'ללא שם'}</div>${ev.location?`<div class="event-loc">${ev.location}</div>`:''}</div></div>`;
-    }).join('') : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:16px">אין אירועים</div>';
-  } catch(e) {}
-}
-
-async function addCalendarEvent() {
-  const title = document.getElementById('ev-title').value.trim();
-  const date = document.getElementById('ev-date').value;
-  const time = document.getElementById('ev-time').value;
-  if (!title || !date) { alert('מלא שם ותאריך'); return; }
-  if (!accessToken) { alert('חבר קודם את Google Calendar'); return; }
-  const start = time ? new Date(date+'T'+time) : new Date(date);
-  const end = new Date(start.getTime() + 60*60*1000);
-  try {
-    await gapi.client.calendar.events.insert({
-      calendarId: 'primary',
-      resource: {
-        summary: title,
-        start: time ? {dateTime: start.toISOString(), timeZone:'Asia/Jerusalem'} : {date},
-        end: time ? {dateTime: end.toISOString(), timeZone:'Asia/Jerusalem'} : {date},
+function setWI(t){document.getElementById('week-input').value=t;}
+async function sendWeekAI(){
+  const inp=document.getElementById('week-input');
+  const txt=inp.value.trim();if(!txt)return;inp.value='';
+  addMsg2('week-chat','user',txt);
+  const th=addMsg2('week-chat','ai','מסדר את הלוז...');
+  const reply=await claude(txt,SYS.week);
+  th.querySelector('.mb').textContent=reply;
+  // Parse and add events
+  const lines=reply.split('\n');
+  lines.forEach(line=>{
+    const m=line.match(/([א-ת]+)-(\d{2}:\d{2})-(\d{2}:\d{2}):(.*)/);
+    if(m){
+      const dayIdx=DF.indexOf(m[1]);
+      if(dayIdx>=0){
+        const key=`${dayIdx}-${m[2]}`;
+        if(!S.weekEvents[key])S.weekEvents[key]=[];
+        S.weekEvents[key].push({id:Date.now()+Math.random(),text:m[4].trim(),color:'#6c63ff'});
       }
+    }
+  });
+  save();buildWeekGrid();
+}
+
+// CAL STRIP
+function renderCalStrip(){
+  const today=new Date();
+  let html='';
+  for(let i=-1;i<=7;i++){
+    const d=new Date(today);d.setDate(today.getDate()+i);
+    const isT=d.toDateString()===today.toDateString();
+    html+=`<div style="flex-shrink:0;width:48px;background:${isT?'var(--accent)':'var(--bg3)'};border:1px solid ${isT?'var(--accent)':'var(--border)'};border-radius:var(--radius-sm);padding:7px 3px;text-align:center;cursor:pointer;transition:all 0.15s" onclick="selDay('${d.toISOString()}')">
+      <div style="font-size:10px;color:${isT?'#fff':'var(--text3)'}">${DH[d.getDay()]}</div>
+      <div style="font-size:15px;font-weight:700;color:${isT?'#fff':'var(--text)'}">${d.getDate()}</div>
+    </div>`;
+  }
+  const cs=document.getElementById('cal-strip');if(cs)cs.innerHTML=html;
+}
+function selDay(iso){
+  const d=new Date(iso);
+  document.getElementById('ev-date').value=d.toISOString().split('T')[0];
+  loadCalDay(d);
+}
+
+// GOOGLE CALENDAR
+let gat=null;
+function connectCal(){
+  const CID='786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com';
+  const SC='https://www.googleapis.com/auth/calendar';
+  const red=encodeURIComponent(location.href.split('?')[0].split('#')[0]);
+  location.href=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${CID}&redirect_uri=${red}&response_type=token&scope=${encodeURIComponent(SC)}&prompt=consent`;
+}
+function checkCalToken(){
+  const h=new URLSearchParams(location.hash.replace('#',''));
+  const t=h.get('access_token');
+  if(t){gat=t;history.replaceState({},document.title,location.pathname);
+    document.getElementById('gcal-btn').textContent='📅 ✓';document.getElementById('gcal-btn').classList.add('ok');
+    loadCalDay(new Date());}
+}
+async function loadCalDay(d){
+  if(!gat)return;
+  const s=new Date(d);s.setHours(0,0,0,0);const e=new Date(d);e.setHours(23,59,59,999);
+  try{
+    const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${s.toISOString()}&timeMax=${e.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=15`,
+      {headers:{Authorization:`Bearer ${gat}`}});
+    const data=await r.json();
+    const items=data.items||[];
+    document.getElementById('ds-ev').textContent=items.length;
+    document.getElementById('ds-ev-s').textContent=items[0]?.summary||'אין אירועים';
+    const html=items.length?items.map(ev=>{
+      const t=ev.start.dateTime?new Date(ev.start.dateTime).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}):'כל היום';
+      return`<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text3);width:42px;flex-shrink:0">${t}</div>
+        <div style="width:3px;background:var(--blue);border-radius:2px;min-height:26px;flex-shrink:0"></div>
+        <div><div style="font-size:13px;font-weight:500">${ev.summary||'ללא שם'}</div>${ev.location?`<div style="font-size:11px;color:var(--text3)">${ev.location}</div>`:''}</div>
+      </div>`;}).join(''):'<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px">אין אירועים</div>';
+    document.getElementById('dash-ev').innerHTML=html;
+    if(document.getElementById('agenda-events'))document.getElementById('agenda-events').innerHTML=html;
+  }catch(e){console.error(e);}
+}
+async function addCalEvent(){
+  const name=document.getElementById('ev-name').value.trim();
+  const date=document.getElementById('ev-date').value;
+  const time=document.getElementById('ev-time').value;
+  if(!name||!date){showNotif('⚠️ מלא שם ותאריך');return;}
+  // Add to week grid too
+  if(time){
+    const d=new Date(date);const dayIdx=d.getDay();
+    const h=time.slice(0,5);
+    const key=`${dayIdx}-${h}:00`;
+    if(!S.weekEvents[key])S.weekEvents[key]=[];
+    if(!S.weekEvents[key].some(e=>e.text===name)){
+      const proj=document.getElementById('ev-proj').value;
+      const colors={jobs:'#2563eb',upselles:'#7c3aed',health:'#16a34a',apartment:'#0d9488',family:'#d97706'};
+      S.weekEvents[key].push({id:Date.now(),text:name,color:colors[proj]||'#6c63ff'});
+      save();buildWeekGrid();
+    }
+  }
+  if(!gat){showNotif('✓ נוסף ללוז המקומי (חבר Calendar לסנכרון)');return;}
+  const start=time?new Date(date+'T'+time):new Date(date);
+  const dur=parseInt(document.getElementById('ev-dur').value)||60;
+  const end=new Date(start.getTime()+dur*60000);
+  try{
+    await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${gat}`},
+      body:JSON.stringify({summary:name,start:time?{dateTime:start.toISOString(),timeZone:'Asia/Jerusalem'}:{date},end:time?{dateTime:end.toISOString(),timeZone:'Asia/Jerusalem'}:{date}})
     });
-    document.getElementById('ev-title').value = '';
-    loadTodayEvents();
-    loadAgendaEvents(new Date());
-    alert('✓ האירוע נוסף לקאלנדר!');
-  } catch(e) { alert('שגיאה בהוספה'); }
+    document.getElementById('ev-name').value='';
+    loadCalDay(new Date());showNotif('✓ נוסף לגוגל קאלנדר!');
+  }catch(e){showNotif('שגיאה בשמירה');}
 }
 
-function formatDate(d) { return `${d.getDate()} ב${MONTHS_HE[d.getMonth()]} ${d.getFullYear()}`; }
-
-function showPage(name, el) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
-  if(el) el.classList.add('active');
-  const titles={dashboard:'דשבורד',agenda:'סדר יום',tasks:'משימות',jobs:'חיפוש עבודה',health:'בריאות ואוכל',upselles:'Upselles',family:'זמן משפחתי',journal:'יומן כתיבה',goals:'מטרות ויעדים'};
-  document.getElementById('page-title').textContent = titles[name]||name;
+// HEALTH
+function renderBodyProfile(){
+  const b=S.bodyProfile;
+  document.getElementById('hp-w').textContent=b.weight?b.weight+'kg':'—';
+  document.getElementById('hp-g').textContent=b.goal?b.goal+'kg':'—';
+  document.getElementById('hp-h').textContent=b.height?b.height+'cm':'—';
+  if(b.weight&&b.height){
+    const bmi=(parseInt(b.weight)/Math.pow(parseInt(b.height)/100,2)).toFixed(1);
+    document.getElementById('hp-bmi').textContent=bmi;
+  }
 }
-
-function renderTasks() {
-  const el = document.getElementById('tasks-list');
-  el.innerHTML = state.tasks.map(t=>`
-    <div class="task-item" onclick="toggleTask(${t.id})">
-      <div class="task-check ${t.done?'done':''}">${t.done?'<span style="color:#0d0d0f;font-size:11px;font-weight:700">✓</span>':''}</div>
-      <span class="task-text ${t.done?'done':''}">${t.text}</span>
-      <span class="task-tag tag-${t.cat}">${{work:'עבודה',health:'בריאות',family:'משפחה',project:'פרויקט'}[t.cat]}</span>
-    </div>`).join('');
-  const open = state.tasks.filter(t=>!t.done).length;
-  document.getElementById('stat-tasks').textContent = open;
-  document.getElementById('task-badge').textContent = open;
+function editBodyProfile(){
+  const fields=[['weight','משקל נוכחי (kg)'],['goal','משקל יעד (kg)'],['height','גובה (cm)'],['kcal','יעד קלוריות יומי'],['protein','יעד חלבון (g)']];
+  fields.forEach(([k,l])=>{const v=prompt(l+':',S.bodyProfile[k]||'');if(v!==null)S.bodyProfile[k]=v;});
+  save();renderBodyProfile();updateStats();
 }
-
-function renderAllTasks() {
-  const el = document.getElementById('all-tasks-list');
-  if(!el) return;
-  const filtered = state.taskFilter==='all' ? state.tasks : state.tasks.filter(t=>t.cat===state.taskFilter);
-  el.innerHTML = filtered.map(t=>`
-    <div class="task-item" onclick="toggleTask(${t.id});renderAllTasks()">
-      <div class="task-check ${t.done?'done':''}">${t.done?'<span style="color:#0d0d0f;font-size:11px;font-weight:700">✓</span>':''}</div>
-      <span class="task-text ${t.done?'done':''}">${t.text}</span>
-      <span class="task-tag tag-${t.cat}">${{work:'עבודה',health:'בריאות',family:'משפחה',project:'פרויקט'}[t.cat]}</span>
-    </div>`).join('');
+function renderMeals(){
+  const el=document.getElementById('meals-list');if(!el)return;
+  el.innerHTML=S.meals.length?S.meals.map((m,i)=>`
+    <div class="meal">
+      <div><div style="font-size:13px;font-weight:500">${m.time} — ${m.name}</div>
+      <div style="font-size:11px;color:var(--text3)">${m.kcal}קל׳ | ${m.protein}g חלבון${m.carb?` | ${m.carb}g פחמימות`:''}</div></div>
+      <button class="bi" onclick="delMeal(${i})" style="font-size:11px">✕</button>
+    </div>`):'<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px">אין ארוחות — ספר לסוכן מה אכלת!</div>';
 }
-
-function filterTasks(cat) { state.taskFilter=cat; renderAllTasks(); }
-function toggleTask(id) { const t=state.tasks.find(t=>t.id===id); if(t) t.done=!t.done; renderTasks(); renderAllTasks(); }
-function addTask() { const i=document.getElementById('new-task-input'); if(!i.value.trim()) return; state.tasks.unshift({id:Date.now(),text:i.value.trim(),done:false,cat:'work'}); i.value=''; renderTasks(); renderAllTasks(); }
-function addTask2() { const i=document.getElementById('new-task2'); const c=document.getElementById('task-cat').value; if(!i.value.trim()) return; state.tasks.unshift({id:Date.now(),text:i.value.trim(),done:false,cat:c}); i.value=''; renderTasks(); renderAllTasks(); }
-
-function renderProjects() {
-  document.getElementById('projects-list').innerHTML = state.projects.map(p=>`
-    <div class="project-card" style="--proj-color:${p.color}">
-      <div class="project-name">${p.name}</div>
-      <div class="project-progress-bar"><div class="project-fill" style="width:${p.progress}%;background:${p.color}"></div></div>
-      <div class="project-meta"><span>${p.progress}% הושלם</span><span>${p.tasks} משימות</span></div>
-    </div>`).join('');
+function addMealManual(){
+  const name=prompt('מה אכלת?');if(!name)return;
+  const kcal=parseInt(prompt('קלוריות:','0')||0);
+  const protein=parseInt(prompt('חלבון (g):','0')||0);
+  const carb=parseInt(prompt('פחמימות (g):','0')||0);
+  S.meals.push({name,kcal,protein,carb,time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
+  save();renderMeals();updateStats();showNotif('✓ ארוחה נוספה');
 }
-
-function renderHabits() {
-  document.getElementById('habits-list').innerHTML = state.habits.map((h,hi)=>`
-    <div class="habit-row">
-      <div class="habit-name">${h.name}</div>
-      <div class="habit-dots">${h.days.map((d,di)=>`<div class="habit-dot ${d?'done':''}" onclick="toggleHabit(${hi},${di})" title="${DAYS_HE[di]}">${d?'✓':DAYS_HE[di]}</div>`).join('')}</div>
-    </div>`).join('');
+function delMeal(i){S.meals.splice(i,1);save();renderMeals();updateStats();}
+async function getMealSug(meal){
+  const el=document.getElementById('meal-sug');
+  el.textContent='מחשב...';
+  const remaining=parseInt(S.bodyProfile.kcal||2000)-S.meals.reduce((a,m)=>a+m.kcal,0);
+  const reply=await claude(`הצע ארוחת ${meal} בריאה שמתאימה ל${remaining} קלוריות שנותרו. ציין kcal+חלבון.`,SYS.health);
+  el.textContent=reply;
 }
-function toggleHabit(hi,di) { state.habits[hi].days[di]=!state.habits[hi].days[di]; renderHabits(); }
+function renderWater(){
+  const el=document.getElementById('water-drops');if(!el)return;
+  el.innerHTML=Array.from({length:8},(_,i)=>`<div class="drop ${i<S.water?'filled':''}" onclick="addWater(${i})">💧</div>`).join('');
+  document.getElementById('h-water').textContent=`${S.water}/8`;
+}
+function addWater(i){S.water=i+1;save();renderWater();}
+function resetWater(){S.water=0;save();renderWater();}
+function renderWorkouts(){
+  const el=document.getElementById('workouts-list');if(!el)return;
+  el.innerHTML=S.workouts.length?S.workouts.map((w,wi)=>`
+    <div class="wo">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <div><div style="font-size:13px;font-weight:600">${w.name}</div><div style="font-size:11px;color:var(--text3)">${w.date}</div></div>
+        <button class="bi" onclick="delWorkout(${wi})" style="font-size:11px">✕</button>
+      </div>
+      ${w.exercises.map(e=>`<div class="wo-ex">
+        <div style="font-size:13px;flex:1">${e.name}</div>
+        <div style="font-size:11px;color:var(--text3)">${e.sets}×${e.reps} | ${e.weight}kg</div>
+      </div>`).join('')}
+    </div>`):'<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px">אין אימונים — לחץ + לתיעוד</div>';
+}
+function addWorkout(){
+  showModal(`<h3>🏋️ אימון חדש</h3>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <input class="inp inp-full" id="wo-name" placeholder="שם האימון (גב/חזה/רגליים...)">
+      <div id="wo-exs" style="display:flex;flex-direction:column;gap:6px"></div>
+      <button class="btn bs bsm" onclick="addExField()">+ תרגיל</button>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn bp" style="flex:1" onclick="saveWorkout()">💾 שמור אימון</button>
+        <button class="btn bs" onclick="closeModal()">ביטול</button>
+      </div>
+    </div>`);
+  addExField();
+}
+function addExField(){
+  const d=document.getElementById('wo-exs');
+  const div=document.createElement('div');div.style.cssText='display:flex;gap:5px';
+  div.innerHTML=`<input class="inp" style="flex:2" placeholder="תרגיל">
+    <input class="inp" style="flex:1" type="number" placeholder="סטים" value="3">
+    <input class="inp" style="flex:1" type="number" placeholder="חזרות" value="10">
+    <input class="inp" style="flex:1" type="number" placeholder="kg" value="0">`;
+  d.appendChild(div);
+}
+function saveWorkout(){
+  const name=document.getElementById('wo-name').value||'אימון';
+  const rows=document.getElementById('wo-exs').children;
+  const exercises=Array.from(rows).map(r=>{
+    const ins=r.querySelectorAll('input');
+    return{name:ins[0].value||'תרגיל',sets:ins[1].value||3,reps:ins[2].value||10,weight:ins[3].value||0};
+  }).filter(e=>e.name!=='תרגיל');
+  S.workouts.unshift({name,exercises,date:new Date().toLocaleDateString('he-IL')});
+  save();renderWorkouts();updateStats();closeModal();showNotif('✓ אימון נשמר');
+}
+function delWorkout(i){S.workouts.splice(i,1);save();renderWorkouts();updateStats();}
 
-function renderCalStrip() {
-  const today = new Date();
-  const days = Array.from({length:10},(_,i)=>{ const d=new Date(today); d.setDate(today.getDate()-2+i); return d; });
-  document.getElementById('cal-strip').innerHTML = days.map(d=>{
-    const isToday = d.toDateString()===today.toDateString();
-    return `<div class="cal-day ${isToday?'today':''}" onclick="selectCalDay('${d.toISOString()}',this)">
-      <div class="cal-day-name">${DAYS_HE[d.getDay()]}</div>
-      <div class="cal-day-num">${d.getDate()}</div>
-      <div class="cal-day-dot"></div>
+// JOBS
+function renderJobs(){
+  const filter=document.getElementById('jf-cat')?.value||'all';
+  let jobs=filter==='all'?S.jobs:S.jobs.filter(j=>j.cat===filter);
+  const ST={waiting:'bdg-a',interview:'bdg-b',rejected:'bdg-r',offer:'bdg-g'};
+  const SN={waiting:'ממתין',interview:'ראיון',rejected:'נדחה',offer:'הצעה'};
+  document.getElementById('jobs-list').innerHTML=jobs.length?jobs.map((j,i)=>`
+    <div class="jc">
+      <div style="display:flex;justify-content:space-between">
+        <div>
+          <div class="jt">${j.title} ${j.link?`<a href="${j.link}" target="_blank" style="font-size:11px;color:var(--blue)">🔗</a>`:''}</div>
+          <div class="jco">${j.company}${j.cat?' · '+j.cat:''} · ${j.date}</div>
+        </div>
+        <button class="bi" onclick="delJob(${i})" style="font-size:11px">✕</button>
+      </div>
+      <div class="jm">
+        <select class="inp" style="padding:2px 5px;font-size:11px" onchange="updJobS(${i},this.value)">
+          ${['waiting','interview','rejected','offer'].map(s=>`<option value="${s}" ${j.status===s?'selected':''}>${SN[s]}</option>`).join('')}
+        </select>
+        <div class="mb2"><div class="mf" style="width:${j.match}%;background:${j.match>=80?'var(--green)':j.match>=60?'var(--amber)':'var(--red)'}"></div></div>
+        <span style="font-size:11px;font-weight:600;color:${j.match>=80?'var(--green)':j.match>=60?'var(--amber)':'var(--red)'}">${j.match}%</span>
+        <button class="bi bxs" onclick="genCV(${i})" title="PDF CV מותאם" style="font-size:11px">📄 CV</button>
+      </div>
+    </div>`):'<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px">אין משרות — הדבק קישור לסוכן</div>';
+  document.getElementById('j-s').textContent=S.jobs.length;
+  document.getElementById('j-w').textContent=S.jobs.filter(j=>j.status==='waiting').length;
+  document.getElementById('j-i').textContent=S.jobs.filter(j=>j.status==='interview').length;
+}
+function updJobS(i,s){S.jobs[i].status=s;save();renderJobs();}
+function delJob(i){S.jobs.splice(i,1);save();renderJobs();}
+function addJobManual(){
+  const title=prompt('תפקיד:');if(!title)return;
+  const company=prompt('חברה:');
+  const cat=prompt('קטגוריה (AI Analyst/Growth/Product/Analytics):','Analytics');
+  const link=prompt('קישור למשרה:','');
+  const match=parseInt(prompt('אחוזי התאמה (0-100):','70'));
+  S.jobs.push({title,company:company||'',cat:cat||'',status:'waiting',match:isNaN(match)?70:match,date:new Date().toLocaleDateString('he-IL'),link:link||''});
+  save();renderJobs();showNotif('✓ משרה נוספה');
+}
+async function genCV(i){
+  const job=S.jobs[i];
+  showNotif('🔄 מכין CV מותאם...');
+  const cvText=await claude(`כתוב קורות חיים מותאמים למשרה "${job.title}" ב"${job.company}". הדגש את הניסיון הרלוונטי ביותר. כתוב בעברית ואנגלית. פורמט מקצועי.`,SYS.jobs);
+  // Generate PDF via HTML print
+  const win=window.open('','_blank');
+  win.document.write(`<html dir="rtl"><head><meta charset="UTF-8"><title>CV - ${job.title}</title>
+  <style>body{font-family:Arial,sans-serif;padding:30px;max-width:800px;margin:0 auto;direction:rtl}h1{color:#6c63ff;font-size:20px;margin-bottom:4px}h2{font-size:14px;color:#333;margin-top:16px;margin-bottom:6px;border-bottom:1px solid #ddd;padding-bottom:3px}p,li{font-size:13px;line-height:1.6;color:#333}ul{padding-right:18px}@media print{@page{margin:1cm}}</style>
+  </head><body><h1>רואי קליין</h1><p style="color:#666;font-size:12px">tklroei1@gmail.com | +972-54-3329092 | הוד השרון</p>
+  <div style="white-space:pre-wrap;font-size:13px;line-height:1.7">${cvText}</div>
+  <script>setTimeout(()=>window.print(),500)<\/script></body></html>`);
+  win.document.close();
+  showNotif('✓ CV נפתח — שמור כ-PDF');
+}
+function setJobInput(t){document.getElementById('jobs-inp').value=t;}
+
+// UPSELLES
+function renderRoadmap(){
+  document.getElementById('rm-list').innerHTML=S.roadmap.map((r,i)=>{
+    const sc={done:{color:'var(--green)',badge:'bdg-g',label:'Done'},wip:{color:'var(--blue)',badge:'bdg-b',label:'WIP'},planned:{color:'var(--amber)',badge:'bdg-a',label:'Planned'}};
+    const s=sc[r.status]||sc.planned;
+    return`<div class="rm-item">
+      <div class="rm-dot" style="background:${s.color}"></div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${r.title}</div>
+        ${r.sub?`<div style="font-size:11px;color:var(--text3)">${r.sub}</div>`:''}
+      </div>
+      <select class="inp" style="padding:2px 5px;font-size:11px" onchange="updRM(${i},this.value)">
+        ${['done','wip','planned'].map(st=>`<option value="${st}" ${r.status===st?'selected':''}>${sc[st].label}</option>`).join('')}
+      </select>
     </div>`;
   }).join('');
-  document.getElementById('selected-day-label').textContent = formatDate(today);
-  loadAgendaEvents(today);
+}
+function updRM(i,s){S.roadmap[i].status=s;save();renderRoadmap();}
+function addRmItem(){
+  const t=prompt('שם הפיצ\'ר:');if(!t)return;
+  const sub=prompt('תיאור קצר:','');
+  S.roadmap.push({title:t,sub:sub||'',status:'planned'});
+  save();renderRoadmap();showNotif('✓ נוסף ל-Roadmap');
+}
+function saveWorkspace(){
+  S.workspace=document.getElementById('workspace').value;save();
+  document.getElementById('ws-saved').textContent='נשמר: '+new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+  showNotif('✓ מרחב עבודה נשמר');
+}
+function setUI(t){document.getElementById('upselles-inp').value=t;}
+function renderLeads(){
+  const el=document.getElementById('leads-list');if(!el)return;
+  el.innerHTML=S.leads.length?S.leads.map((l,i)=>`
+    <div style="padding:8px;background:var(--bg3);border-radius:var(--radius-xs);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:13px;font-weight:500">${l.name}</div>${l.contact?`<div style="font-size:11px;color:var(--text3)">${l.contact}</div>`:''}</div>
+      <button class="bi" onclick="S.leads.splice(${i},1);save();renderLeads()" style="font-size:11px">✕</button>
+    </div>`):'<div style="text-align:center;padding:10px;color:var(--text3);font-size:12px">אין לידים</div>';
+  document.getElementById('u-leads-n').textContent=S.leads.length;
+}
+function addLead(){
+  const name=prompt('שם הליד/חברה:');if(!name)return;
+  const contact=prompt('איש קשר/מייל:');
+  S.leads.push({name,contact:contact||''});save();renderLeads();showNotif('✓ ליד נוסף');
 }
 
-function selectCalDay(iso, el) {
-  document.querySelectorAll('.cal-day').forEach(d=>d.classList.remove('today'));
-  el.classList.add('today');
-  const d = new Date(iso);
-  document.getElementById('selected-day-label').textContent = formatDate(d);
-  loadAgendaEvents(d);
-}
-
-function renderGoals() {
-  document.getElementById('goals-list').innerHTML = state.goals.map((g,i)=>`
-    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:13px;font-weight:500">${g.text}</div>
-        <div style="font-size:12px;color:var(--accent);font-weight:600">${g.progress}%</div>
+// APARTMENTS
+function renderApts(){
+  const el=document.getElementById('apt-list');if(!el)return;
+  const filter=document.getElementById('af-s')?.value||'all';
+  const apts=filter==='all'?S.apts:S.apts.filter(a=>a.status===filter);
+  const SN={active:'מעניין',viewing:'לראות',applied:'יצרתי קשר',passed:'לא מתאים'};
+  const SC={active:'bdg-g',viewing:'bdg-b',applied:'bdg-t',passed:'bdg-gr'};
+  el.innerHTML=apts.length?apts.map((a,i)=>`
+    <div class="aptc">
+      <div style="display:flex;justify-content:space-between">
+        <div><div style="font-size:13px;font-weight:600">${a.title}${a.link?` <a href="${a.link}" target="_blank" style="font-size:11px;color:var(--teal)">🔗</a>`:''}</div>
+        <div style="font-size:11px;color:var(--text2)">₪${a.price}/חודש · ${a.area}</div></div>
+        <button class="bi" onclick="delApt(${i})" style="font-size:11px">✕</button>
       </div>
-      <div style="height:6px;background:var(--bg4);border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${g.progress}%;background:var(--accent);border-radius:3px"></div>
+      <div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap">
+        <select class="inp" style="padding:2px 5px;font-size:11px" onchange="updApt(${i},this.value)">
+          ${Object.entries(SN).map(([k,v])=>`<option value="${k}" ${a.status===k?'selected':''}>${v}</option>`).join('')}
+        </select>
+        <button class="btn bp bxs" onclick="schedView(${i})">📅 קבע סיור</button>
+        ${a.notes?`<div style="font-size:11px;color:var(--text3);flex-basis:100%">📝 ${a.notes}</div>`:''}
       </div>
-    </div>`).join('');
+    </div>`):'<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px">הוסף דירות שמצאת</div>';
+  document.getElementById('apt-n').textContent=S.apts.length;
+  document.getElementById('apt-m').textContent=S.apts.filter(a=>a.status==='viewing').length;
+  document.getElementById('apt-h').textContent=S.apts.filter(a=>a.status==='active').length;
 }
-function addGoal() { const t=prompt('מה המטרה?'); if(t) { state.goals.push({text:t,progress:0}); renderGoals(); } }
-
-function renderFamilyWeek() {
-  const days=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
-  document.getElementById('family-week').innerHTML = days.map(d=>`
-    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;min-height:80px">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:500">${d}</div>
-      <div style="font-size:11px;color:var(--text2)">פנוי</div>
-    </div>`).join('');
+function addApt(){
+  const title=prompt('כתובת:');if(!title)return;
+  const price=prompt('מחיר (₪/חודש):');
+  const area=prompt('אזור:','דיזינגוף');
+  const link=prompt('קישור (FB/Yad2):','');
+  const notes=prompt('הערות:','');
+  S.apts.push({title,price:price||'',area:area||'',link:link||'',notes:notes||'',status:'active'});
+  save();renderApts();showNotif('✓ דירה נוספה');
 }
-
-async function callClaude(userMsg, systemMsg) {
-  const res = await fetch(CLAUDE_API, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:systemMsg,messages:[{role:'user',content:userMsg}]})
-  });
-  const data = await res.json();
-  return data.content?.[0]?.text || 'שגיאה';
+function delApt(i){S.apts.splice(i,1);save();renderApts();}
+function updApt(i,s){S.apts[i].status=s;save();renderApts();}
+function schedView(i){
+  const a=S.apts[i];
+  const date=prompt('תאריך סיור (YYYY-MM-DD):');
+  const time=prompt('שעה:','10:00');
+  if(!date)return;
+  a.status='viewing';
+  document.getElementById('ev-name').value=`סיור — ${a.title}`;
+  document.getElementById('ev-date').value=date;
+  document.getElementById('ev-time').value=time||'10:00';
+  addCalEvent();save();renderApts();showNotif('✓ סיור נקבע!');
 }
-
-function addMsg(chatId, role, text) {
-  const chat = document.getElementById(chatId+'-chat');
-  const d = document.createElement('div');
-  d.className = `msg ${role==='user'?'user':''}`;
-  d.innerHTML = `<div class="msg-avatar ${role==='ai'?'ai':'user'}">${role==='ai'?'AI':'ר'}</div><div class="msg-bubble">${text}</div>`;
-  chat.appendChild(d);
-  chat.scrollTop = chat.scrollHeight;
-  return d;
-}
-
-async function sendMsg(ctx) {
-  const inp = document.getElementById(ctx+'-input');
-  const text = inp.value.trim();
-  if(!text) return;
-  inp.value='';
-  addMsg(ctx,'user',text);
-  const thinking = addMsg(ctx,'ai','...');
-  state.chatHistory[ctx] = state.chatHistory[ctx] || [];
-  state.chatHistory[ctx].push({role:'user',content:text});
-  const reply = await callClaude(text, systemPrompts[ctx]||systemPrompts.main);
-  thinking.querySelector('.msg-bubble').textContent = reply;
-  state.chatHistory[ctx].push({role:'assistant',content:reply});
-}
-
-function saveJournal() { if(document.getElementById('journal-text').value.trim()) alert('✓ נשמר!'); }
-async function analyzeJournal() {
-  const text = document.getElementById('journal-text').value;
-  if(!text.trim()) { alert('כתוב משהו קודם!'); return; }
-  document.getElementById('journal-analysis').textContent = 'מנתח...';
-  const r = await callClaude(`נתח בקצרה (3-4 משפטים) את רשומת היומן הבאה: תחושות עיקריות, נושאים, תובנה: "${text}"`, systemPrompts.main);
-  document.getElementById('journal-analysis').textContent = r;
-}
-
-let recognition = null;
-function toggleMic(ctx) {
-  const btn = document.getElementById('mic-'+ctx);
-  if(!btn) return;
-  if(btn.classList.contains('active')) { if(recognition) recognition.stop(); btn.classList.remove('active'); return; }
-  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)) { alert('נסה Chrome לתמיכה בקול'); return; }
-  const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
-  recognition = new SR();
-  recognition.lang='he-IL'; recognition.continuous=false; recognition.interimResults=false;
-  recognition.onresult = e => { document.getElementById(ctx+'-input').value=e.results[0][0].transcript; btn.classList.remove('active'); };
-  recognition.onerror = () => btn.classList.remove('active');
-  recognition.onend = () => btn.classList.remove('active');
-  recognition.start();
-  btn.classList.add('active');
-}
-
-function toggleMainVoice() {
-  const btn = document.getElementById('main-voice-btn');
-  const lbl = document.getElementById('voice-label');
-  if(btn.classList.contains('listening')) {
-    if(recognition) recognition.stop();
-    btn.classList.remove('listening'); lbl.textContent='דבר עם הסוכן'; return;
+function setAI(t){document.getElementById('apt-inp').value=t;}
+function importFB(){
+  const link=document.getElementById('fb-link').value.trim();
+  if(!link){showNotif('⚠️ הדבק קישור');return;}
+  // Parse FB link for info
+  const title=prompt('כתובת הדירה (כפי שמופיעה בפוסט):');
+  if(title){
+    const price=prompt('מחיר:');
+    S.apts.push({title:title||'דירה מFB',price:price||'',area:'תל אביב',link,notes:'נמצא בפייסבוק',status:'active'});
+    save();renderApts();document.getElementById('fb-link').value='';showNotif('✓ דירה יובאה מ-FB');
   }
-  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)) { alert('נסה Chrome'); return; }
-  const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
-  recognition = new SR();
-  recognition.lang='he-IL'; recognition.continuous=false;
-  recognition.onresult = e => {
-    const text = e.results[0][0].transcript;
-    btn.classList.remove('listening'); lbl.textContent='דבר עם הסוכן';
-    handleVoiceCommand(text);
+}
+
+// REMINDERS
+function renderReminders(){
+  const el=document.getElementById('reminders-list');if(!el)return;
+  const now=new Date();
+  el.innerHTML=S.reminders.length?S.reminders.sort((a,b)=>a.date+a.time>b.date+b.time?1:-1).map((r,i)=>`
+    <div class="rem ${r.done?'opacity:0.5':''}">
+      <div class="rem-time">${r.date.slice(5)}<br>${r.time}</div>
+      <div style="width:3px;border-radius:2px;background:${r.done?'var(--text3)':'var(--accent)'};flex-shrink:0;min-height:30px"></div>
+      <div class="rem-text ${r.done?'done':''}">
+        ${r.text}
+        ${r.repeat?`<span class="bdg bdg-gr" style="font-size:9px">${r.repeat}</span>`:''}
+      </div>
+      <div style="display:flex;gap:4px">
+        <button class="bi" onclick="doneRem(${i})">${r.done?'↩':'✓'}</button>
+        <button class="bi" onclick="delRem(${i})" style="font-size:11px">✕</button>
+      </div>
+    </div>`):'<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">אין תזכורות</div>';
+}
+function renderDashReminders(){
+  const el=document.getElementById('dash-reminders');if(!el)return;
+  const upcoming=S.reminders.filter(r=>!r.done).slice(0,3);
+  el.innerHTML=upcoming.length?upcoming.map(r=>`
+    <div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--accent);font-weight:600;flex-shrink:0">${r.time}</div>
+      <div style="font-size:12px;flex:1">${r.text}</div>
+    </div>`):'<div style="font-size:11px;color:var(--text3);text-align:center;padding:8px">אין תזכורות קרובות</div>';
+}
+function addReminder(){
+  const text=prompt('תזכורת:');if(!text)return;
+  const date=prompt('תאריך (YYYY-MM-DD):',new Date().toISOString().split('T')[0]);
+  const time=prompt('שעה:','09:00');
+  const rep=prompt('חזרה? (daily/weekly/ריק):','');
+  S.reminders.push({id:Date.now(),text,date:date||'',time:time||'09:00',done:false,repeat:rep||''});
+  save();renderReminders();renderDashReminders();showNotif('✓ תזכורת נוספה');
+  // Browser notification
+  if('Notification'in window&&Notification.permission==='granted'){
+    const d=new Date(date+'T'+time);
+    const diff=d.getTime()-Date.now();
+    if(diff>0)setTimeout(()=>new Notification('Personal OS',{body:text,icon:''}),diff);
+  }else if('Notification'in window){Notification.requestPermission();}
+}
+function doneRem(i){S.reminders[i].done=!S.reminders[i].done;save();renderReminders();renderDashReminders();}
+function delRem(i){S.reminders.splice(i,1);save();renderReminders();renderDashReminders();}
+
+// IDEAS
+function renderIdeas(){
+  const el=document.getElementById('ideas-list');if(!el)return;
+  const ICAT={general:'💡',upselles:'🚀',product:'📱',life:'🌱',tech:'💻'};
+  el.innerHTML=S.ideas.length?S.ideas.map((idea,i)=>`
+    <div class="idea">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+            <span style="font-size:16px">${ICAT[idea.cat]||'💡'}</span>
+            <span style="font-size:13px;font-weight:500">${idea.text}</span>
+          </div>
+          <div style="font-size:10px;color:var(--text3)">${idea.date}</div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="bi" onclick="starIdea(${i})" title="סמן מועדף">${idea.starred?'⭐':'☆'}</button>
+          <button class="bi" onclick="devIdea(${i})" title="פתח עם AI">🤖</button>
+          <button class="bi" onclick="delIdea(${i})" style="font-size:11px">✕</button>
+        </div>
+      </div>
+      ${idea.notes?`<div style="font-size:12px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">${idea.notes}</div>`:''}
+    </div>`):'<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">אין רעיונות — הוסף!</div>';
+}
+function addIdea(){
+  const text=document.getElementById('idea-inp').value.trim();if(!text)return;
+  addIdeaFromInput();
+}
+function addIdeaFromInput(){
+  const text=document.getElementById('idea-inp').value.trim();if(!text)return;
+  const cat=document.getElementById('idea-cat').value;
+  S.ideas.unshift({id:Date.now(),text,cat,date:new Date().toLocaleDateString('he-IL'),starred:false,notes:''});
+  document.getElementById('idea-inp').value='';save();renderIdeas();showNotif('✓ רעיון נוסף');
+}
+function starIdea(i){S.ideas[i].starred=!S.ideas[i].starred;save();renderIdeas();}
+function delIdea(i){S.ideas.splice(i,1);save();renderIdeas();}
+async function devIdea(i){
+  const idea=S.ideas[i];
+  showNotif('🤖 מפתח רעיון...');
+  const reply=await claude(`פתח את הרעיון הבא ב-3-4 משפטים: "${idea.text}". זהה הזדמנויות, אתגרים ואפשרויות מימוש.`,SYS.ideas);
+  S.ideas[i].notes=reply;save();renderIdeas();showNotif('✓ רעיון פותח');
+}
+function setHI(t){document.getElementById('health-inp').value=t;}
+
+// GOALS
+function renderGoals(){
+  const el=document.getElementById('goals-list');if(!el)return;
+  el.innerHTML=S.goals.map((g,i)=>`
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;margin-bottom:9px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+        <div style="font-size:13px;font-weight:500">${g.emoji} ${g.text}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:13px;font-weight:700;color:var(--accent)">${g.progress}%</span>
+          <input type="range" min="0" max="100" value="${g.progress}" style="width:70px" onchange="updGoal(${i},this.value)">
+          <button class="bi" onclick="delGoal(${i})" style="font-size:11px">✕</button>
+        </div>
+      </div>
+      <div class="pb"><div class="pf" style="width:${g.progress}%;background:var(--accent)"></div></div>
+    </div>`).join('')||'<div style="text-align:center;padding:20px;color:var(--text3)">הוסף מטרות</div>';
+}
+function addGoal(){
+  const text=prompt('מה המטרה?');if(!text)return;
+  const emoji=prompt('אימוג\'י:','🎯');
+  S.goals.push({text,progress:0,emoji:emoji||'🎯'});save();renderGoals();
+}
+function updGoal(i,v){S.goals[i].progress=parseInt(v);save();renderGoals();}
+function delGoal(i){S.goals.splice(i,1);save();renderGoals();}
+
+// FAMILY
+function renderFamWeek(){
+  const el=document.getElementById('fam-week');if(!el)return;
+  el.innerHTML=DF.map((d,i)=>`
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px;min-height:65px;cursor:pointer" onclick="addFamEvent(${i})">
+      <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px">${d}</div>
+      <div style="font-size:11px;color:var(--text2)" id="fw-${i}">+ הוסף</div>
+    </div>`).join('');
+}
+function addFamEvent(d){
+  const txt=prompt(`אירוע ל${DF[d]}:`);
+  if(txt){document.getElementById(`fw-${d}`).textContent=txt;}
+}
+
+// JOURNAL
+function saveJournal(){
+  const text=document.getElementById('jtext').value.trim();if(!text)return;
+  const d=new Date();
+  S.journalEntries.unshift({date:`${d.getDate()} ב${MO[d.getMonth()]}`,text,time:d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
+  save();renderJEntries();showNotif('✓ נשמר');
+}
+function renderJEntries(){
+  const el=document.getElementById('jentries');if(!el)return;
+  el.innerHTML=S.journalEntries.slice(0,5).map((e,i)=>`
+    <div style="padding:7px;background:var(--bg3);border-radius:var(--radius-xs);cursor:pointer;font-size:12px;color:var(--text2);margin-bottom:4px" onclick="document.getElementById('jtext').value=S.journalEntries[${i}].text">${e.date} — ${e.time}</div>`).join('')||'<div style="font-size:11px;color:var(--text3)">אין ערכים</div>';
+}
+async function analyzeJournal(){
+  const text=document.getElementById('jtext').value.trim();if(!text){alert('כתוב קודם');return;}
+  document.getElementById('janalysis').textContent='מנתח...';
+  const r=await claude(`נתח ב-3-4 משפטים: תחושות, תובנה, המלצה: "${text}"`,SYS.main);
+  document.getElementById('janalysis').textContent=r;
+}
+
+// WEEK RING
+function updateWeekRing(){
+  const done=S.tasks.filter(t=>t.done).length;
+  const total=S.tasks.length;
+  const pct=total>0?Math.round(done/total*100):0;
+  document.getElementById('wp').textContent=pct+'%';
+  document.getElementById('wd').textContent=`${done}/${total}`;
+  document.getElementById('wr').setAttribute('stroke-dashoffset',163-(163*pct/100));
+  document.getElementById('ds-week').textContent=pct+'%';
+  document.getElementById('ds-week-s').textContent=`${done}/${total}`;
+}
+
+// CLAUDE API
+async function claude(msg,sys){
+  try{
+    const r=await fetch('/api/claude',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
+    });
+    const d=await r.json();return d.content?.[0]?.text||'שגיאה';
+  }catch(e){return'שגיאה בחיבור';}
+}
+
+function addMsg2(chatId,role,text){
+  const chat=document.getElementById(chatId);if(!chat)return null;
+  const div=document.createElement('div');
+  div.className=`msg ${role==='user'?'u':''}`;
+  div.innerHTML=`<div class="mav ${role==='ai'?'ai':'u'}">${role==='ai'?'AI':'ר'}</div><div class="mb">${text}</div>`;
+  chat.appendChild(div);chat.scrollTop=chat.scrollHeight;return div;
+}
+
+async function sendChat(ctx){
+  const inputId=ctx===('main')?'main-inp':`${ctx}-inp`;
+  const chatId=ctx===('main')?'main-chat':`${ctx}-chat`;
+  const inp=document.getElementById(inputId);if(!inp)return;
+  const text=inp.value.trim();if(!text)return;inp.value='';
+  addMsg2(chatId,'user',text);
+  const th=addMsg2(chatId,'ai','...');
+  const sys=SYS[ctx]||SYS.main;
+  const reply=await claude(text,sys);
+  if(th)th.querySelector('.mb').textContent=reply;
+  // Smart actions
+  if(ctx==='health'){
+    const kcalM=reply.match(/(\d+)\s*[קk]ל/i);const protM=reply.match(/(\d+)\s*g?\s*חלבון/i);
+    if(kcalM&&(text.includes('אכלתי')||text.includes('שתיתי'))){
+      S.meals.push({name:text.replace(/אכלתי|שתיתי/g,'').trim(),kcal:parseInt(kcalM[1]),protein:protM?parseInt(protM[1]):0,carb:0,time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
+      save();renderMeals();updateStats();showNotif('✓ ארוחה נרשמה אוטומטית');
+    }
+  }
+  if(ctx==='jobs'){
+    const matchM=reply.match(/(\d+)%/);
+    if(matchM&&parseInt(matchM[1])>=60&&(text.includes('http')||text.includes('linkedin'))){
+      const titleM=reply.match(/תפקיד[:\s]+([^\n]+)/i)||reply.match(/משרת[:\s]+([^\n]+)/i);
+      const compM=reply.match(/חברה[:\s]+([^\n]+)/i);
+      const catM=reply.match(/(AI Analyst|Growth|Product|Analytics)/i);
+      if(titleM){
+        S.jobs.push({title:titleM[1].trim(),company:compM?compM[1].trim():'',cat:catM?catM[1]:'Analytics',status:'waiting',match:parseInt(matchM[1]),date:new Date().toLocaleDateString('he-IL'),link:text.match(/https?:\/\/\S+/)?.[0]||''});
+        save();renderJobs();showNotif('✓ משרה נוספה למעקב!');
+      }
+    }
+  }
+}
+
+// VOICE
+let recog=null;
+function toggleMic(ctx){
+  const btn=document.getElementById('mic-'+ctx);if(!btn)return;
+  if(btn.classList.contains('on')){if(recog)recog.stop();btn.classList.remove('on');return;}
+  if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('נסה Chrome');return;}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recog=new SR();recog.lang='he-IL';recog.continuous=false;
+  const inputId=ctx==='main'?'main-inp':`${ctx}-inp`;
+  recog.onresult=e=>{
+    const t=e.results[0][0].transcript;
+    const el=document.getElementById(inputId);if(el)el.value=t;
+    btn.classList.remove('on');
   };
-  recognition.onerror = () => { btn.classList.remove('listening'); lbl.textContent='דבר עם הסוכן'; };
-  recognition.start();
-  btn.classList.add('listening'); lbl.textContent='מקשיב...';
+  recog.onerror=()=>btn.classList.remove('on');
+  recog.onend=()=>btn.classList.remove('on');
+  recog.start();btn.classList.add('on');
 }
-
-async function handleVoiceCommand(text) {
-  const lower = text.toLowerCase();
-  if(lower.includes('משימה') || lower.includes('הוסף')) {
-    state.tasks.unshift({id:Date.now(),text:text.replace(/הוסף משימה|הוסף|משימה/gi,'').trim(),done:false,cat:'work'});
-    renderTasks(); renderAllTasks();
-    alert('✓ המשימה נוספה: ' + text);
-  } else if(lower.includes('אירוע') && accessToken) {
-    alert('אירוע קולי: ' + text + ' — השתמש בטופס להוספה');
-  } else {
-    const reply = await callClaude(text, systemPrompts.main);
-    alert('סוכן: ' + reply);
-  }
+function toggleVoice(){
+  const btn=document.getElementById('vbtn');const lbl=document.getElementById('vlbl');
+  if(btn.classList.contains('on')){if(recog)recog.stop();btn.classList.remove('on');lbl.textContent='דבר עם הסוכן';return;}
+  if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('נסה Chrome');return;}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recog=new SR();recog.lang='he-IL';recog.continuous=false;
+  recog.onresult=async e=>{
+    const text=e.results[0][0].transcript;
+    btn.classList.remove('on');lbl.textContent='דבר עם הסוכן';
+    document.getElementById('fcp').classList.add('open');
+    document.getElementById('main-inp').value=text;
+    await sendChat('main');
+  };
+  recog.onerror=()=>{btn.classList.remove('on');lbl.textContent='דבר עם הסוכן';};
+  recog.start();btn.classList.add('on');lbl.textContent='מקשיב...';
 }
+function toggleFC(){document.getElementById('fcp').classList.toggle('open');}
 
+// MODAL
+function showModal(html){document.getElementById('modal-content').innerHTML=html;document.getElementById('modal-bg').classList.add('open');}
+function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
+
+// NOTIF
+function showNotif(msg){
+  const n=document.getElementById('notif');n.textContent=msg;n.classList.add('show');
+  setTimeout(()=>n.classList.remove('show'),2500);
+}
+function editProfile(){showNotif('✏️ עריכת פרופיל — בקרוב');}
+
+// INIT
 init();
-
-function toggleChat() {
-  const p = document.getElementById('chat-panel');
-  p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
-  if(p.style.display === 'flex') document.getElementById('main-input').focus();
-}
-
-async function sendMainMsg() {
-  const inp = document.getElementById('main-input');
-  const text = inp.value.trim();
-  if(!text) return;
-  inp.value = '';
-  addMsg('main','user',text);
-  const thinking = addMsg('main','ai','...');
-  const reply = await callClaude(text, systemPrompts.main);
-  thinking.querySelector('.msg-bubble').textContent = reply;
-}
-
+if(S.workspace)document.getElementById('workspace').value=S.workspace;
+// Request notification permission
+if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
+// Check due reminders
+setInterval(()=>{
+  const now=new Date();
+  S.reminders.filter(r=>!r.done).forEach(r=>{
+    const rd=new Date(r.date+'T'+r.time);
+    if(Math.abs(rd-now)<60000&&'Notification'in window&&Notification.permission==='granted'){
+      new Notification('⏰ Personal OS',{body:r.text});
+    }
+  });
+},60000);
 </script>
-
-<!-- Chat Panel -->
-<div id="chat-panel" style="position:fixed;bottom:80px;left:20px;width:360px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);box-shadow:0 20px 60px rgba(0,0,0,0.5);z-index:100;display:none;flex-direction:column;overflow:hidden;max-height:500px">
-  <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
-    <div style="width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite"></div>
-    <div style="font-size:13px;font-weight:600;color:var(--text);flex:1">סוכן AI — Personal OS</div>
-    <button onclick="toggleChat()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0">✕</button>
-  </div>
-  <div class="ai-chat" id="main-chat" style="padding:12px;max-height:350px;overflow-y:auto">
-    <div class="msg"><div class="msg-avatar ai">AI</div><div class="msg-bubble">היי רואי! אני הסוכן האישי שלך. אפשר לדבר איתי בקול או להקליד. איך אוכל לעזור?</div></div>
-  </div>
-  <div style="padding:10px;border-top:1px solid var(--border)">
-    <div class="chat-input-row">
-      <button class="mic-btn" id="mic-main" onclick="toggleMic('main')" style="flex-shrink:0">🎙</button>
-      <input class="chat-input" id="main-input" placeholder="הקלד כאן..." onkeydown="if(event.key==='Enter')sendMainMsg()" style="flex:1">
-      <button class="btn-sm" onclick="sendMainMsg()">שלח ↗</button>
-    </div>
-  </div>
-</div>
-
-<!-- Chat Toggle Button -->
-<button onclick="toggleChat()" style="position:fixed;bottom:20px;left:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;font-size:22px;color:#fff;box-shadow:0 4px 20px rgba(124,111,247,0.4);z-index:101;display:flex;align-items:center;justify-content:center" title="פתח סוכן AI">💬</button>
-
 </body>
 </html>
