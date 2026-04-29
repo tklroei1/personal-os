@@ -230,6 +230,26 @@ select.inp{cursor:pointer}
 .gsignin-wrap{margin-bottom:8px}
 #webhook-badge{position:fixed;top:14px;right:50%;transform:translateX(50%);background:var(--teal);color:#fff;padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;z-index:1000;opacity:0;transition:opacity 0.3s;pointer-events:none}
 #webhook-badge.show{opacity:1}
+/* JOB FILTER CHIPS */
+.filter-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.filter-lbl{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;min-width:42px;flex-shrink:0}
+.filter-chips-wrap{display:flex;gap:5px;flex-wrap:wrap}
+.fchip{padding:3px 9px;border-radius:20px;font-size:11px;background:var(--bg3);border:1.5px solid var(--border);cursor:pointer;transition:all 0.15s;color:var(--text2);user-select:none}
+.fchip:hover{border-color:var(--accent);color:var(--accent)}
+.fchip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+/* RICH JOB CARDS */
+.jcard{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;margin-bottom:8px;transition:border 0.15s}
+.jcard:hover{border-color:var(--accent);background:var(--bg2)}
+.jcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.jcard-title{font-size:13px;font-weight:600;line-height:1.35;margin-bottom:2px}
+.jcard-meta{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.jcard-match{text-align:center;flex-shrink:0;min-width:50px}
+.jcard-match-num{font-size:20px;font-weight:700;line-height:1}
+.jcard-match-bar{height:4px;background:var(--bg4);border-radius:2px;margin-top:4px;overflow:hidden;width:48px}
+.jcard-match-lbl{font-size:9px;color:var(--text3);margin-top:3px}
+.jcard-desc{font-size:12px;color:var(--text2);margin:7px 0;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.jcard-footer{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:9px;padding-top:8px;border-top:1px solid var(--border)}
+.fetched-badge{font-size:9px;color:var(--teal);background:var(--teal-bg);padding:1px 5px;border-radius:3px;margin-right:auto}
 </style>
 </head>
 <body>
@@ -503,6 +523,7 @@ select.inp{cursor:pointer}
 
 <!-- JOBS -->
 <div class="page" id="page-jobs">
+  <!-- Profile -->
   <div class="pbox">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
       <div>
@@ -512,39 +533,84 @@ select.inp{cursor:pointer}
       <button class="btn bs bsm" onclick="editProfile()">✏️ ערוך</button>
     </div>
   </div>
+  <!-- Stats -->
   <div class="sr s3">
-    <div class="sc sc-b"><div class="sl">נשלחו</div><div class="sv" id="j-s">0</div></div>
-    <div class="sc sc-a"><div class="sl">ממתין</div><div class="sv" id="j-w">0</div></div>
+    <div class="sc sc-b"><div class="sl">משרות במעקב</div><div class="sv" id="j-s">0</div></div>
+    <div class="sc sc-a"><div class="sl">ממתין / נשלח</div><div class="sv" id="j-w">0</div></div>
     <div class="sc sc-g"><div class="sl">ראיונות</div><div class="sv" id="j-i">0</div></div>
   </div>
+  <!-- Smart Filter Panel -->
+  <div class="card">
+    <div class="ch">
+      <div class="ct">🎯 פילטר חכם + חיפוש חי</div>
+      <button class="btn bs bxs" onclick="clearJobFilters()">נקה הכל</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-lbl">תפקיד</span>
+      <div class="filter-chips-wrap">
+        <div class="fchip" data-g="type" data-v="AI Analyst" onclick="toggleJobFilter(this)">AI Analyst</div>
+        <div class="fchip" data-g="type" data-v="Growth" onclick="toggleJobFilter(this)">Growth</div>
+        <div class="fchip" data-g="type" data-v="Product Manager" onclick="toggleJobFilter(this)">Product Manager</div>
+        <div class="fchip" data-g="type" data-v="Data Analyst" onclick="toggleJobFilter(this)">Data Analyst</div>
+        <div class="fchip" data-g="type" data-v="Analytics Engineer" onclick="toggleJobFilter(this)">Analytics Eng.</div>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-lbl">ניסיון</span>
+      <div class="filter-chips-wrap">
+        <div class="fchip" data-g="exp" data-v="Junior" onclick="toggleJobFilter(this)">Junior</div>
+        <div class="fchip" data-g="exp" data-v="Mid" onclick="toggleJobFilter(this)">Mid</div>
+        <div class="fchip" data-g="exp" data-v="Senior" onclick="toggleJobFilter(this)">Senior</div>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-lbl">מיקום</span>
+      <div class="filter-chips-wrap">
+        <div class="fchip" data-g="loc" data-v="Tel Aviv" onclick="toggleJobFilter(this)">תל אביב</div>
+        <div class="fchip" data-g="loc" data-v="Remote" onclick="toggleJobFilter(this)">Remote</div>
+        <div class="fchip" data-g="loc" data-v="Hybrid" onclick="toggleJobFilter(this)">Hybrid</div>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-lbl">גודל</span>
+      <div class="filter-chips-wrap">
+        <div class="fchip" data-g="size" data-v="Startup" onclick="toggleJobFilter(this)">Startup</div>
+        <div class="fchip" data-g="size" data-v="Scale-up" onclick="toggleJobFilter(this)">Scale-up</div>
+        <div class="fchip" data-g="size" data-v="Enterprise" onclick="toggleJobFilter(this)">Enterprise</div>
+      </div>
+    </div>
+    <div class="irow" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <input class="inp" style="flex:1" id="smart-srch"
+        placeholder="מצא לי 5 AI Analyst + 3 Growth בתל אביב עם 70%+ התאמה..."
+        onkeydown="if(event.key==='Enter')doSmartSearch()">
+      <button class="btn bp bsm" id="smart-srch-btn" onclick="doSmartSearch()">🔍 חפש</button>
+    </div>
+  </div>
+  <!-- Live Search Results (shown after search) -->
+  <div class="card" id="job-live-wrap" style="display:none">
+    <div class="ch">
+      <div class="ct" id="job-live-title">תוצאות חיפוש</div>
+      <span class="ca" onclick="document.getElementById('job-live-wrap').style.display='none'">✕ סגור</span>
+    </div>
+    <div id="job-live-list"></div>
+  </div>
+  <!-- Agent chat + Tracked jobs -->
   <div class="g2">
     <div class="card">
       <div class="ch"><div class="ct">🤖 סוכן חיפוש + ניתוח משרות</div></div>
-      <div class="chips">
-        <div class="chip" onclick="setJobInput('חפש לי משרות Data Analyst בתל אביב')">🔍 חפש משרות</div>
-        <div class="chip" onclick="setJobInput('הדבק קישור למשרה לניתוח מלא')">📋 נתח משרה</div>
-        <div class="chip" onclick="setJobInput('התאם לי קורות חיים למשרה זו')">📄 התאם CV</div>
-      </div>
       <div class="aic" id="jobs-chat" style="max-height:240px">
-        <div class="msg"><div class="mav ai">AI</div><div class="mb">שלום רואי! אני מנתח משרות בזמן אמת. הדבק קישור לניתוח מלא עם אחוזי התאמה + CV מותאם כ-PDF מוכן לשליחה. או בקש ממני לחפש משרות.</div></div>
+        <div class="msg"><div class="mav ai">AI</div><div class="mb">שלום רואי! הדבק קישור למשרה — אקרא אותה במלואה ואחשב אחוזי התאמה מדויקים. או בחר פילטרים ולחץ "חפש" לתוצאות חיות ישירות מהרשת.</div></div>
       </div>
       <div class="crow">
         <button class="micb" id="mic-jobs" onclick="toggleMic('jobs')">🎙</button>
-        <input class="inp" style="flex:1" id="jobs-inp" placeholder="קישור למשרה / בקש חיפוש..." onkeydown="if(event.key==='Enter')sendChat('jobs')">
+        <input class="inp" style="flex:1" id="jobs-inp" placeholder="קישור למשרה / שאלה..." onkeydown="if(event.key==='Enter')sendChat('jobs')">
         <button class="btn bp bsm" onclick="sendChat('jobs')">↗</button>
       </div>
     </div>
     <div class="card">
       <div class="ch">
-        <div class="ct">משרות במעקב</div>
-        <div style="display:flex;gap:6px">
-          <select class="inp" id="jf-cat" onchange="renderJobs()" style="padding:3px 6px;font-size:11px">
-            <option value="all">כולן</option>
-            <option value="AI Analyst">AI Analyst</option><option value="Growth">Growth</option>
-            <option value="Product">Product</option><option value="Analytics">Analytics</option>
-          </select>
-          <button class="btn bs bxs" onclick="addJobManual()">+ ידני</button>
-        </div>
+        <div class="ct">📌 משרות במעקב</div>
+        <button class="btn bs bxs" onclick="addJobManual()">+ ידני</button>
       </div>
       <div id="jobs-list"></div>
     </div>
@@ -929,7 +995,7 @@ const CMD_DOCS=`
 cat: work/health/family/project/home | proj: jobs/upselles/health/apartment/family/none | period: daily/weekly/once | status: done/wip/planned`;
 
 const SYS={
-  jobs:`אתה סוכן חיפוש עבודה מקצועי בעברית עם גישה לאינטרנט. ${CV} כשמנתח משרה: תן ציון 0-100, קטגוריה, 3 חוזקות, 2 חסרונות, המלצה. כשמבקשים CV מותאם: כתוב קורות חיים מותאמים בפורמט מקצועי שמדגיש את הרלוונטי למשרה. כשמזהה משרה מתאימה: הוסף [CMD:{"action":"add_task","text":"שלוח CV ל[שם חברה]","cat":"work","proj":"jobs","period":"once"}]. כשמוצאים תוצאות חיפוש: סכם אותן ביקורתית. ענה בעברית. ${CMD_DOCS}`,
+  jobs:`אתה סוכן חיפוש עבודה מקצועי בעברית עם גישה לאינטרנט ויכולת לקרוא תיאורי משרות מלאים. ${CV} כשמנתח משרה (תיאור מלא או URL): תן ציון התאמה 0-100 מפורט, קטגוריה, 3 חוזקות, 2 חסרונות, המלצה ברורה האם להגיש מועמדות. כשמקבל תיאור משרה מלא (מסומן "ניתוח משרה מלא"): נתח לעומק ותן ציון מדויק. כשמבקשים CV מותאם: כתוב קורות חיים בפורמט מקצועי שמדגיש את הרלוונטי למשרה. כשמזהה משרה מתאימה: הוסף [CMD:{"action":"add_task","text":"שלוח CV ל[שם חברה]","cat":"work","proj":"jobs","period":"once"}]. כשמוצאים תוצאות חיפוש: סכם אותן ביקורתית. ענה בעברית. ${CMD_DOCS}`,
   health:`אתה מאמן כושר ודיאטן מוסמך בעברית. כשמדווחים על ארוחה חשב: קלוריות, חלבון, פחמימות. כשמציעים ארוחה ציין את הפירוט התזונתי. תן המלצות מותאמות ליעדים. ענה קצר וממוקד. ${CMD_DOCS}`,
   upselles:`אתה סוכן עסקי ואסטרטגי בעברית. ${UPSELLES} מומחה ב: מיילים שיווקיים, ניהול לידים, ניתוח תחרות, GTM, Roadmap. כשמעדכנים סטטוס פיצ'ר: הוסף [CMD:{"action":"update_roadmap","title":"שם","status":"done"}]. ענה מקצועי. ${CMD_DOCS}`,
   apt:`אתה סוכן מציאת דירה בת"א בעברית. רואי מחפש חדר בדירת שותפים, אזור דיזינגוף-כרם התימנים, קרוב לים. עזור: ניסוח הודעות, השוואת דירות, קביעת סיורים. ענה ממוקד. ${CMD_DOCS}`,
@@ -1420,30 +1486,80 @@ function saveWorkout(){
 }
 function delWorkout(i){S.workouts.splice(i,1);save();renderWorkouts();updateStats();}
 
-// JOBS
-function renderJobs(){
-  const filter=document.getElementById('jf-cat')?.value||'all';
-  let jobs=filter==='all'?S.jobs:S.jobs.filter(j=>j.cat===filter);
-  const ST={waiting:'bdg-a',interview:'bdg-b',rejected:'bdg-r',offer:'bdg-g'};
-  const SN={waiting:'ממתין',interview:'ראיון',rejected:'נדחה',offer:'הצעה'};
-  document.getElementById('jobs-list').innerHTML=jobs.length?jobs.map((j,i)=>`
-    <div class="jc">
-      <div style="display:flex;justify-content:space-between">
-        <div>
-          <div class="jt">${j.title} ${j.link?`<a href="${j.link}" target="_blank" style="font-size:11px;color:var(--blue)">🔗</a>`:''}</div>
-          <div class="jco">${j.company}${j.cat?' · '+j.cat:''} · ${j.date}</div>
+// ─── JOB FILTERS ────────────────────────────────────────────────────────────
+const jobFilters={type:new Set(),exp:new Set(),loc:new Set(),size:new Set()};
+function toggleJobFilter(el){
+  const g=el.dataset.g,v=el.dataset.v;
+  if(jobFilters[g].has(v)){jobFilters[g].delete(v);el.classList.remove('on');}
+  else{jobFilters[g].add(v);el.classList.add('on');}
+}
+function clearJobFilters(){
+  Object.keys(jobFilters).forEach(g=>jobFilters[g].clear());
+  document.querySelectorAll('.fchip.on').forEach(c=>c.classList.remove('on'));
+}
+
+// ─── AUTO MATCH SCORE (locked, CV-profile-based, not user-editable) ─────────
+function calcMatchScore(title='',text=''){
+  const t=(title+' '+text).toLowerCase();
+  let s=38;
+  // CV skills from Roei's profile
+  ['python','sql','excel','analytics','kpi','machine learning','data','product','growth','ai','bi',
+   'tableau','looker','amplitude','mixpanel','saas','startup','gtm','crm','forecasting'].forEach(k=>{if(t.includes(k))s+=4;});
+  // Target roles
+  if(['analyst','product manager','product owner','growth','data scientist','business intelligence'].some(r=>t.includes(r)))s+=12;
+  // Seniority fit (Roi = early-career)
+  if(t.includes('junior')||t.includes('entry')||t.includes('graduate')||t.includes('associate'))s+=10;
+  if(t.includes('senior')&&!t.includes('junior'))s-=8;
+  if(t.includes('director')||t.includes(' vp ')||t.includes('head of'))s-=14;
+  // Location fit
+  if(t.includes('tel aviv')||t.includes('remote')||t.includes('hybrid')||t.includes('israel'))s+=6;
+  // Company culture
+  if(t.includes('startup')||t.includes('tech')||t.includes('saas')||t.includes('fintech'))s+=4;
+  return Math.min(96,Math.max(28,s));
+}
+
+// ─── RICH JOB CARD HTML ──────────────────────────────────────────────────────
+const SN_JOB={waiting:'ממתין',interview:'ראיון',rejected:'נדחה',offer:'הצעה'};
+function jobCardHTML(j,i,isLive=false){
+  const mc=j.match>=80?'var(--green)':j.match>=60?'var(--amber)':'var(--red)';
+  return`<div class="jcard">
+    <div class="jcard-top">
+      <div style="flex:1;min-width:0">
+        <div class="jcard-title">${j.title}${j.link?` <a href="${j.link}" target="_blank" style="font-size:10px;color:var(--blue)">🔗</a>`:''}</div>
+        <div class="jcard-meta">
+          ${j.company?`<span>${j.company}</span>`:''}
+          ${j.cat?`<span class="bdg bdg-b" style="font-size:9px">${j.cat}</span>`:''}
+          ${j.date?`<span style="color:var(--text3)">${j.date}</span>`:''}
+          ${j._fetchedFull?`<span class="fetched-badge">📄 נקרא מלא</span>`:''}
         </div>
-        <button class="bi" onclick="delJob(${i})" style="font-size:11px">✕</button>
       </div>
-      <div class="jm">
-        <select class="inp" style="padding:2px 5px;font-size:11px" onchange="updJobS(${i},this.value)">
-          ${['waiting','interview','rejected','offer'].map(s=>`<option value="${s}" ${j.status===s?'selected':''}>${SN[s]}</option>`).join('')}
-        </select>
-        <div class="mb2"><div class="mf" style="width:${j.match}%;background:${j.match>=80?'var(--green)':j.match>=60?'var(--amber)':'var(--red)'}"></div></div>
-        <span style="font-size:11px;font-weight:600;color:${j.match>=80?'var(--green)':j.match>=60?'var(--amber)':'var(--red)'}">${j.match}%</span>
-        <button class="bi bxs" onclick="genCV(${i})" title="PDF CV מותאם" style="font-size:11px">📄 CV</button>
+      <div class="jcard-match" title="התאמה חושבה אוטומטית על בסיס הפרופיל">
+        <div class="jcard-match-num" style="color:${mc}">${j.match}</div>
+        <div class="jcard-match-bar"><div style="width:${j.match}%;background:${mc};height:100%;border-radius:2px"></div></div>
+        <div class="jcard-match-lbl">🔒 התאמה%</div>
       </div>
-    </div>`):'<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px">אין משרות — הדבק קישור לסוכן</div>';
+    </div>
+    ${j.description?`<div class="jcard-desc">${j.description}</div>`:''}
+    <div class="jcard-footer">
+      ${isLive
+        ?`<button class="btn bg bxs" onclick="saveJobFromResult(${i})">💾 שמור</button>
+          ${j.link?`<a href="${j.link}" target="_blank" class="btn bp bxs">📨 הגש</a>`:''}`
+        :`<select class="inp" style="padding:2px 5px;font-size:11px" onchange="updJobS(${i},this.value)">
+            ${['waiting','interview','rejected','offer'].map(s=>`<option value="${s}" ${j.status===s?'selected':''}>${SN_JOB[s]}</option>`).join('')}
+          </select>
+          ${j.link?`<a href="${j.link}" target="_blank" class="btn bp bxs">📨 הגש</a>`:''}
+          <button class="btn bs bxs" onclick="genCV(${i})">📄 CV</button>
+          <button class="bi" onclick="delJob(${i})" style="font-size:11px">✕</button>`
+      }
+    </div>
+  </div>`;
+}
+
+// ─── JOBS RENDER ─────────────────────────────────────────────────────────────
+function renderJobs(){
+  document.getElementById('jobs-list').innerHTML=S.jobs.length
+    ?S.jobs.map((j,i)=>jobCardHTML(j,i,false)).join('')
+    :'<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px">אין משרות — חפש בפילטר או הוסף ידנית</div>';
   document.getElementById('j-s').textContent=S.jobs.length;
   document.getElementById('j-w').textContent=S.jobs.filter(j=>j.status==='waiting').length;
   document.getElementById('j-i').textContent=S.jobs.filter(j=>j.status==='interview').length;
@@ -1452,12 +1568,116 @@ function updJobS(i,s){S.jobs[i].status=s;save();renderJobs();}
 function delJob(i){S.jobs.splice(i,1);save();renderJobs();}
 function addJobManual(){
   const title=prompt('תפקיד:');if(!title)return;
-  const company=prompt('חברה:');
-  const cat=prompt('קטגוריה (AI Analyst/Growth/Product/Analytics):','Analytics');
+  const company=prompt('חברה:','');
+  const cat=prompt('קטגוריה (AI Analyst/Growth/Product Manager/Data Analyst):','Data Analyst');
   const link=prompt('קישור למשרה:','');
-  const match=parseInt(prompt('אחוזי התאמה (0-100):','70'));
-  S.jobs.push({title,company:company||'',cat:cat||'',status:'waiting',match:isNaN(match)?70:match,date:new Date().toLocaleDateString('he-IL'),link:link||''});
-  save();renderJobs();showNotif('✓ משרה נוספה');
+  // match % is auto-calculated from CV profile — not editable
+  const match=calcMatchScore(title,cat||'');
+  S.jobs.unshift({title,company:company||'',cat:cat||'',status:'waiting',match,date:new Date().toLocaleDateString('he-IL'),link:link||''});
+  save();renderJobs();showNotif(`✓ משרה נוספה — התאמה: ${match}%`);
+}
+
+// ─── SMART JOB SEARCH (filter chips + full page read + auto match) ───────────
+let liveSearchResults=[];
+
+function extractJobCompany(r){
+  const url=r.FirstURL||r.url||'';
+  try{const h=new URL(url).hostname.replace(/^www\./,'').split('.')[0];return h.charAt(0).toUpperCase()+h.slice(1);}
+  catch{return'';}
+}
+
+async function doSmartSearch(){
+  const inp=document.getElementById('smart-srch');
+  const query=inp.value.trim();
+  const types=[...jobFilters.type];
+  const locs=[...jobFilters.loc];
+  const exps=[...jobFilters.exp];
+  const sizes=[...jobFilters.size];
+
+  // Decide search types
+  const searchTypes=types.length?types:(query?[query]:['AI Analyst','Data Analyst','Growth Analyst']);
+  const locStr=locs.length?locs.join(' OR '):'Israel Tel Aviv';
+  const expStr=exps.length?exps.join(' '):'';
+  const sizeStr=sizes.length?sizes.join(' '):'';
+
+  const liveWrap=document.getElementById('job-live-wrap');
+  const liveList=document.getElementById('job-live-list');
+  const liveTitle=document.getElementById('job-live-title');
+  const btn=document.getElementById('smart-srch-btn');
+
+  liveWrap.style.display='block';
+  liveList.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">🔍 מחפש: ${searchTypes.join(', ')}...</div>`;
+  btn.textContent='⏳';btn.disabled=true;
+
+  try{
+    // Parallel search for each type (max 3)
+    const searches=searchTypes.slice(0,3).map(type=>{
+      const q=`"${type}" job ${expStr} ${sizeStr} ${locStr} ${query} 2024 2025`;
+      return fetch(`/api/search?q=${encodeURIComponent(q)}&count=5`)
+        .then(r=>r.json())
+        .then(d=>({type,results:[...(d.Results||[]),...(d.RelatedTopics||[])]}))
+        .catch(()=>({type,results:[]}));
+    });
+
+    const allSearches=await Promise.all(searches);
+    const allJobs=[];
+    const seenUrls=new Set();
+
+    // For each result: fetch full page, calculate match
+    for(const{type,results}of allSearches){
+      const top=results.filter(r=>(r.FirstURL||r.url)&&(r.Text||r.description)).slice(0,3);
+      for(const r of top){
+        const url=r.FirstURL||r.url;
+        if(!url||seenUrls.has(url))continue;
+        seenUrls.add(url);
+
+        let pageText=r.description||r.Text||'';
+        let fetchedFull=false;
+        // Attempt to read full job description
+        try{
+          const pr=await fetch(`/api/fetch-page?url=${encodeURIComponent(url)}`);
+          const pd=await pr.json();
+          if(pd.ok&&pd.text&&pd.chars>200){pageText=pd.text;fetchedFull=true;}
+        }catch{}
+
+        const title=(r.title||r.Text||type).split(':')[0].trim().slice(0,80);
+        const match=calcMatchScore(title,pageText);
+        allJobs.push({
+          title,
+          company:extractJobCompany(r),
+          cat:type,
+          match,
+          description:(r.description||r.Text||'').slice(0,200),
+          link:url,
+          status:'waiting',
+          date:new Date().toLocaleDateString('he-IL'),
+          _fetchedFull:fetchedFull
+        });
+      }
+    }
+
+    // Sort by match score
+    allJobs.sort((a,b)=>b.match-a.match);
+    liveSearchResults=allJobs;
+
+    liveTitle.textContent=`תוצאות חיפוש — ${allJobs.length} משרות${allJobs.filter(j=>j._fetchedFull).length?' ('+allJobs.filter(j=>j._fetchedFull).length+' נקראו במלואן)':''}`;
+    liveList.innerHTML=allJobs.length
+      ?allJobs.map((j,i)=>jobCardHTML(j,i,true)).join('')
+      :'<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">לא נמצאו תוצאות — נסה פילטרים אחרים</div>';
+  }catch(e){
+    liveList.innerHTML=`<div style="color:var(--red);padding:12px;font-size:12px">שגיאה: ${e.message}</div>`;
+  }finally{
+    btn.textContent='🔍 חפש';btn.disabled=false;
+  }
+}
+
+function saveJobFromResult(i){
+  const j=liveSearchResults[i];if(!j)return;
+  if(S.jobs.some(x=>x.link&&x.link===j.link)){showNotif('⚠️ משרה כבר נשמרה');return;}
+  S.jobs.unshift({title:j.title,company:j.company,cat:j.cat,match:j.match,
+    description:j.description,link:j.link,status:'waiting',
+    date:new Date().toLocaleDateString('he-IL')});
+  save();renderJobs();showNotif(`✓ משרה נשמרה — ${j.match}% התאמה`);
 }
 async function genCV(i){
   const job=S.jobs[i];
@@ -1925,9 +2145,27 @@ async function sendChat(ctx){
   const th=addMsg2(chatId,'ai','...');
   const sys=SYS[ctx]||SYS.main;
 
-  // ALWAYS-ON WEB SEARCH — skip only for very short or pure-command messages and schedule context
-  const skipSearch=text.length<18||ctx==='week'||/^\[CMD/i.test(text);
+  // JOBS: auto-fetch full page when user pastes a URL
   let msgToSend=text;
+  let urlFetched=false;
+  if(ctx==='jobs'){
+    const urlM=text.match(/https?:\/\/[^\s]+/);
+    if(urlM){
+      if(th)th.querySelector('.mb').textContent='📄 קורא משרה...';
+      try{
+        const pr=await fetch(`/api/fetch-page?url=${encodeURIComponent(urlM[0])}`);
+        const pd=await pr.json();
+        if(pd.ok&&pd.text){
+          const preScore=calcMatchScore(urlM[0],pd.text);
+          msgToSend=`ניתוח משרה מלא (URL: ${urlM[0]})\n\n${pd.text.slice(0,3000)}\n\nחשב אחוזי התאמה. ציון ראשוני: ${preScore}%`;
+          urlFetched=true;
+        }
+      }catch{}
+    }
+  }
+
+  // ALWAYS-ON WEB SEARCH — skip only for very short or pure-command messages and schedule context
+  const skipSearch=urlFetched||text.length<18||ctx==='week'||/^\[CMD/i.test(text);
   if(!skipSearch){
     if(th)th.querySelector('.mb').textContent='🔍 מחפש...';
     const results=await autoSearch(text,ctx);

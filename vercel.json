@@ -7,12 +7,14 @@
     { "src": "icon.svg", "use": "@vercel/static" },
     { "src": "api/claude.js", "use": "@vercel/node" },
     { "src": "api/search.js", "use": "@vercel/node" },
-    { "src": "api/webhook.js", "use": "@vercel/node" }
+    { "src": "api/webhook.js", "use": "@vercel/node" },
+    { "src": "api/fetch-page.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/api/claude", "dest": "/api/claude.js" },
     { "src": "/api/search", "dest": "/api/search.js" },
     { "src": "/api/webhook", "dest": "/api/webhook.js" },
+    { "src": "/api/fetch-page", "dest": "/api/fetch-page.js" },
     { "src": "/manifest.json", "dest": "/manifest.json" },
     { "src": "/sw.js", "dest": "/sw.js" },
     { "src": "/icon.svg", "dest": "/icon.svg" },
