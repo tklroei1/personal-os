@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Personal OS — רואי קליין</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#6c63ff">
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Personal OS">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -861,14 +868,22 @@ const CV=`רואי קליין — פרופיל מקצועי:
 • חוזקות: אנליטי, יצירתי, execution, תקשורת בינאישית`;
 const UPSELLES=`Upselles: פלטפורמה המחברת עסקים+סלזמנים פרילנס. Marketplace, CRM משותף, real-time tracking. MVP 80%, Pilot+לקוח ראשון. ישראל→ארה"ב.`;
 
+const CMD_DOCS=`
+פקודות זמינות לביצוע פעולות בפלטפורמה — כלול בתשובה בלוק [CMD:{...}] כשרלוונטי:
+• הוספת משימה: [CMD:{"action":"add_task","text":"שם המשימה","cat":"work","proj":"none","period":"once"}]
+• הוספת תזכורת: [CMD:{"action":"add_reminder","text":"שם","date":"YYYY-MM-DD","time":"HH:MM"}]
+• הוספת פרויקט: [CMD:{"action":"add_project","name":"שם הפרויקט","color":"#6c63ff"}]
+• עדכון Roadmap: [CMD:{"action":"update_roadmap","title":"שם פיצ'ר","status":"done"}]
+ערכים תקינים — cat: work/health/family/project/home | proj: jobs/upselles/health/apartment/family/none | period: daily/weekly/once | status: done/wip/planned`;
+
 const SYS={
-  jobs:`אתה סוכן חיפוש עבודה מקצועי בעברית עם גישה לאינטרנט. ${CV} כשמנתח משרה: תן ציון 0-100, קטגוריה, 3 חוזקות, 2 חסרונות, המלצה. כשמבקשים CV מותאם: כתוב קורות חיים מותאמים בפורמט מקצועי שמדגיש את הרלוונטי למשרה. ענה בעברית.`,
-  health:`אתה מאמן כושר ודיאטן מוסמך בעברית. כשמדווחים על ארוחה חשב: קלוריות, חלבון, פחמימות. כשמציעים ארוחה ציין את הפירוט התזונתי. תן המלצות מותאמות ליעדים. ענה קצר וממוקד.`,
-  upselles:`אתה סוכן עסקי ואסטרטגי בעברית. ${UPSELLES} מומחה ב: מיילים שיווקיים, ניהול לידים, ניתוח תחרות, GTM, Roadmap. ענה מקצועי.`,
-  apt:`אתה סוכן מציאת דירה בת"א בעברית. רואי מחפש חדר בדירת שותפים, אזור דיזינגוף-כרם התימנים, קרוב לים. עזור: ניסוח הודעות, השוואת דירות, קביעת סיורים. ענה ממוקד.`,
-  family:`אתה עוזר לתכנון זמן משפחתי בעברית. הצע פעילויות, תזמן, חלק זמן איכות. ענה חמים.`,
-  ideas:`אתה עוזר לפיתוח רעיונות בעברית. עזור להרחיב, לזהות הזדמנויות, לחשוב על מימוש. ענה יצירתי.`,
-  main:`אתה סוכן Personal OS של רואי קליין בעברית. ${CV} ${UPSELLES} עזור לנהל משימות, לוז, פרויקטים, מטרות. ענה קצר וממוקד.`,
+  jobs:`אתה סוכן חיפוש עבודה מקצועי בעברית עם גישה לאינטרנט. ${CV} כשמנתח משרה: תן ציון 0-100, קטגוריה, 3 חוזקות, 2 חסרונות, המלצה. כשמבקשים CV מותאם: כתוב קורות חיים מותאמים בפורמט מקצועי שמדגיש את הרלוונטי למשרה. כשמזהה משרה מתאימה: הוסף [CMD:{"action":"add_task","text":"שלוח CV ל[שם חברה]","cat":"work","proj":"jobs","period":"once"}]. כשמוצאים תוצאות חיפוש: סכם אותן ביקורתית. ענה בעברית. ${CMD_DOCS}`,
+  health:`אתה מאמן כושר ודיאטן מוסמך בעברית. כשמדווחים על ארוחה חשב: קלוריות, חלבון, פחמימות. כשמציעים ארוחה ציין את הפירוט התזונתי. תן המלצות מותאמות ליעדים. ענה קצר וממוקד. ${CMD_DOCS}`,
+  upselles:`אתה סוכן עסקי ואסטרטגי בעברית. ${UPSELLES} מומחה ב: מיילים שיווקיים, ניהול לידים, ניתוח תחרות, GTM, Roadmap. כשמעדכנים סטטוס פיצ'ר: הוסף [CMD:{"action":"update_roadmap","title":"שם","status":"done"}]. ענה מקצועי. ${CMD_DOCS}`,
+  apt:`אתה סוכן מציאת דירה בת"א בעברית. רואי מחפש חדר בדירת שותפים, אזור דיזינגוף-כרם התימנים, קרוב לים. עזור: ניסוח הודעות, השוואת דירות, קביעת סיורים. ענה ממוקד. ${CMD_DOCS}`,
+  family:`אתה עוזר לתכנון זמן משפחתי בעברית. הצע פעילויות, תזמן, חלק זמן איכות. ענה חמים. ${CMD_DOCS}`,
+  ideas:`אתה עוזר לפיתוח רעיונות בעברית. עזור להרחיב, לזהות הזדמנויות, לחשוב על מימוש. ענה יצירתי. ${CMD_DOCS}`,
+  main:`אתה סוכן Personal OS של רואי קליין בעברית. ${CV} ${UPSELLES} עזור לנהל משימות, לוז, פרויקטים, מטרות. ענה קצר וממוקד. ${CMD_DOCS}`,
   week:`אתה עוזר לבניית לוז שבועי חכם בעברית. המשתמש מספר על פגישות, פעילויות, הרגלים. תבנה לו מערכת שעות מסודרת. ענה עם רשימת אירועים ברורה בפורמט: [יום]-[שעה שעת_סיום]: [שם האירוע]. לדוגמה: ראשון-07:00-08:00:אימון כושר`
 };
 
@@ -1681,6 +1696,68 @@ async function claude(msg,sys){
   }catch(e){return'שגיאה בחיבור';}
 }
 
+// WEB SEARCH (DuckDuckGo via /api/search proxy)
+async function searchJobs(query){
+  try{
+    const r=await fetch(`/api/search?q=${encodeURIComponent(query+' jobs israel tech')}`);
+    if(!r.ok)return'';
+    const d=await r.json();
+    const hits=[...(d.Results||[]),...(d.RelatedTopics||[])].filter(x=>x.Text).slice(0,6);
+    if(!hits.length)return'';
+    return'\n\n[תוצאות חיפוש DuckDuckGo]\n'+hits.map(x=>`• ${x.Text}${x.FirstURL?' → '+x.FirstURL:''}`).join('\n');
+  }catch(e){return'';}
+}
+
+// AGENTIC COMMAND EXECUTOR
+function executeCommand(cmd){
+  try{
+    switch(cmd.action){
+      case'add_task':
+        if(!cmd.text)break;
+        if(S.tasks.some(t=>t.text===cmd.text))break;
+        S.tasks.unshift({id:Date.now(),text:cmd.text,done:false,
+          cat:cmd.cat||'work',period:cmd.period||'once',
+          proj:cmd.proj||'none',progress:0,status:''});
+        save();renderAll();
+        break;
+      case'add_reminder':
+        if(!cmd.text)break;
+        S.reminders.push({id:Date.now(),text:cmd.text,
+          date:cmd.date||new Date().toISOString().split('T')[0],
+          time:cmd.time||'09:00',done:false});
+        save();renderReminders();renderDashReminders();
+        break;
+      case'add_project':
+        if(!cmd.name)break;
+        if(S.projects.some(p=>p.name===cmd.name))break;
+        const pid=(cmd.name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')||'p')+Date.now();
+        S.projects.push({id:pid,name:cmd.name,progress:0,color:cmd.color||'var(--accent)'});
+        save();renderDashProj();
+        break;
+      case'update_roadmap':
+        if(!cmd.title)break;
+        const rm=S.roadmap.find(r=>r.title===cmd.title);
+        if(rm){
+          if(cmd.status)rm.status=cmd.status;
+          if(cmd.sub)rm.sub=cmd.sub;
+          save();renderRoadmap();
+        }
+        break;
+    }
+  }catch(e){}
+}
+
+// Parse [CMD:{...}] blocks from agent response, execute them, return clean text
+function parseCommands(text){
+  const re=/\[CMD:(\{[^{}]*\})\]/g;
+  let m,executed=[];
+  while((m=re.exec(text))!==null){
+    try{const cmd=JSON.parse(m[1]);executeCommand(cmd);executed.push(cmd.action);}catch(e){}
+  }
+  if(executed.length)showNotif('🤖 סוכן ביצע: '+executed.map(a=>({add_task:'משימה',add_reminder:'תזכורת',add_project:'פרויקט',update_roadmap:'Roadmap'}[a]||a)).join(', '));
+  return text.replace(/\[CMD:\{[^{}]*\}\]/g,'').replace(/\n{3,}/g,'\n\n').trim();
+}
+
 function addMsg2(chatId,role,text){
   const chat=document.getElementById(chatId);if(!chat)return null;
   const div=document.createElement('div');
@@ -1697,9 +1774,23 @@ async function sendChat(ctx){
   addMsg2(chatId,'user',text);
   const th=addMsg2(chatId,'ai','...');
   const sys=SYS[ctx]||SYS.main;
-  const reply=await claude(text,sys);
-  if(th)th.querySelector('.mb').textContent=reply;
-  // Smart actions
+
+  // Web search augmentation for jobs agent
+  let msgToSend=text;
+  if(ctx==='jobs'){
+    const searchKw=['חפש','search','מצא','משרות','jobs','hiring','דרושים'];
+    if(searchKw.some(k=>text.includes(k))){
+      if(th)th.querySelector('.mb').textContent='מחפש...';
+      const results=await searchJobs(text);
+      if(results)msgToSend=text+results;
+    }
+  }
+
+  const reply=await claude(msgToSend,sys);
+  const cleanReply=parseCommands(reply);  // execute embedded commands, strip from display
+  if(th)th.querySelector('.mb').textContent=cleanReply;
+
+  // Smart actions (use raw reply for regex matching)
   if(ctx==='health'){
     const kcalM=reply.match(/(\d+)\s*[קk]ל/i);const protM=reply.match(/(\d+)\s*g?\s*חלבון/i);
     if(kcalM&&(text.includes('אכלתי')||text.includes('שתיתי'))){
@@ -1783,6 +1874,11 @@ setInterval(()=>{
     }
   });
 },60000);
+
+// SERVICE WORKER (PWA offline support)
+if('serviceWorker'in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
 </script>
 </body>
 </html>

@@ -2,10 +2,18 @@
   "version": 2,
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
-    { "src": "api/claude.js", "use": "@vercel/node" }
+    { "src": "manifest.json", "use": "@vercel/static" },
+    { "src": "sw.js", "use": "@vercel/static" },
+    { "src": "icon.svg", "use": "@vercel/static" },
+    { "src": "api/claude.js", "use": "@vercel/node" },
+    { "src": "api/search.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/api/claude", "dest": "/api/claude.js" },
+    { "src": "/api/search", "dest": "/api/search.js" },
+    { "src": "/manifest.json", "dest": "/manifest.json" },
+    { "src": "/sw.js", "dest": "/sw.js" },
+    { "src": "/icon.svg", "dest": "/icon.svg" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
