@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Personal OS">
+<script src="https://accounts.google.com/gsi/client" async></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -218,6 +219,17 @@ select.inp{cursor:pointer}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
 .chip{padding:4px 10px;border-radius:20px;font-size:11px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:all 0.15s;color:var(--text2)}
 .chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+/* USER PROFILE */
+.user-info-bar{padding:10px 0 10px;border-bottom:1px solid var(--border);margin-bottom:8px;display:none}
+.user-info-bar.visible{display:block}
+.user-row{display:flex;align-items:center;gap:8px}
+.user-avatar-img{width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0}
+.user-details{flex:1;min-width:0}
+.user-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-email{font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gsignin-wrap{margin-bottom:8px}
+#webhook-badge{position:fixed;top:14px;right:50%;transform:translateX(50%);background:var(--teal);color:#fff;padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;z-index:1000;opacity:0;transition:opacity 0.3s;pointer-events:none}
+#webhook-badge.show{opacity:1}
 </style>
 </head>
 <body>
@@ -252,6 +264,34 @@ select.inp{cursor:pointer}
     <div class="ni" onclick="goPage('goals',this)"><span class="ni-icon">🎯</span>מטרות</div>
   </nav>
   <div class="sidebar-btm">
+    <!-- User profile (shown when signed in) -->
+    <div class="user-info-bar" id="user-info-bar">
+      <div class="user-row">
+        <img class="user-avatar-img" id="user-photo" src="" alt="">
+        <div class="user-details">
+          <div class="user-name" id="user-name-lbl"></div>
+          <div class="user-email" id="user-email-lbl"></div>
+        </div>
+        <button class="bi" onclick="signOut()" title="התנתק" style="font-size:11px;flex-shrink:0">🚪</button>
+      </div>
+    </div>
+    <!-- Google Sign-In (shown when signed out) -->
+    <div class="gsignin-wrap" id="gsignin-wrap">
+      <div id="g_id_onload"
+        data-client_id="786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com"
+        data-callback="handleCredentialResponse"
+        data-auto_select="false"
+        data-context="signin">
+      </div>
+      <div class="g_id_signin"
+        data-type="standard"
+        data-theme="filled_blue"
+        data-text="signin_with"
+        data-size="medium"
+        data-locale="he"
+        style="width:100%">
+      </div>
+    </div>
     <button class="vbtn" id="vbtn" onclick="toggleVoice()">🎙 <span id="vlbl">דבר עם הסוכן</span></button>
   </div>
 </aside>
@@ -262,8 +302,9 @@ select.inp{cursor:pointer}
   <div class="tb-space"></div>
   <input class="tb-search inp" placeholder="חיפוש...">
   <button class="gcal-btn" id="gcal-btn" onclick="connectCal()">📅 Calendar</button>
-  <div class="ava">ר</div>
+  <div class="ava" id="ava" title="פרופיל">ר</div>
 </header>
+<div id="webhook-badge">📡 עדכון התקבל</div>
 
 <main class="main" id="main">
 
@@ -803,7 +844,11 @@ const HRS=['06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:0
 const PROJ_COLORS={jobs:'var(--blue)',upselles:'var(--purple)',health:'var(--green)',apartment:'var(--teal)',family:'var(--amber)',none:'var(--text3)'};
 const PROJ_NAMES={jobs:'💼 חיפוש עבודה',upselles:'🚀 Upselles',health:'💪 כושר',apartment:'🏡 דירה',family:'👨‍👩‍👧 משפחה',none:'כללי'};
 
-let S=JSON.parse(localStorage.getItem('pos3')||'null')||{
+// MULTI-USER: each user's data keyed by their Google sub ID
+let currentUser=JSON.parse(localStorage.getItem('pos_user')||'null');
+function storageKey(){return currentUser?`pos3_${currentUser.sub}`:'pos3';}
+
+function getDefaultState(){return{
   tasks:[
     {id:1,text:'שלוח קורות חיים ל-3 חברות',done:false,cat:'work',period:'daily',proj:'jobs',progress:0,status:''},
     {id:2,text:'אימון בוקר',done:false,cat:'health',period:'daily',proj:'health',progress:0,status:''},
@@ -854,8 +899,10 @@ let S=JSON.parse(localStorage.getItem('pos3')||'null')||{
     {title:'Real-time dashboard',sub:'מתוכנן',status:'planned'},
     {title:'Pilot — לקוחות ראשונים',sub:'מתוכנן',status:'planned'},
   ],
-};
-function save(){localStorage.setItem('pos3',JSON.stringify(S))}
+};}
+
+let S=JSON.parse(localStorage.getItem(storageKey())||'null')||getDefaultState();
+function save(){localStorage.setItem(storageKey(),JSON.stringify(S))}
 
 // CLAUDE CV
 const CV=`רואי קליין — פרופיל מקצועי:
@@ -869,12 +916,17 @@ const CV=`רואי קליין — פרופיל מקצועי:
 const UPSELLES=`Upselles: פלטפורמה המחברת עסקים+סלזמנים פרילנס. Marketplace, CRM משותף, real-time tracking. MVP 80%, Pilot+לקוח ראשון. ישראל→ארה"ב.`;
 
 const CMD_DOCS=`
-פקודות זמינות לביצוע פעולות בפלטפורמה — כלול בתשובה בלוק [CMD:{...}] כשרלוונטי:
-• הוספת משימה: [CMD:{"action":"add_task","text":"שם המשימה","cat":"work","proj":"none","period":"once"}]
-• הוספת תזכורת: [CMD:{"action":"add_reminder","text":"שם","date":"YYYY-MM-DD","time":"HH:MM"}]
-• הוספת פרויקט: [CMD:{"action":"add_project","name":"שם הפרויקט","color":"#6c63ff"}]
-• עדכון Roadmap: [CMD:{"action":"update_roadmap","title":"שם פיצ'ר","status":"done"}]
-ערכים תקינים — cat: work/health/family/project/home | proj: jobs/upselles/health/apartment/family/none | period: daily/weekly/once | status: done/wip/planned`;
+פקודות זמינות — כלול [CMD:{...}] בתשובה כשרלוונטי:
+• add_task: [CMD:{"action":"add_task","text":"שם","cat":"work","proj":"none","period":"once"}]
+• remove_task: [CMD:{"action":"remove_task","text":"שם המשימה למחיקה"}]
+• add_reminder: [CMD:{"action":"add_reminder","text":"שם","date":"YYYY-MM-DD","time":"HH:MM"}]
+• add_project: [CMD:{"action":"add_project","name":"שם","color":"#6c63ff"}]
+• remove_project: [CMD:{"action":"remove_project","name":"שם הפרויקט"}]
+• add_habit: [CMD:{"action":"add_habit","name":"שם ההרגל"}]
+• update_roadmap: [CMD:{"action":"update_roadmap","title":"שם","status":"done","sub":"תת-כותרת"}]
+• add_section: [CMD:{"action":"add_section","project":"jobs","title":"כותרת","icon":"📊","content":"תוכן"}]
+• create_workspace: [CMD:{"action":"create_workspace","name":"שם","emoji":"📁","color":"#6c63ff","description":"תיאור"}]
+cat: work/health/family/project/home | proj: jobs/upselles/health/apartment/family/none | period: daily/weekly/once | status: done/wip/planned`;
 
 const SYS={
   jobs:`אתה סוכן חיפוש עבודה מקצועי בעברית עם גישה לאינטרנט. ${CV} כשמנתח משרה: תן ציון 0-100, קטגוריה, 3 חוזקות, 2 חסרונות, המלצה. כשמבקשים CV מותאם: כתוב קורות חיים מותאמים בפורמט מקצועי שמדגיש את הרלוונטי למשרה. כשמזהה משרה מתאימה: הוסף [CMD:{"action":"add_task","text":"שלוח CV ל[שם חברה]","cat":"work","proj":"jobs","period":"once"}]. כשמוצאים תוצאות חיפוש: סכם אותן ביקורתית. ענה בעברית. ${CMD_DOCS}`,
@@ -896,6 +948,7 @@ function init(){
   renderFamWeek();renderRoadmap();renderReminders();renderIdeas();
   renderBodyProfile();renderWater();renderWorkouts();renderJEntries();renderLeads();
   updateWeekRing();checkCalToken();
+  renderUserProfile(); // show user info if already signed in
 }
 
 function renderAll(){
@@ -1696,65 +1749,162 @@ async function claude(msg,sys){
   }catch(e){return'שגיאה בחיבור';}
 }
 
-// WEB SEARCH (DuckDuckGo via /api/search proxy)
-async function searchJobs(query){
+// ALWAYS-ON WEB SEARCH — every agent gets contextual DDG results automatically
+const SEARCH_CTX={
+  jobs:' משרות עבודה דרושים ישראל 2025',
+  health:' קלוריות תזונה מתכון בריא',
+  apt:' דירה שכירות תל אביב דיזינגוף',
+  upselles:' SaaS startup שוק ישראל',
+  family:' פעילות משפחה ילדים',
+  ideas:' startup idea market opportunity',
+  main:'',week:'',
+};
+async function autoSearch(text,ctx){
   try{
-    const r=await fetch(`/api/search?q=${encodeURIComponent(query+' jobs israel tech')}`);
+    const suffix=SEARCH_CTX[ctx]??'';
+    const q=text.slice(0,120)+suffix;
+    const r=await fetch(`/api/search?q=${encodeURIComponent(q)}`);
     if(!r.ok)return'';
     const d=await r.json();
-    const hits=[...(d.Results||[]),...(d.RelatedTopics||[])].filter(x=>x.Text).slice(0,6);
+    const hits=[...(d.Results||[]),...(d.RelatedTopics||[])]
+      .filter(x=>x.Text&&x.Text.length>20).slice(0,5);
     if(!hits.length)return'';
-    return'\n\n[תוצאות חיפוש DuckDuckGo]\n'+hits.map(x=>`• ${x.Text}${x.FirstURL?' → '+x.FirstURL:''}`).join('\n');
+    return'\n\n[🔍 מידע מהרשת]\n'+hits.map(x=>`• ${x.Text.slice(0,160)}${x.FirstURL?'\n  '+x.FirstURL:''}`).join('\n');
   }catch(e){return'';}
 }
 
-// AGENTIC COMMAND EXECUTOR
+// AGENTIC COMMAND EXECUTOR — agents can modify every part of the platform
+const ACTION_LABELS={add_task:'משימה',remove_task:'מחיקת משימה',add_reminder:'תזכורת',
+  add_project:'פרויקט',remove_project:'מחיקת פרויקט',add_habit:'הרגל',
+  update_roadmap:'Roadmap',add_section:'סקשן',create_workspace:'Workspace'};
+
 function executeCommand(cmd){
   try{
     switch(cmd.action){
+
       case'add_task':
-        if(!cmd.text)break;
-        if(S.tasks.some(t=>t.text===cmd.text))break;
+        if(!cmd.text||S.tasks.some(t=>t.text===cmd.text))break;
         S.tasks.unshift({id:Date.now(),text:cmd.text,done:false,
           cat:cmd.cat||'work',period:cmd.period||'once',
           proj:cmd.proj||'none',progress:0,status:''});
-        save();renderAll();
-        break;
+        save();renderAll();break;
+
+      case'remove_task':{
+        const before=S.tasks.length;
+        if(cmd.text)S.tasks=S.tasks.filter(t=>t.text!==cmd.text);
+        if(cmd.id)S.tasks=S.tasks.filter(t=>t.id!==Number(cmd.id));
+        if(S.tasks.length<before){save();renderAll();}break;}
+
       case'add_reminder':
         if(!cmd.text)break;
         S.reminders.push({id:Date.now(),text:cmd.text,
           date:cmd.date||new Date().toISOString().split('T')[0],
           time:cmd.time||'09:00',done:false});
-        save();renderReminders();renderDashReminders();
-        break;
+        save();renderReminders();renderDashReminders();break;
+
       case'add_project':
-        if(!cmd.name)break;
-        if(S.projects.some(p=>p.name===cmd.name))break;
-        const pid=(cmd.name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')||'p')+Date.now();
+        if(!cmd.name||S.projects.some(p=>p.name===cmd.name))break;
+        {const pid=(cmd.name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')||'p')+Date.now();
         S.projects.push({id:pid,name:cmd.name,progress:0,color:cmd.color||'var(--accent)'});
-        save();renderDashProj();
-        break;
-      case'update_roadmap':
+        save();renderDashProj();}break;
+
+      case'remove_project':{
+        const before=S.projects.length;
+        if(cmd.name)S.projects=S.projects.filter(p=>p.name!==cmd.name);
+        if(cmd.id)S.projects=S.projects.filter(p=>p.id!==cmd.id);
+        if(S.projects.length<before){save();renderDashProj();}break;}
+
+      case'add_habit':
+        if(!cmd.name||S.habits.some(h=>h.name===cmd.name))break;
+        S.habits.push({name:cmd.name,days:[0,0,0,0,0,0,0]});
+        save();renderDashHabits();break;
+
+      case'update_roadmap':{
         if(!cmd.title)break;
         const rm=S.roadmap.find(r=>r.title===cmd.title);
-        if(rm){
-          if(cmd.status)rm.status=cmd.status;
-          if(cmd.sub)rm.sub=cmd.sub;
-          save();renderRoadmap();
-        }
-        break;
+        if(rm){if(cmd.status)rm.status=cmd.status;if(cmd.sub)rm.sub=cmd.sub;save();renderRoadmap();}
+        else{S.roadmap.push({title:cmd.title,sub:cmd.sub||'',status:cmd.status||'planned'});save();renderRoadmap();}
+        break;}
+
+      case'add_section':{
+        const pg=document.getElementById(`page-${cmd.project||'dashboard'}`);if(!pg)break;
+        const sec=document.createElement('div');sec.className='card';
+        sec.innerHTML=`<div class="ch"><div class="ct">${cmd.icon||'📋'} ${cmd.title||'סקשן חדש'}</div></div><div style="font-size:13px;color:var(--text2);line-height:1.6">${cmd.content||''}</div>`;
+        pg.appendChild(sec);break;}
+
+      case'create_workspace':{
+        if(!cmd.name)break;
+        const wsId=cmd.id||(cmd.name.toLowerCase().replace(/[\s\/]+/g,'_').replace(/[^a-z0-9_]/g,'')||'ws')+'_'+Date.now();
+        const wsEmoji=cmd.emoji||'📁';const wsColor=cmd.color||'#6c63ff';
+        // Add to projects store
+        if(!S.projects.some(p=>p.id===wsId)){
+          S.projects.push({id:wsId,name:cmd.name,progress:0,color:wsColor,isWorkspace:true});save();}
+        // Dynamic system prompt
+        SYS[wsId]=`אתה סוכן לפרויקט "${cmd.name}" בעברית. ${cmd.description||''} עזור לנהל ולפתח את הפרויקט. ${CMD_DOCS}`;
+        // Add nav item
+        if(!document.querySelector(`[data-wsid="${wsId}"]`)){
+          const wrap=document.createElement('div');wrap.setAttribute('data-wsid',wsId);
+          wrap.innerHTML=`<div class="ni" onclick="goPage('${wsId}',this)"><span class="ni-icon">${wsEmoji}</span>${cmd.name}<span class="ntag" style="background:${wsColor}22;color:${wsColor}">חדש</span></div>`;
+          document.querySelector('.nav').appendChild(wrap);}
+        // Add page
+        if(!document.getElementById(`page-${wsId}`)){
+          const mainEl=document.getElementById('main');
+          const pg=document.createElement('div');pg.className='page';pg.id=`page-${wsId}`;
+          pg.innerHTML=`
+            <div class="card">
+              <div class="ch"><div class="ct">${wsEmoji} ${cmd.name}</div>
+                <span class="ca" onclick="removeWorkspace('${wsId}','${cmd.name}')">✕ מחק</span></div>
+              ${cmd.description?`<div style="font-size:13px;color:var(--text2);margin-bottom:12px">${cmd.description}</div>`:''}
+              <div id="${wsId}-tasks" style="margin-bottom:10px"></div>
+              <div class="irow">
+                <input class="inp" style="flex:1" id="${wsId}-quick-inp" placeholder="הוסף משימה..." onkeydown="if(event.key==='Enter')addWsTask('${wsId}')">
+                <button class="btn bp bsm" onclick="addWsTask('${wsId}')">+</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="ch"><div class="ct">🤖 סוכן ${cmd.name}</div></div>
+              <div class="aic" id="${wsId}-chat" style="max-height:220px">
+                <div class="msg"><div class="mav ai">AI</div><div class="mb">שלום! אני הסוכן של ${cmd.name}.${cmd.description?' '+cmd.description:''} במה אוכל לעזור?</div></div>
+              </div>
+              <div class="crow">
+                <input class="inp" style="flex:1" id="${wsId}-inp" placeholder="שאל..." onkeydown="if(event.key==='Enter')sendChat('${wsId}')">
+                <button class="btn bp bsm" onclick="sendChat('${wsId}')">↗</button>
+              </div>
+            </div>`;
+          mainEl.appendChild(pg);renderWsTasks(wsId);}
+        renderDashProj();break;}
     }
-  }catch(e){}
+  }catch(e){console.warn('CMD error:',e);}
 }
 
-// Parse [CMD:{...}] blocks from agent response, execute them, return clean text
+// Workspace task helpers
+function addWsTask(wsId){
+  const inp=document.getElementById(`${wsId}-quick-inp`);
+  if(!inp||!inp.value.trim())return;
+  S.tasks.unshift({id:Date.now(),text:inp.value.trim(),done:false,cat:'project',period:'once',proj:wsId,progress:0,status:''});
+  inp.value='';save();renderWsTasks(wsId);renderDashTasks();
+}
+function renderWsTasks(wsId){
+  const el=document.getElementById(`${wsId}-tasks`);if(!el)return;
+  const tasks=S.tasks.filter(t=>t.proj===wsId&&!t.done).slice(0,8);
+  el.innerHTML=tasks.length?tasks.map(t=>taskHTML(t)).join(''):'<div style="color:var(--text3);font-size:12px;text-align:center;padding:8px">אין משימות</div>';
+}
+function removeWorkspace(wsId,name){
+  if(!confirm(`מחק workspace "${name}"?`))return;
+  S.projects=S.projects.filter(p=>p.id!==wsId);save();renderDashProj();
+  document.getElementById(`page-${wsId}`)?.remove();
+  document.querySelector(`[data-wsid="${wsId}"]`)?.remove();
+  goPage('dashboard',null);
+}
+
+// Parse [CMD:{...}] blocks, execute side-effects, return clean display text
 function parseCommands(text){
   const re=/\[CMD:(\{[^{}]*\})\]/g;
   let m,executed=[];
   while((m=re.exec(text))!==null){
     try{const cmd=JSON.parse(m[1]);executeCommand(cmd);executed.push(cmd.action);}catch(e){}
   }
-  if(executed.length)showNotif('🤖 סוכן ביצע: '+executed.map(a=>({add_task:'משימה',add_reminder:'תזכורת',add_project:'פרויקט',update_roadmap:'Roadmap'}[a]||a)).join(', '));
+  if(executed.length)showNotif('🤖 סוכן ביצע: '+executed.map(a=>ACTION_LABELS[a]||a).join(', '));
   return text.replace(/\[CMD:\{[^{}]*\}\]/g,'').replace(/\n{3,}/g,'\n\n').trim();
 }
 
@@ -1767,30 +1917,29 @@ function addMsg2(chatId,role,text){
 }
 
 async function sendChat(ctx){
-  const inputId=ctx===('main')?'main-inp':`${ctx}-inp`;
-  const chatId=ctx===('main')?'main-chat':`${ctx}-chat`;
+  const inputId=ctx==='main'?'main-inp':`${ctx}-inp`;
+  const chatId=ctx==='main'?'main-chat':`${ctx}-chat`;
   const inp=document.getElementById(inputId);if(!inp)return;
   const text=inp.value.trim();if(!text)return;inp.value='';
   addMsg2(chatId,'user',text);
   const th=addMsg2(chatId,'ai','...');
   const sys=SYS[ctx]||SYS.main;
 
-  // Web search augmentation for jobs agent
+  // ALWAYS-ON WEB SEARCH — skip only for very short or pure-command messages and schedule context
+  const skipSearch=text.length<18||ctx==='week'||/^\[CMD/i.test(text);
   let msgToSend=text;
-  if(ctx==='jobs'){
-    const searchKw=['חפש','search','מצא','משרות','jobs','hiring','דרושים'];
-    if(searchKw.some(k=>text.includes(k))){
-      if(th)th.querySelector('.mb').textContent='מחפש...';
-      const results=await searchJobs(text);
-      if(results)msgToSend=text+results;
-    }
+  if(!skipSearch){
+    if(th)th.querySelector('.mb').textContent='🔍 מחפש...';
+    const results=await autoSearch(text,ctx);
+    if(results)msgToSend=text+results;
   }
 
+  if(th)th.querySelector('.mb').textContent='...';
   const reply=await claude(msgToSend,sys);
-  const cleanReply=parseCommands(reply);  // execute embedded commands, strip from display
+  const cleanReply=parseCommands(reply);
   if(th)th.querySelector('.mb').textContent=cleanReply;
 
-  // Smart actions (use raw reply for regex matching)
+  // Smart domain actions (use raw reply)
   if(ctx==='health'){
     const kcalM=reply.match(/(\d+)\s*[קk]ל/i);const protM=reply.match(/(\d+)\s*g?\s*חלבון/i);
     if(kcalM&&(text.includes('אכלתי')||text.includes('שתיתי'))){
@@ -1810,6 +1959,59 @@ async function sendChat(ctx){
       }
     }
   }
+}
+
+// GOOGLE SIGN-IN (GIS)
+function handleCredentialResponse(response){
+  try{
+    // Decode JWT payload (base64url → JSON)
+    const b64=response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const payload=JSON.parse(atob(b64));
+    currentUser={sub:payload.sub,name:payload.name,email:payload.email,picture:payload.picture||''};
+    localStorage.setItem('pos_user',JSON.stringify(currentUser));
+    // Load this user's data (or start fresh)
+    const saved=localStorage.getItem(storageKey());
+    S=saved?JSON.parse(saved):getDefaultState();
+    save();renderAll();renderUserProfile();
+    showNotif('✓ מחובר כ-'+currentUser.name);
+  }catch(e){console.error('Sign-in error:',e);}
+}
+function signOut(){
+  if(window.google)google.accounts.id.disableAutoSelect();
+  currentUser=null;
+  localStorage.removeItem('pos_user');
+  location.reload();
+}
+function renderUserProfile(){
+  if(!currentUser){
+    document.getElementById('user-info-bar').classList.remove('visible');
+    document.getElementById('gsignin-wrap').style.display='block';
+    return;
+  }
+  const nl=document.getElementById('user-name-lbl');
+  const el=document.getElementById('user-email-lbl');
+  const pl=document.getElementById('user-photo');
+  const av=document.getElementById('ava');
+  if(nl)nl.textContent=currentUser.name;
+  if(el)el.textContent=currentUser.email;
+  if(pl&&currentUser.picture){pl.src=currentUser.picture;pl.style.display='block';}
+  if(av)av.textContent=currentUser.name.charAt(0).toUpperCase();
+  document.getElementById('user-info-bar').classList.add('visible');
+  document.getElementById('gsignin-wrap').style.display='none';
+}
+
+// WEBHOOK POLLING — checks /api/webhook every 30s for remote commands
+async function pollWebhook(){
+  try{
+    const r=await fetch('/api/webhook');if(!r.ok)return;
+    const{commands}=await r.json();
+    if(commands&&commands.length>0){
+      commands.forEach(cmd=>executeCommand(cmd));
+      const n=document.getElementById('webhook-badge');
+      n.textContent=`📡 ${commands.length} עדכון${commands.length>1?'ים':''} התקבל${commands.length>1?'ו':''}`;
+      n.classList.add('show');setTimeout(()=>n.classList.remove('show'),4000);
+    }
+  }catch(e){}
 }
 
 // VOICE
@@ -1879,6 +2081,8 @@ setInterval(()=>{
 if('serviceWorker'in navigator){
   navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
+// WEBHOOK POLLING — poll every 30 seconds for remote commands
+setInterval(pollWebhook,30000);
 </script>
 </body>
 </html>
