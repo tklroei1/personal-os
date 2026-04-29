@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/claude.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/claude", "destination": "/api/claude.js" }
+  ]
+}
