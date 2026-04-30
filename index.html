@@ -2780,7 +2780,7 @@ function kanbanCardHTML(job){
     <div class="kb-card-meta">
       <span class="kb-match ${mc}">${job.match_score||0}%</span>
       <span class="kb-source">${escH(job.source_label||job.source||'')}</span>
-      ${days>0?`<span class="kb-days">${days}י׳`:''}
+      ${days>0?`<span class="kb-days">${days}י׳</span>`:''}
     </div>
   </div>`;
 }
