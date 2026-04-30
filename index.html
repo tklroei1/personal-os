@@ -13,6 +13,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Personal OS">
 <script src="https://accounts.google.com/gsi/client" async></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -250,6 +253,103 @@ select.inp{cursor:pointer}
 .jcard-desc{font-size:12px;color:var(--text2);margin:7px 0;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .jcard-footer{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:9px;padding-top:8px;border-top:1px solid var(--border)}
 .fetched-badge{font-size:9px;color:var(--teal);background:var(--teal-bg);padding:1px 5px;border-radius:3px;margin-right:auto}
+/* ── CHAT RTL FIX ── */
+.mb{direction:rtl;unicode-bidi:plaintext;text-align:start;word-break:break-word}
+.mb code,.mb a,.mb .ltr{direction:ltr;unicode-bidi:isolate}
+.mb h1,.mb h2,.mb h3{font-size:13px;font-weight:700;margin:6px 0 3px}
+.mb ul,.mb ol{padding-right:18px;padding-left:0;margin:4px 0}
+.mb li{margin:2px 0}
+.mb strong{font-weight:700}
+.mb em{font-style:italic}
+.mb p{margin:3px 0;line-height:1.6}
+.mb pre{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:7px 9px;overflow-x:auto;font-size:11px;direction:ltr;text-align:left;margin:5px 0}
+/* ── CHAT EXPAND BUTTON ── */
+.chat-expand-btn{background:none;border:none;cursor:pointer;font-size:13px;color:var(--text3);padding:2px 5px;border-radius:4px;transition:all 0.15s;margin-right:auto}
+.chat-expand-btn:hover{color:var(--accent);background:var(--accent-light)}
+/* ── FULLSCREEN CHAT MODAL ── */
+.fc-modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:none;align-items:center;justify-content:center}
+.fc-modal.open{display:flex}
+.fc-modal-inner{background:var(--bg2);border-radius:var(--radius);width:min(800px,95vw);height:min(90vh,700px);display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-md)}
+.fc-modal-hdr{padding:13px 16px;background:linear-gradient(135deg,#6c63ff,#7c3aed);display:flex;align-items:center;gap:9px;flex-shrink:0}
+.fc-modal-title{font-size:14px;font-weight:600;color:#fff;flex:1}
+.fc-modal-close{background:none;border:none;color:rgba(255,255,255,0.8);cursor:pointer;font-size:18px;line-height:1}
+.fc-modal-body{flex:1;overflow-y:auto;padding:14px}
+.fc-modal-foot{padding:10px 14px;border-top:1px solid var(--border);background:var(--bg3);flex-shrink:0}
+@media(max-width:768px){.fc-modal-inner{width:100%;height:90vh;border-radius:var(--radius) var(--radius) 0 0;align-self:flex-end}}
+/* ── KANBAN BOARD ── */
+:root{
+  --stage-discovered:#94A3B8;--stage-saved:#3B82F6;--stage-applied:#6366F1;
+  --stage-phone:#EAB308;--stage-interview:#F97316;--stage-offer:#10B981;--stage-archive:#CBD5E1;
+}
+.kanban-wrap{display:flex;gap:10px;overflow-x:auto;padding:14px;min-height:420px;align-items:flex-start}
+.kanban-wrap::-webkit-scrollbar{height:6px}
+.kanban-wrap::-webkit-scrollbar-track{background:var(--bg3)}
+.kanban-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.kb-col{flex:0 0 220px;background:var(--bg3);border-radius:var(--radius-sm);border:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.kb-col-hdr{padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;gap:6px;border-bottom:3px solid var(--col-color,#ccc)}
+.kb-col-cnt{flex:1;overflow-y:auto;padding:8px;min-height:60px;max-height:500px}
+.kb-col-cnt:empty::after{content:'גרור לכאן';display:flex;align-items:center;justify-content:center;height:60px;color:var(--text3);font-size:11px;font-style:italic}
+.kb-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;margin-bottom:7px;cursor:pointer;transition:all 0.15s;user-select:none;position:relative}
+.kb-card:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+.kb-card.sortable-chosen{opacity:0.7;transform:scale(1.02)}
+.kb-card.sortable-ghost{opacity:0.35;border:2px dashed var(--accent)}
+.kb-card-title{font-size:12px;font-weight:600;line-height:1.35;margin-bottom:3px}
+.kb-card-company{font-size:11px;color:var(--text2)}
+.kb-card-meta{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;align-items:center}
+.kb-match{font-size:11px;font-weight:700;padding:2px 6px;border-radius:10px}
+.kb-match-high{background:#dcfce7;color:#16a34a}
+.kb-match-mid{background:#fef3c7;color:#d97706}
+.kb-match-low{background:#fee2e2;color:#dc2626}
+.kb-source{font-size:9px;padding:2px 5px;border-radius:8px;background:var(--bg4);color:var(--text2);font-weight:500}
+.kb-days{font-size:9px;color:var(--text3);margin-right:auto}
+/* Stage colors */
+.kb-col[data-stage=discovered] .kb-col-hdr{border-bottom-color:var(--stage-discovered)}
+.kb-col[data-stage=saved] .kb-col-hdr{border-bottom-color:var(--stage-saved)}
+.kb-col[data-stage=applied] .kb-col-hdr{border-bottom-color:var(--stage-applied)}
+.kb-col[data-stage=phone_screen] .kb-col-hdr{border-bottom-color:var(--stage-phone)}
+.kb-col[data-stage=interview] .kb-col-hdr{border-bottom-color:var(--stage-interview)}
+.kb-col[data-stage=offer] .kb-col-hdr{border-bottom-color:var(--stage-offer)}
+.kb-col[data-stage=archive] .kb-col-hdr{border-bottom-color:var(--stage-archive);opacity:0.7}
+/* ── JOB DETAIL DRAWER ── */
+.job-drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:450;display:none}
+.job-drawer-bg.open{display:block}
+.job-drawer{position:fixed;top:0;left:0;bottom:0;width:min(480px,95vw);background:var(--bg2);z-index:451;transform:translateX(-100%);transition:transform 0.3s ease;overflow-y:auto;box-shadow:4px 0 24px rgba(0,0,0,0.15)}
+.job-drawer.open{transform:translateX(0)}
+@media(max-width:768px){.job-drawer{width:100%;top:auto;height:85vh;transform:translateY(100%);right:0;left:0;border-radius:var(--radius) var(--radius) 0 0}
+.job-drawer.open{transform:translateY(0)}}
+.drawer-hdr{padding:14px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:1;display:flex;align-items:center;gap:8px}
+.drawer-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2);padding:3px}
+.drawer-body{padding:16px}
+/* ── PROFILE DROPDOWN MODAL ── */
+.profile-modal-bg{position:fixed;inset:0;z-index:600;display:none}
+.profile-modal-bg.open{display:block}
+.profile-dropdown{position:fixed;top:56px;left:auto;right:14px;width:280px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-md);z-index:601;overflow:hidden;animation:slideDown 0.15s ease}
+@media(max-width:768px){.profile-dropdown{right:8px;left:8px;width:auto}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.pd-user{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--bg3)}
+.pd-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden}
+.pd-avatar img{width:100%;height:100%;object-fit:cover}
+.pd-name{font-size:13px;font-weight:600;line-height:1.3}
+.pd-email{font-size:11px;color:var(--text3)}
+.pd-action{padding:9px 14px;display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13px;color:var(--text);transition:background 0.1s}
+.pd-action:hover{background:var(--bg3)}
+.pd-action:last-child{color:var(--red)}
+.pd-divider{height:1px;background:var(--border);margin:2px 0}
+/* ── MATCH SCORE BADGE ── */
+.match-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.match-high{background:#dcfce7;color:#15803d}
+.match-mid{background:#fef3c7;color:#b45309}
+.match-low{background:#fee2e2;color:#dc2626}
+/* ── MIN MATCH SLIDER ── */
+.match-slider-wrap{display:flex;align-items:center;gap:8px;padding:6px 0}
+input[type=range].match-slider{flex:1;accent-color:var(--accent)}
+/* ── MOBILE KANBAN TABS ── */
+@media(max-width:768px){
+  .kanban-wrap{padding:10px 6px}
+  .kb-col{flex:0 0 85vw}
+  .fc-modal-inner{border-radius:0;height:100vh}
+  .aic{max-height:none !important}
+}
 </style>
 </head>
 <body>
@@ -322,7 +422,7 @@ select.inp{cursor:pointer}
   <div class="tb-space"></div>
   <input class="tb-search inp" placeholder="חיפוש...">
   <button class="gcal-btn" id="gcal-btn" onclick="connectCal()">📅 Calendar</button>
-  <div class="ava" id="ava" title="פרופיל">ר</div>
+  <div class="ava" id="ava" title="פרופיל" onclick="openProfileModal()">ר</div>
 </header>
 <div id="webhook-badge">📡 עדכון התקבל</div>
 
@@ -522,6 +622,7 @@ select.inp{cursor:pointer}
 </div>
 
 <!-- JOBS -->
+<!-- JOBS v2 — Kanban Pipeline -->
 <div class="page" id="page-jobs">
   <!-- Profile -->
   <div class="pbox">
@@ -533,60 +634,49 @@ select.inp{cursor:pointer}
       <button class="btn bs bsm" onclick="editProfile()">✏️ ערוך</button>
     </div>
   </div>
-  <!-- Stats -->
-  <div class="sr s3">
-    <div class="sc sc-b"><div class="sl">משרות במעקב</div><div class="sv" id="j-s">0</div></div>
-    <div class="sc sc-a"><div class="sl">ממתין / נשלח</div><div class="sv" id="j-w">0</div></div>
-    <div class="sc sc-g"><div class="sl">ראיונות</div><div class="sv" id="j-i">0</div></div>
+
+  <!-- Pipeline stats -->
+  <div class="sr s4">
+    <div class="sc sc-b"><div class="sl">סה"כ במעקב</div><div class="sv" id="j-total">0</div></div>
+    <div class="sc sc-a"><div class="sl">נשלחו / ראיונות</div><div class="sv" id="j-active">0</div></div>
+    <div class="sc sc-g"><div class="sl">הצעות</div><div class="sv" id="j-offers">0</div></div>
+    <div class="sc sc-p"><div class="sl">ממוצע התאמה</div><div class="sv" id="j-avg-match">—</div></div>
   </div>
-  <!-- Smart Filter Panel -->
+
+  <!-- Source filter + min-match -->
   <div class="card">
     <div class="ch">
-      <div class="ct">🎯 פילטר חכם + חיפוש חי</div>
-      <button class="btn bs bxs" onclick="clearJobFilters()">נקה הכל</button>
-    </div>
-    <div class="filter-row">
-      <span class="filter-lbl">תפקיד</span>
-      <div class="filter-chips-wrap">
-        <div class="fchip" data-g="type" data-v="AI Analyst" onclick="toggleJobFilter(this)">AI Analyst</div>
-        <div class="fchip" data-g="type" data-v="Growth" onclick="toggleJobFilter(this)">Growth</div>
-        <div class="fchip" data-g="type" data-v="Product Manager" onclick="toggleJobFilter(this)">Product Manager</div>
-        <div class="fchip" data-g="type" data-v="Data Analyst" onclick="toggleJobFilter(this)">Data Analyst</div>
-        <div class="fchip" data-g="type" data-v="Analytics Engineer" onclick="toggleJobFilter(this)">Analytics Eng.</div>
+      <div class="ct">🔍 פילטר + חיפוש</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn bs bxs" onclick="clearJobFilters()">נקה</button>
+        <button class="btn bp bxs" onclick="addJobManual()">+ ידני</button>
       </div>
     </div>
     <div class="filter-row">
-      <span class="filter-lbl">ניסיון</span>
-      <div class="filter-chips-wrap">
-        <div class="fchip" data-g="exp" data-v="Junior" onclick="toggleJobFilter(this)">Junior</div>
-        <div class="fchip" data-g="exp" data-v="Mid" onclick="toggleJobFilter(this)">Mid</div>
-        <div class="fchip" data-g="exp" data-v="Senior" onclick="toggleJobFilter(this)">Senior</div>
+      <span class="filter-lbl">מקור</span>
+      <div class="filter-chips-wrap" id="source-filter-chips">
+        <div class="fchip on" data-g="source" data-v="linkedin" onclick="toggleJobFilter(this)">LinkedIn</div>
+        <div class="fchip on" data-g="source" data-v="alljobs" onclick="toggleJobFilter(this)">AllJobs</div>
+        <div class="fchip on" data-g="source" data-v="comeet" onclick="toggleJobFilter(this)">Comeet</div>
+        <div class="fchip" data-g="source" data-v="drushim" onclick="toggleJobFilter(this)">דרושים</div>
+        <div class="fchip" data-g="source" data-v="wellfound" onclick="toggleJobFilter(this)">Wellfound</div>
+        <div class="fchip" data-g="source" data-v="other" onclick="toggleJobFilter(this)">אחר</div>
       </div>
     </div>
-    <div class="filter-row">
-      <span class="filter-lbl">מיקום</span>
-      <div class="filter-chips-wrap">
-        <div class="fchip" data-g="loc" data-v="Tel Aviv" onclick="toggleJobFilter(this)">תל אביב</div>
-        <div class="fchip" data-g="loc" data-v="Remote" onclick="toggleJobFilter(this)">Remote</div>
-        <div class="fchip" data-g="loc" data-v="Hybrid" onclick="toggleJobFilter(this)">Hybrid</div>
-      </div>
+    <div class="match-slider-wrap">
+      <span class="filter-lbl">מינ׳ התאמה</span>
+      <input type="range" class="match-slider" id="min-match-slider" min="0" max="100" value="0" oninput="document.getElementById('min-match-lbl').textContent=this.value+'%';renderKanban()">
+      <span id="min-match-lbl" style="font-size:12px;font-weight:600;min-width:32px;color:var(--accent)">0%</span>
     </div>
-    <div class="filter-row">
-      <span class="filter-lbl">גודל</span>
-      <div class="filter-chips-wrap">
-        <div class="fchip" data-g="size" data-v="Startup" onclick="toggleJobFilter(this)">Startup</div>
-        <div class="fchip" data-g="size" data-v="Scale-up" onclick="toggleJobFilter(this)">Scale-up</div>
-        <div class="fchip" data-g="size" data-v="Enterprise" onclick="toggleJobFilter(this)">Enterprise</div>
-      </div>
-    </div>
-    <div class="irow" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+    <div class="irow" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
       <input class="inp" style="flex:1" id="smart-srch"
-        placeholder="מצא לי 5 AI Analyst + 3 Growth בתל אביב עם 70%+ התאמה..."
+        placeholder="מצא לי AI Analyst + Growth בתל אביב עם 70%+ התאמה..."
         onkeydown="if(event.key==='Enter')doSmartSearch()">
       <button class="btn bp bsm" id="smart-srch-btn" onclick="doSmartSearch()">🔍 חפש</button>
     </div>
   </div>
-  <!-- Live Search Results (shown after search) -->
+
+  <!-- Live Search Results -->
   <div class="card" id="job-live-wrap" style="display:none">
     <div class="ch">
       <div class="ct" id="job-live-title">תוצאות חיפוש</div>
@@ -594,25 +684,86 @@ select.inp{cursor:pointer}
     </div>
     <div id="job-live-list"></div>
   </div>
-  <!-- Agent chat + Tracked jobs -->
-  <div class="g2">
-    <div class="card">
-      <div class="ch"><div class="ct">🤖 סוכן חיפוש + ניתוח משרות</div></div>
-      <div class="aic" id="jobs-chat" style="max-height:240px">
-        <div class="msg"><div class="mav ai">AI</div><div class="mb">שלום רואי! הדבק קישור למשרה — אקרא אותה במלואה ואחשב אחוזי התאמה מדויקים. או בחר פילטרים ולחץ "חפש" לתוצאות חיות ישירות מהרשת.</div></div>
+
+  <!-- Kanban Board -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="ch" style="padding:12px 14px 0">
+      <div class="ct">📋 Pipeline — גרור בין עמודות</div>
+      <span style="font-size:11px;color:var(--text3)">לחץ כרטיס לפרטים</span>
+    </div>
+    <div class="kanban-wrap" id="kanban-wrap">
+      <div class="kb-col" data-stage="discovered">
+        <div class="kb-col-hdr">🔍 <span>גילוי</span><span class="nbadge" id="kb-cnt-discovered">0</span></div>
+        <div class="kb-col-cnt" id="kb-discovered"></div>
       </div>
-      <div class="crow">
-        <button class="micb" id="mic-jobs" onclick="toggleMic('jobs')">🎙</button>
-        <input class="inp" style="flex:1" id="jobs-inp" placeholder="קישור למשרה / שאלה..." onkeydown="if(event.key==='Enter')sendChat('jobs')">
-        <button class="btn bp bsm" onclick="sendChat('jobs')">↗</button>
+      <div class="kb-col" data-stage="saved">
+        <div class="kb-col-hdr">⭐ <span>שמורות</span><span class="nbadge" id="kb-cnt-saved" style="background:var(--blue)">0</span></div>
+        <div class="kb-col-cnt" id="kb-saved"></div>
+      </div>
+      <div class="kb-col" data-stage="applied">
+        <div class="kb-col-hdr">📤 <span>הוגשו</span><span class="nbadge" id="kb-cnt-applied" style="background:var(--purple)">0</span></div>
+        <div class="kb-col-cnt" id="kb-applied"></div>
+      </div>
+      <div class="kb-col" data-stage="phone_screen">
+        <div class="kb-col-hdr">📞 <span>טלפוני</span><span class="nbadge" id="kb-cnt-phone_screen" style="background:var(--amber)">0</span></div>
+        <div class="kb-col-cnt" id="kb-phone_screen"></div>
+      </div>
+      <div class="kb-col" data-stage="interview">
+        <div class="kb-col-hdr">🎤 <span>ראיון</span><span class="nbadge" id="kb-cnt-interview" style="background:var(--orange)">0</span></div>
+        <div class="kb-col-cnt" id="kb-interview"></div>
+      </div>
+      <div class="kb-col" data-stage="offer">
+        <div class="kb-col-hdr">💼 <span>הצעה</span><span class="nbadge" id="kb-cnt-offer" style="background:var(--green)">0</span></div>
+        <div class="kb-col-cnt" id="kb-offer"></div>
+      </div>
+      <div class="kb-col" data-stage="archive">
+        <div class="kb-col-hdr">📦 <span>ארכיון</span><span class="nbadge" id="kb-cnt-archive" style="background:var(--text3)">0</span></div>
+        <div class="kb-col-cnt" id="kb-archive"></div>
       </div>
     </div>
+  </div>
+
+  <!-- Dual Agents -->
+  <div class="g2">
+    <!-- Job Hunter Agent -->
     <div class="card">
       <div class="ch">
-        <div class="ct">📌 משרות במעקב</div>
-        <button class="btn bs bxs" onclick="addJobManual()">+ ידני</button>
+        <div class="ct">🔍 Job Hunter</div>
+        <button class="chat-expand-btn" onclick="openChatFullscreen('job-hunter-chat','🔍 Job Hunter — חיפוש משרות')">⛶</button>
       </div>
-      <div id="jobs-list"></div>
+      <div class="chips">
+        <div class="chip" onclick="setJH('מצא לי 5 AI Analyst jobs בישראל')">🔍 AI Analyst</div>
+        <div class="chip" onclick="setJH('מצא Growth Analyst בתל אביב')">📈 Growth</div>
+        <div class="chip" onclick="setJH('מצא Product Manager roles בחברות HighTech')">🚀 Product</div>
+      </div>
+      <div class="aic" id="job-hunter-chat" style="max-height:220px">
+        <div class="msg"><div class="mav ai">AI</div><div class="mb">היי רואי! אני מחפש לך משרות בזמן אמת. תגיד לי מה לחפש — AI Analyst, Growth, Product — ואציג תוצאות עם ציוני התאמה. גם מדבק URL ישירות ואנתח במלואה.</div></div>
+      </div>
+      <div class="crow">
+        <button class="micb" id="mic-job-hunter" onclick="toggleMic('job-hunter')">🎙</button>
+        <input class="inp" style="flex:1" id="job-hunter-inp" placeholder="מצא לי משרות / הדבק URL..." onkeydown="if(event.key==='Enter')sendChat('job-hunter')">
+        <button class="btn bp bsm" onclick="sendChat('job-hunter')">↗</button>
+      </div>
+    </div>
+    <!-- Career Coach Agent -->
+    <div class="card">
+      <div class="ch">
+        <div class="ct">🧠 Career Coach</div>
+        <button class="chat-expand-btn" onclick="openChatFullscreen('career-coach-chat','🧠 Career Coach')">⛶</button>
+      </div>
+      <div class="chips">
+        <div class="chip" onclick="setCC('מה היעדים שלי להיום?')">📋 תכנון יום</div>
+        <div class="chip" onclick="setCC('עזור לי להתכונן לראיון')">🎤 ראיון</div>
+        <div class="chip" onclick="setCC('כתוב לי מכתב מוטיבציה')">✉️ מכתב</div>
+      </div>
+      <div class="aic" id="career-coach-chat" style="max-height:220px">
+        <div class="msg"><div class="mav ai">AI</div><div class="mb">שלום רואי! אני ה-Career Coach שלך — מלווה אישי שמשלב חום של מנטור עם ישירות של שותף עסקי. כאן לתכנון, הכנה לראיונות, מכתבי מוטיבציה, ועוד. מה על הסדר יום?</div></div>
+      </div>
+      <div class="crow">
+        <button class="micb" id="mic-career-coach" onclick="toggleMic('career-coach')">🎙</button>
+        <input class="inp" style="flex:1" id="career-coach-inp" placeholder="שאל על קריירה / ראיון / מכתב..." onkeydown="if(event.key==='Enter')sendChat('career-coach')">
+        <button class="btn bp bsm" onclick="sendChat('career-coach')">↗</button>
+      </div>
     </div>
   </div>
 </div>
@@ -644,7 +795,7 @@ select.inp{cursor:pointer}
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="card">
-        <div class="ch"><div class="ct">🎯 סוכן עסקי</div></div>
+        <div class="ch"><div class="ct">🎯 סוכן עסקי</div><button class="chat-expand-btn" onclick="openChatFullscreen('upselles-chat','🚀 סוכן Upselles')">⛶</button></div>
         <div class="chips">
           <div class="chip" onclick="setUI('כתוב לי מייל שיווקי ל-SMB')">✉️ מייל שיווקי</div>
           <div class="chip" onclick="setUI('נתח את התחרות שלי')">🔍 ניתוח תחרות</div>
@@ -806,7 +957,7 @@ select.inp{cursor:pointer}
       <div id="fam-week" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px"></div>
     </div>
     <div class="card">
-      <div class="ch"><div class="ct">🤖 סוכן משפחה</div></div>
+      <div class="ch"><div class="ct">🤖 סוכן משפחה</div><button class="chat-expand-btn" onclick="openChatFullscreen('family-chat','👨‍👩‍👧 סוכן משפחה')">⛶</button></div>
       <div class="aic" id="family-chat" style="max-height:200px">
         <div class="msg"><div class="mav ai">AI</div><div class="mb">עוזר לתכנן זמן משפחתי. הצעות פעילויות, תזמון אירועים וחלוקת הבלוז.</div></div>
       </div>
@@ -833,7 +984,7 @@ select.inp{cursor:pointer}
     <div id="ideas-list"></div>
   </div>
   <div class="card">
-    <div class="ch"><div class="ct">🤖 עוזר רעיונות AI</div></div>
+    <div class="ch"><div class="ct">🤖 עוזר רעיונות AI</div><button class="chat-expand-btn" onclick="openChatFullscreen('ideas-chat','💡 עוזר רעיונות')">⛶</button></div>
     <div class="aic" id="ideas-chat" style="max-height:200px">
       <div class="msg"><div class="mav ai">AI</div><div class="mb">אני עוזר לפתח רעיונות! ספר לי על רעיון ואעזור לפתח אותו, לזהות הזדמנויות או לחשוב על מימוש.</div></div>
     </div>
@@ -886,6 +1037,7 @@ select.inp{cursor:pointer}
     <div class="fc-hdr">
       <div style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.5);animation:pulse 2s infinite"></div>
       <div class="fc-title">Personal OS — סוכן ראשי</div>
+      <button class="chat-expand-btn" style="color:rgba(255,255,255,0.7)" onclick="openChatFullscreen('main-chat','💬 סוכן ראשי')">⛶</button>
       <button class="fc-x" onclick="toggleFC()">✕</button>
     </div>
     <div class="fc-body"><div class="aic" id="main-chat" style="max-height:280px">
@@ -900,6 +1052,59 @@ select.inp{cursor:pointer}
     </div>
   </div>
   <button class="fc-btn" onclick="toggleFC()">💬</button>
+</div>
+
+<!-- PROFILE DROPDOWN -->
+<div class="profile-modal-bg" id="profile-modal-bg" onclick="closeProfileModal()"></div>
+<div class="profile-dropdown" id="profile-dropdown" style="display:none">
+  <div class="pd-user" id="pd-user-section">
+    <div class="pd-avatar" id="pd-avatar">ר</div>
+    <div>
+      <div class="pd-name" id="pd-name">אורח</div>
+      <div class="pd-email" id="pd-email">לא מחובר</div>
+    </div>
+  </div>
+  <div class="pd-action" onclick="switchGoogleAccount()">🔄 החלף חשבון Google</div>
+  <div class="pd-divider"></div>
+  <div class="pd-action" onclick="signOut();closeProfileModal()">🚪 התנתק</div>
+</div>
+
+<!-- FULLSCREEN CHAT MODAL -->
+<div class="fc-modal" id="fc-modal" onclick="if(event.target===this)closeChatFullscreen()">
+  <div class="fc-modal-inner">
+    <div class="fc-modal-hdr">
+      <div style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.5);animation:pulse 2s infinite"></div>
+      <div class="fc-modal-title" id="fc-modal-title">סוכן</div>
+      <button class="fc-modal-close" onclick="closeChatFullscreen()">✕</button>
+    </div>
+    <div class="fc-modal-body"><div class="aic" id="fc-modal-chat" style="min-height:200px"></div></div>
+    <div class="fc-modal-foot">
+      <div class="crow">
+        <button class="micb" id="mic-fcmodal" onclick="toggleMic('fcmodal')">🎙</button>
+        <input class="inp" style="flex:1" id="fcmodal-inp" placeholder="שאל..." onkeydown="if(event.key==='Enter')sendChatModal()">
+        <button class="btn bp bsm" onclick="sendChatModal()">↗</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JOB DETAIL DRAWER -->
+<div class="job-drawer-bg" id="job-drawer-bg" onclick="closeJobDrawer()"></div>
+<div class="job-drawer" id="job-drawer">
+  <div class="drawer-hdr">
+    <button class="drawer-close" onclick="closeJobDrawer()">✕</button>
+    <div style="flex:1;font-size:14px;font-weight:700" id="drawer-title">פרטי משרה</div>
+    <select class="inp" style="font-size:12px;padding:4px 8px" id="drawer-stage-sel" onchange="updateJobStageFromDrawer()">
+      <option value="discovered">🔍 גילוי</option>
+      <option value="saved">⭐ שמורות</option>
+      <option value="applied">📤 הוגשו</option>
+      <option value="phone_screen">📞 ראיון טלפוני</option>
+      <option value="interview">🎤 ראיון</option>
+      <option value="offer">💼 הצעה</option>
+      <option value="archive">📦 ארכיון</option>
+    </select>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
 </div>
 
 <script>
@@ -1002,7 +1207,47 @@ const SYS={
   family:`אתה עוזר לתכנון זמן משפחתי בעברית. הצע פעילויות, תזמן, חלק זמן איכות. ענה חמים. ${CMD_DOCS}`,
   ideas:`אתה עוזר לפיתוח רעיונות בעברית. עזור להרחיב, לזהות הזדמנויות, לחשוב על מימוש. ענה יצירתי. ${CMD_DOCS}`,
   main:`אתה סוכן Personal OS של רואי קליין בעברית. ${CV} ${UPSELLES} עזור לנהל משימות, לוז, פרויקטים, מטרות. ענה קצר וממוקד. ${CMD_DOCS}`,
-  week:`אתה עוזר לבניית לוז שבועי חכם בעברית. המשתמש מספר על פגישות, פעילויות, הרגלים. תבנה לו מערכת שעות מסודרת. ענה עם רשימת אירועים ברורה בפורמט: [יום]-[שעה שעת_סיום]: [שם האירוע]. לדוגמה: ראשון-07:00-08:00:אימון כושר`
+  week:`אתה עוזר לבניית לוז שבועי חכם בעברית. המשתמש מספר על פגישות, פעילויות, הרגלים. תבנה לו מערכת שעות מסודרת. ענה עם רשימת אירועים ברורה בפורמט: [יום]-[שעה שעת_סיום]: [שם האירוע]. לדוגמה: ראשון-07:00-08:00:אימון כושר`,
+  'job-hunter':`אתה Job Hunter האישי של רואי קליין. ${CV}
+
+משימתך: לחפש משרות בזמן אמת, לנתח אותן ולחשב ציוני התאמה.
+
+כשמבקשים "מצא לי X משרות":
+1. השתמש בחיפוש רשת (tool) עם queries ממוקדות לישראל
+2. עבור כל תוצאה: חלץ title, company, location, URL, תיאור קצר
+3. NEVER בדה URLs — השתמש רק ב-URLs מהחיפוש
+4. חשב ציון התאמה (0-100) על בסיס הפרופיל
+5. הצג רק משרות עם ≥60% התאמה
+6. ענה בפורמט: **[ציון%] תפקיד @ חברה** — תיאור קצר — [קישור](URL)
+7. בסוף: "נמצאו X משרות — הוספתי ל-Pipeline אוטומטית"
+
+כשמדביקים URL של משרה:
+1. קרא את הדף המלא
+2. תן ניתוח מלא: ציון התאמה, מיומנויות נדרשות, חוזקות/חסרונות
+3. המלצה: "כן, שלח" / "שלח עם התאמות" / "דלג"
+
+${CMD_DOCS}`,
+  'career-coach':`אתה Career Coach האישי של רואי קליין. אתה משלב חום של מנטור עם ישירות של שותף עסקי.
+
+על רואי:
+- ADHD — מעדיף הוראות שלב-שלב, מבנה ברור
+- M.Sc Data Science & AI (Bar-Ilan, 2025-2027)
+- Founder Upselles
+- 5 שנות ניסיון: Product, Data, Operations, Trading
+- מחפש: AI Analyst / Growth / PM / Analytics
+- עברית ואנגלית
+
+אחריויותיך:
+1. **תכנון יום**: "היום: X follow-ups, Y ראיון מחר, Z משרות חדשות. התחל מ..."
+2. **הכנה לראיון**: כשמשרה עוברת לראיון — צור מסמך הכנה: רקע חברה, שאלות צפויות, תשובות מוצעות, שאלות לשאול
+3. **מכתבי מוטיבציה**: כתוב מכתב מותאם בעברית/אנגלית
+4. **Follow-up reminders**: "מה שלחת לפני שבוע ב-Wix? הגיע הזמן לעקוב"
+5. **משוב ישיר**: "המשרה הזו 60% התאמה — שקול טוב"
+6. **עידוד**: כשמגיע הצעה — חגוג! כשלא מגיבים — תן פרספקטיבה
+
+טון: עברית, פסקאות קצרות, bullet points לפעולות. לא fluff כללי. תמיד ספציפי לנתונים.
+
+${CMD_DOCS}`,
 };
 
 function init(){
@@ -1014,7 +1259,9 @@ function init(){
   renderFamWeek();renderRoadmap();renderReminders();renderIdeas();
   renderBodyProfile();renderWater();renderWorkouts();renderJEntries();renderLeads();
   updateWeekRing();checkCalToken();
-  renderUserProfile(); // show user info if already signed in
+  renderUserProfile();
+  // Init Kanban after DOM is ready
+  setTimeout(()=>{if(typeof renderKanban==='function')renderKanban();},100);
 }
 
 function renderAll(){
@@ -1542,8 +1789,8 @@ function jobCardHTML(j,i,isLive=false){
     ${j.description?`<div class="jcard-desc">${j.description}</div>`:''}
     <div class="jcard-footer">
       ${isLive
-        ?`<button class="btn bg bxs" onclick="saveJobFromResult(${i})">💾 שמור</button>
-          ${j.link?`<a href="${j.link}" target="_blank" class="btn bp bxs">📨 הגש</a>`:''}`
+        ?`<button class="btn bg bxs" onclick="saveJobFromSearch(${i})">💾 שמור ל-Pipeline</button>
+          ${j.link?`<a href="${j.link}" target="_blank" class="btn bp bxs">🔗 פתח</a>`:''}`
         :`<select class="inp" style="padding:2px 5px;font-size:11px" onchange="updJobS(${i},this.value)">
             ${['waiting','interview','rejected','offer'].map(s=>`<option value="${s}" ${j.status===s?'selected':''}>${SN_JOB[s]}</option>`).join('')}
           </select>
@@ -1612,10 +1859,10 @@ async function doSmartSearch(){
   try{
     // Parallel search for each type (max 3)
     const searches=searchTypes.slice(0,3).map(type=>{
-      const q=`"${type}" job ${expStr} ${sizeStr} ${locStr} ${query} 2024 2025`;
-      return fetch(`/api/search?q=${encodeURIComponent(q)}&count=5`)
+      const q=`"${type}" job ${expStr} ${sizeStr} ${locStr} ${query} site:linkedin.com OR site:alljobs.co.il OR site:comeet.com 2025`;
+      return fetch('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q,count:5,search_depth:'advanced',topic:'general'})})
         .then(r=>r.json())
-        .then(d=>({type,results:[...(d.Results||[]),...(d.RelatedTopics||[])]}))
+        .then(d=>({type,results:d.results||[]}))
         .catch(()=>({type,results:[]}));
     });
 
@@ -1625,30 +1872,32 @@ async function doSmartSearch(){
 
     // For each result: fetch full page, calculate match
     for(const{type,results}of allSearches){
-      const top=results.filter(r=>(r.FirstURL||r.url)&&(r.Text||r.description)).slice(0,3);
+      const top=results.filter(r=>r.url&&(r.title||r.description)).slice(0,3);
       for(const r of top){
-        const url=r.FirstURL||r.url;
+        const url=r.url;
         if(!url||seenUrls.has(url))continue;
         seenUrls.add(url);
 
-        let pageText=r.description||r.Text||'';
+        let pageText=r.description||'';
         let fetchedFull=false;
-        // Attempt to read full job description
         try{
           const pr=await fetch(`/api/fetch-page?url=${encodeURIComponent(url)}`);
           const pd=await pr.json();
           if(pd.ok&&pd.text&&pd.chars>200){pageText=pd.text;fetchedFull=true;}
         }catch{}
 
-        const title=(r.title||r.Text||type).split(':')[0].trim().slice(0,80);
+        const title=(r.title||type).split(/[|\-–]/)[0].trim().slice(0,80);
         const match=calcMatchScore(title,pageText);
+        const detectedSource=url.includes('linkedin')?'linkedin':url.includes('alljobs')?'alljobs':url.includes('comeet')?'comeet':url.includes('drushim')?'drushim':'other';
         allJobs.push({
           title,
-          company:extractJobCompany(r),
+          company:extractJobCompany({url}),
           cat:type,
           match,
-          description:(r.description||r.Text||'').slice(0,200),
+          description:(r.description||'').slice(0,200),
           link:url,
+          url,
+          source:detectedSource,
           status:'waiting',
           date:new Date().toLocaleDateString('he-IL'),
           _fetchedFull:fetchedFull
@@ -2130,10 +2379,7 @@ function parseCommands(text){
 
 function addMsg2(chatId,role,text){
   const chat=document.getElementById(chatId);if(!chat)return null;
-  const div=document.createElement('div');
-  div.className=`msg ${role==='user'?'u':''}`;
-  div.innerHTML=`<div class="mav ${role==='ai'?'ai':'u'}">${role==='ai'?'AI':'ר'}</div><div class="mb">${text}</div>`;
-  chat.appendChild(div);chat.scrollTop=chat.scrollHeight;return div;
+  return addMsgToEl(chat,role,text);
 }
 
 async function sendChat(ctx){
@@ -2145,10 +2391,10 @@ async function sendChat(ctx){
   const th=addMsg2(chatId,'ai','...');
   const sys=SYS[ctx]||SYS.main;
 
-  // JOBS: auto-fetch full page when user pastes a URL
+  // JOBS / JOB-HUNTER: auto-fetch full page when user pastes a URL
   let msgToSend=text;
   let urlFetched=false;
-  if(ctx==='jobs'){
+  if(ctx==='jobs'||ctx==='job-hunter'){
     const urlM=text.match(/https?:\/\/[^\s]+/);
     if(urlM){
       if(th)th.querySelector('.mb').textContent='📄 קורא משרה...';
@@ -2175,7 +2421,7 @@ async function sendChat(ctx){
   if(th)th.querySelector('.mb').textContent='...';
   const reply=await claude(msgToSend,sys);
   const cleanReply=parseCommands(reply);
-  if(th)th.querySelector('.mb').textContent=cleanReply;
+  if(th)renderMarkdownMsg(th.querySelector('.mb'),cleanReply);
 
   // Smart domain actions (use raw reply)
   if(ctx==='health'){
@@ -2185,15 +2431,22 @@ async function sendChat(ctx){
       save();renderMeals();updateStats();showNotif('✓ ארוחה נרשמה אוטומטית');
     }
   }
-  if(ctx==='jobs'){
+  if(ctx==='jobs'||ctx==='job-hunter'){
     const matchM=reply.match(/(\d+)%/);
-    if(matchM&&parseInt(matchM[1])>=60&&(text.includes('http')||text.includes('linkedin'))){
-      const titleM=reply.match(/תפקיד[:\s]+([^\n]+)/i)||reply.match(/משרת[:\s]+([^\n]+)/i);
+    if(matchM&&parseInt(matchM[1])>=55&&(text.includes('http')||text.includes('linkedin')||urlFetched)){
+      const titleM=reply.match(/תפקיד[:\s]+([^\n]+)/i)||reply.match(/משרת[:\s]+([^\n]+)/i)||reply.match(/^#+\s*(.+)/m);
       const compM=reply.match(/חברה[:\s]+([^\n]+)/i);
-      const catM=reply.match(/(AI Analyst|Growth|Product|Analytics)/i);
+      const urlMatch=text.match(/https?:\/\/\S+/);
       if(titleM){
-        S.jobs.push({title:titleM[1].trim(),company:compM?compM[1].trim():'',cat:catM?catM[1]:'Analytics',status:'waiting',match:parseInt(matchM[1]),date:new Date().toLocaleDateString('he-IL'),link:text.match(/https?:\/\/\S+/)?.[0]||''});
-        save();renderJobs();showNotif('✓ משרה נוספה למעקב!');
+        addJobToKanban({
+          title:titleM[1].trim().slice(0,120),
+          company:compM?compM[1].trim():'',
+          match:parseInt(matchM[1]),
+          link:urlMatch?.[0]||'',
+          source:'linkedin',
+          description:reply.slice(0,400),
+        });
+        renderKanban();showNotif('✓ משרה נוספה לגילוי!');
       }
     }
   }
@@ -2298,6 +2551,455 @@ function showNotif(msg){
   setTimeout(()=>n.classList.remove('show'),2500);
 }
 function editProfile(){showNotif('✏️ עריכת פרופיל — בקרוב');}
+
+// ─── PROFILE MODAL (Bug 1 fix) ─────────────────────────────────────────────
+function openProfileModal(){
+  const bg=document.getElementById('profile-modal-bg');
+  const dd=document.getElementById('profile-dropdown');
+  // Populate
+  const pn=document.getElementById('pd-name');
+  const pe=document.getElementById('pd-email');
+  const pa=document.getElementById('pd-avatar');
+  if(currentUser){
+    if(pn)pn.textContent=currentUser.name||'משתמש';
+    if(pe)pe.textContent=currentUser.email||'';
+    if(pa){
+      if(currentUser.picture){pa.innerHTML=`<img src="${currentUser.picture}" alt="">`;}
+      else{pa.textContent=(currentUser.name||'?').charAt(0).toUpperCase();}
+    }
+  } else {
+    if(pn)pn.textContent='אורח';
+    if(pe)pe.textContent='לא מחובר';
+  }
+  bg.classList.add('open');
+  dd.style.display='block';
+}
+function closeProfileModal(){
+  document.getElementById('profile-modal-bg').classList.remove('open');
+  document.getElementById('profile-dropdown').style.display='none';
+}
+function switchGoogleAccount(){
+  closeProfileModal();
+  if(window.google && google.accounts && google.accounts.id){
+    google.accounts.id.disableAutoSelect();
+    google.accounts.id.prompt();
+  } else {
+    showNotif('Google Sign-In לא זמין כרגע');
+  }
+}
+
+// ─── CHAT FULLSCREEN EXPAND (Bug 3 fix) ───────────────────────────────────
+let fcModalCtx=null;
+let fcModalChatId=null;
+
+function openChatFullscreen(chatId, title){
+  const modal=document.getElementById('fc-modal');
+  const modalChat=document.getElementById('fc-modal-chat');
+  const modalTitle=document.getElementById('fc-modal-title');
+  const origChat=document.getElementById(chatId);
+  if(!modal||!origChat)return;
+
+  // Determine context from chatId
+  const ctxMap={
+    'main-chat':'main','jobs-chat':'jobs','upselles-chat':'upselles',
+    'health-chat':'health','family-chat':'family','ideas-chat':'ideas',
+    'job-hunter-chat':'job-hunter','career-coach-chat':'career-coach'
+  };
+  fcModalCtx=ctxMap[chatId]||'main';
+  fcModalChatId=chatId;
+
+  modalTitle.textContent=title||'סוכן';
+  // Clone messages into modal
+  modalChat.innerHTML=origChat.innerHTML;
+  modalChat.scrollTop=modalChat.scrollHeight;
+
+  modal.classList.add('open');
+  const inp=document.getElementById('fcmodal-inp');
+  if(inp)setTimeout(()=>inp.focus(),100);
+}
+function closeChatFullscreen(){
+  const modal=document.getElementById('fc-modal');
+  if(!modal)return;
+  modal.classList.remove('open');
+  // Sync messages back to original chat
+  if(fcModalChatId){
+    const orig=document.getElementById(fcModalChatId);
+    const modalChat=document.getElementById('fc-modal-chat');
+    if(orig&&modalChat){
+      orig.innerHTML=modalChat.innerHTML;
+      orig.scrollTop=orig.scrollHeight;
+    }
+  }
+  fcModalCtx=null;fcModalChatId=null;
+}
+async function sendChatModal(){
+  if(!fcModalCtx)return;
+  const inp=document.getElementById('fcmodal-inp');
+  if(!inp||!inp.value.trim())return;
+  const modalChat=document.getElementById('fc-modal-chat');
+  const text=inp.value.trim();inp.value='';
+  addMsgToEl(modalChat,'user',text);
+  const th=addMsgToEl(modalChat,'ai','...');
+  const sys=SYS[fcModalCtx]||SYS.main;
+
+  let msgToSend=text;
+  const skipSearch=text.length<18||/^\[CMD/i.test(text);
+  if(!skipSearch){
+    if(th)th.querySelector('.mb').textContent='🔍 מחפש...';
+    const results=await autoSearch(text,fcModalCtx);
+    if(results)msgToSend=text+results;
+  }
+  if(th)th.querySelector('.mb').textContent='...';
+  const reply=await claude(msgToSend,sys);
+  const cleanReply=parseCommands(reply);
+  if(th)renderMarkdownMsg(th.querySelector('.mb'),cleanReply);
+
+  // Sync to original chat
+  if(fcModalChatId){
+    const orig=document.getElementById(fcModalChatId);
+    if(orig){orig.innerHTML=modalChat.innerHTML;orig.scrollTop=orig.scrollHeight;}
+  }
+}
+
+// ─── MARKDOWN MESSAGE HELPER ───────────────────────────────────────────────
+function renderMarkdownMsg(el, text){
+  if(!el)return;
+  if(typeof marked!=='undefined'){
+    try{
+      el.innerHTML=marked.parse(text||'',{breaks:true,gfm:true});
+      return;
+    }catch(e){}
+  }
+  el.textContent=text||'';
+}
+
+function addMsgToEl(chatEl,role,text){
+  if(!chatEl)return null;
+  const div=document.createElement('div');
+  div.className=`msg ${role==='user'?'u':''}`;
+  const mbEl=document.createElement('div');mbEl.className='mb';
+  if(role==='ai'&&typeof marked!=='undefined'){
+    try{mbEl.innerHTML=marked.parse(text||'',{breaks:true,gfm:true});}
+    catch{mbEl.textContent=text||'';}
+  } else {mbEl.textContent=text||'';}
+  div.innerHTML=`<div class="mav ${role==='ai'?'ai':'u'}">${role==='ai'?'AI':'ר'}</div>`;
+  div.appendChild(mbEl);
+  chatEl.appendChild(div);chatEl.scrollTop=chatEl.scrollHeight;
+  return div;
+}
+
+// ─── KANBAN BOARD ──────────────────────────────────────────────────────────
+const STAGES=['discovered','saved','applied','phone_screen','interview','offer','archive'];
+const STAGE_LABELS={discovered:'גילוי',saved:'שמורות',applied:'הוגשו',phone_screen:'ראיון טלפוני',interview:'ראיון',offer:'הצעה',archive:'ארכיון'};
+const SOURCE_LABELS={linkedin:'LinkedIn',alljobs:'AllJobs',comeet:'Comeet',drushim:'דרושים',wellfound:'Wellfound',builtin:'BuiltIn',aijobs:'AI Jobs',company_site:'אתר חברה',other:'אחר'};
+
+function getJobsV2(){
+  if(!S.jobsV2)S.jobsV2=migrateJobsToV2();
+  return S.jobsV2;
+}
+
+function migrateJobsToV2(){
+  // Migrate existing jobs array to new data model
+  return (S.jobs||[]).map((j,i)=>({
+    id:`job_${i}_${Date.now()}`,
+    userId:currentUser?.email||'',
+    title:j.title||'',
+    company:j.company||'',
+    location:'ישראל',
+    url:j.link||'',
+    source:j.source||'other',
+    source_label:SOURCE_LABELS[j.source||'other']||'אחר',
+    description_summary:j.description||'',
+    description_full:j.description_full||null,
+    match_score:j.match||0,
+    match_breakdown:j.match_breakdown||null,
+    match_explanation:j.match_explanation||'',
+    matched_keywords:j.matched_keywords||[],
+    missing_keywords:j.missing_keywords||[],
+    stage:mapOldStatus(j.status),
+    stage_history:[{stage:mapOldStatus(j.status),at:new Date().toISOString()}],
+    applied_at:null,applied_method:null,
+    follow_ups:[],interviews:[],offer:null,
+    created_at:new Date().toISOString(),
+    updated_at:new Date().toISOString(),
+    archived_reason:null,user_notes:'',
+  }));
+}
+
+function mapOldStatus(s){
+  const m={waiting:'saved',interview:'interview',offer:'offer',rejected:'archive',applied:'applied'};
+  return m[s]||'discovered';
+}
+
+function daysInStage(job){
+  const hist=job.stage_history;
+  if(!hist||!hist.length)return 0;
+  const last=hist[hist.length-1];
+  return Math.floor((Date.now()-new Date(last.at).getTime())/(1000*60*60*24));
+}
+
+function matchClass(score){
+  if(score>=75)return'kb-match-high';
+  if(score>=50)return'kb-match-mid';
+  return'kb-match-low';
+}
+
+function kanbanCardHTML(job){
+  const days=daysInStage(job);
+  const mc=matchClass(job.match_score||0);
+  return`<div class="kb-card" data-id="${job.id}" onclick="openJobDrawer('${job.id}')">
+    <div class="kb-card-title">${escH(job.title)}</div>
+    <div class="kb-card-company">${escH(job.company)}</div>
+    <div class="kb-card-meta">
+      <span class="kb-match ${mc}">${job.match_score||0}%</span>
+      <span class="kb-source">${escH(job.source_label||job.source||'')}</span>
+      ${days>0?`<span class="kb-days">${days}י׳`:''}
+    </div>
+  </div>`;
+}
+
+let kanbanSortables=[];
+
+function renderKanban(){
+  const jobs=getJobsV2();
+  const minMatch=parseInt(document.getElementById('min-match-slider')?.value||0);
+  const activeSources=new Set([...document.querySelectorAll('.fchip.on[data-g="source"]')].map(el=>el.dataset.v));
+
+  const filtered=jobs.filter(j=>{
+    if(j.match_score<minMatch)return false;
+    if(activeSources.size>0&&!activeSources.has(j.source||'other'))return false;
+    return true;
+  });
+
+  // Update column contents
+  STAGES.forEach(stage=>{
+    const col=document.getElementById(`kb-${stage}`);
+    const cnt=document.getElementById(`kb-cnt-${stage}`);
+    if(!col)return;
+    const stageJobs=filtered.filter(j=>j.stage===stage);
+    col.innerHTML=stageJobs.length?stageJobs.map(kanbanCardHTML).join(''):'';
+    if(cnt)cnt.textContent=stageJobs.length;
+  });
+
+  // Update stats
+  const notArchived=jobs.filter(j=>j.stage!=='archive');
+  document.getElementById('j-total').textContent=notArchived.length;
+  const active=jobs.filter(j=>['applied','phone_screen','interview'].includes(j.stage));
+  document.getElementById('j-active').textContent=active.length;
+  document.getElementById('j-offers').textContent=jobs.filter(j=>j.stage==='offer').length;
+  const scores=notArchived.map(j=>j.match_score||0).filter(s=>s>0);
+  document.getElementById('j-avg-match').textContent=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length)+'%':'—';
+
+  initKanbanDnD();
+}
+
+function initKanbanDnD(){
+  // Destroy old sortables
+  kanbanSortables.forEach(s=>s.destroy());
+  kanbanSortables=[];
+
+  STAGES.forEach(stage=>{
+    const col=document.getElementById(`kb-${stage}`);
+    if(!col)return;
+    const sortable=Sortable.create(col,{
+      group:'kanban',
+      animation:200,
+      ghostClass:'sortable-ghost',
+      chosenClass:'sortable-chosen',
+      onEnd(evt){
+        const jobId=evt.item.dataset.id;
+        const newStage=evt.to.closest('.kb-col')?.dataset?.stage;
+        if(!jobId||!newStage)return;
+        moveJobToStage(jobId,newStage);
+      }
+    });
+    kanbanSortables.push(sortable);
+  });
+}
+
+function moveJobToStage(jobId,newStage){
+  const jobs=getJobsV2();
+  const job=jobs.find(j=>j.id===jobId);
+  if(!job||job.stage===newStage)return;
+  const oldStage=job.stage;
+  job.stage=newStage;
+  job.updated_at=new Date().toISOString();
+  if(!job.stage_history)job.stage_history=[];
+  job.stage_history.push({stage:newStage,at:new Date().toISOString()});
+  if(newStage==='applied'&&!job.applied_at)job.applied_at=new Date().toISOString();
+  S.jobsV2=jobs;
+  save();
+  renderKanban();
+  showNotif(`✓ הועבר ל${STAGE_LABELS[newStage]}`);
+  if(newStage==='offer'){fireConfetti();}
+}
+
+function fireConfetti(){
+  if(typeof confetti!=='undefined'){
+    confetti({particleCount:120,spread:80,origin:{y:0.6}});
+    setTimeout(()=>confetti({particleCount:80,spread:100,origin:{y:0.7},angle:60}),300);
+    setTimeout(()=>confetti({particleCount:80,spread:100,origin:{y:0.7},angle:120}),600);
+  }
+}
+
+// ─── JOB DRAWER ────────────────────────────────────────────────────────────
+let drawerJobId=null;
+
+function openJobDrawer(jobId){
+  const jobs=getJobsV2();
+  const job=jobs.find(j=>j.id===jobId);
+  if(!job)return;
+  drawerJobId=jobId;
+
+  document.getElementById('drawer-title').textContent=job.title;
+  document.getElementById('drawer-stage-sel').value=job.stage;
+
+  const days=daysInStage(job);
+  const body=document.getElementById('drawer-body');
+  body.innerHTML=`
+    <div style="margin-bottom:12px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px">${escH(job.title)}</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">${escH(job.company)} ${job.location?'• '+escH(job.location):''}</div>
+      ${job.url?`<a href="${escH(job.url)}" target="_blank" class="btn bs bsm" style="display:inline-flex;text-decoration:none">🔗 פתח משרה מקורית</a>`:''}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <span class="match-badge ${matchClass(job.match_score||0).replace('kb-','match-')}">${job.match_score||0}% התאמה</span>
+      <span class="bdg bdg-gr">${escH(job.source_label||job.source||'')}</span>
+      ${days>0?`<span class="bdg bdg-gr">${days} ימים בשלב`:''}
+    </div>
+    ${job.match_explanation?`<div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:10px">${escH(job.match_explanation)}</div>`:''}
+    ${job.matched_keywords?.length?`<div style="margin-bottom:8px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">מיומנויות שנמצאו</div><div style="display:flex;gap:5px;flex-wrap:wrap">${job.matched_keywords.map(k=>`<span class="bdg bdg-g">${escH(k)}</span>`).join('')}</div></div>`:''}
+    ${job.missing_keywords?.length?`<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">מיומנויות חסרות</div><div style="display:flex;gap:5px;flex-wrap:wrap">${job.missing_keywords.map(k=>`<span class="bdg bdg-a">${escH(k)}</span>`).join('')}</div></div>`:''}
+    ${job.description_summary?`<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">תיאור</div><div style="font-size:12px;color:var(--text2);line-height:1.6">${escH(job.description_summary)}</div></div>`:''}
+    <textarea class="inp inp-full" rows="3" placeholder="הערות אישיות..." style="margin-bottom:8px" oninput="saveJobNote('${job.id}',this.value)">${escH(job.user_notes||'')}</textarea>
+    <div style="display:flex;gap:7px">
+      <button class="btn bs bsm" onclick="deleteJobFromDrawer('${job.id}')">🗑 ארכב</button>
+    </div>
+  `;
+
+  document.getElementById('job-drawer-bg').classList.add('open');
+  document.getElementById('job-drawer').classList.add('open');
+}
+
+function closeJobDrawer(){
+  document.getElementById('job-drawer-bg').classList.remove('open');
+  document.getElementById('job-drawer').classList.remove('open');
+  drawerJobId=null;
+}
+
+function updateJobStageFromDrawer(){
+  if(!drawerJobId)return;
+  const newStage=document.getElementById('drawer-stage-sel').value;
+  moveJobToStage(drawerJobId,newStage);
+}
+
+function saveJobNote(jobId,note){
+  const jobs=getJobsV2();
+  const job=jobs.find(j=>j.id===jobId);
+  if(job){job.user_notes=note;job.updated_at=new Date().toISOString();S.jobsV2=jobs;save();}
+}
+
+function deleteJobFromDrawer(jobId){
+  moveJobToStage(jobId,'archive');
+  closeJobDrawer();
+}
+
+// ─── ADD JOB MANUAL (updated) ──────────────────────────────────────────────
+function addJobManual(){
+  const title=prompt('תפקיד:');if(!title)return;
+  const company=prompt('חברה:','');
+  const url=prompt('קישור למשרה (URL):','');
+  const source=prompt('מקור (linkedin/alljobs/comeet/other):','linkedin');
+  const jobs=getJobsV2();
+  const newJob={
+    id:`job_manual_${Date.now()}`,
+    userId:currentUser?.email||'',
+    title:title.trim(),
+    company:(company||'').trim(),
+    location:'ישראל',
+    url:(url||'').trim(),
+    source:(source||'other').trim(),
+    source_label:SOURCE_LABELS[source||'other']||'אחר',
+    description_summary:'',
+    description_full:null,
+    match_score:calcMatchScore(title,''),
+    match_breakdown:null,match_explanation:'',
+    matched_keywords:[],missing_keywords:[],
+    stage:'saved',
+    stage_history:[{stage:'saved',at:new Date().toISOString()}],
+    applied_at:null,applied_method:null,
+    follow_ups:[],interviews:[],offer:null,
+    created_at:new Date().toISOString(),
+    updated_at:new Date().toISOString(),
+    archived_reason:null,user_notes:'',
+  };
+  jobs.unshift(newJob);
+  S.jobsV2=jobs;
+  save();renderKanban();showNotif(`✓ משרה נוספה — ${newJob.match_score}% התאמה`);
+}
+
+// Helper to add a job from search results to Kanban
+function addJobToKanban(j){
+  const jobs=getJobsV2();
+  if(j.link&&jobs.some(x=>x.url===j.link))return false; // duplicate
+  const newJob={
+    id:`job_search_${Date.now()}_${Math.random().toString(36).slice(2,5)}`,
+    userId:currentUser?.email||'',
+    title:(j.title||'').slice(0,120),
+    company:(j.company||extractJobCompany({url:j.link||''})).trim(),
+    location:'ישראל',
+    url:j.link||j.url||'',
+    source:j.source||'other',
+    source_label:SOURCE_LABELS[j.source||'other']||'אחר',
+    description_summary:(j.description||'').slice(0,500),
+    description_full:j.description_full||null,
+    match_score:j.match||j.match_score||0,
+    match_breakdown:j.match_breakdown||null,
+    match_explanation:j.match_explanation||'',
+    matched_keywords:j.matched_keywords||[],
+    missing_keywords:j.missing_keywords||[],
+    stage:'discovered',
+    stage_history:[{stage:'discovered',at:new Date().toISOString()}],
+    applied_at:null,applied_method:null,
+    follow_ups:[],interviews:[],offer:null,
+    created_at:new Date().toISOString(),
+    updated_at:new Date().toISOString(),
+    archived_reason:null,user_notes:'',
+  };
+  jobs.unshift(newJob);
+  S.jobsV2=jobs;
+  save();
+  return true;
+}
+
+// ─── SYSTEM PROMPTS: JOB HUNTER + CAREER COACH (Phase 4) ─────────────────
+// (added to SYS object below in the SYS definition patch)
+
+// ─── CHAT HELPER: setJH / setCC ───────────────────────────────────────────
+function setJH(t){const e=document.getElementById('job-hunter-inp');if(e){e.value=t;e.focus();}}
+function setCC(t){const e=document.getElementById('career-coach-inp');if(e){e.value=t;e.focus();}}
+
+// ─── HTML ESCAPE ───────────────────────────────────────────────────────────
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ─── RENDERALL + RENDERJOBS COMPAT ────────────────────────────────────────
+// Override renderJobs to use Kanban
+function renderJobs(){
+  renderKanban();
+  // Keep legacy j-s, j-w, j-i if they exist (some may still reference old stats)
+  const jel=document.getElementById('j-s');if(jel)jel.textContent=getJobsV2().filter(j=>j.stage!=='archive').length;
+  const jwl=document.getElementById('j-w');if(jwl)jwl.textContent=getJobsV2().filter(j=>['discovered','saved'].includes(j.stage)).length;
+  const jil=document.getElementById('j-i');if(jil)jil.textContent=getJobsV2().filter(j=>j.stage==='interview').length;
+}
+
+// ─── STAGE SAVE AFTER SEARCH RESULT ──────────────────────────────────────
+function saveJobFromSearch(idx){
+  const j=liveSearchResults[idx];
+  if(!j)return;
+  const added=addJobToKanban(j);
+  if(added){renderKanban();showNotif(`✓ "${j.title}" נוסף לגילוי`);}
+  else{showNotif('⚠️ משרה זו כבר קיימת');}
+}
 
 // INIT
 init();
