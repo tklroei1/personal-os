@@ -1277,6 +1277,7 @@ function goPage(p,el){
   const T={dashboard:'דשבורד',agenda:'לוז שבועי',tasks:'משימות',reminders:'תזכורות',jobs:'חיפוש עבודה',upselles:'Upselles',health:'כושר ותזונה',apartment:'מציאת דירה',family:'זמן משפחתי',ideas:'רעיונות',journal:'יומן',goals:'מטרות'};
   document.getElementById('pt').textContent=T[p]||p;
   if(p==='agenda')buildWeekGrid();
+  if(p==='jobs'&&typeof renderKanban==='function')setTimeout(renderKanban,50);
 }
 
 // TASKS
@@ -1573,16 +1574,34 @@ function selDay(iso){
 let gat=null;
 function connectCal(){
   const CID='786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com';
-  const SC='https://www.googleapis.com/auth/calendar';
-  const red=encodeURIComponent(location.href.split('?')[0].split('#')[0]);
+  const SC='https://www.googleapis.com/auth/calendar.readonly';
+  // Use current origin as redirect (implicit flow — must be in Google OAuth authorized JS origins)
+  const origin=location.origin;
+  const red=encodeURIComponent(origin+'/');
   location.href=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${CID}&redirect_uri=${red}&response_type=token&scope=${encodeURIComponent(SC)}&prompt=consent`;
 }
 function checkCalToken(){
+  // Check fragment (#access_token=...) from implicit flow
   const h=new URLSearchParams(location.hash.replace('#',''));
   const t=h.get('access_token');
   if(t){gat=t;history.replaceState({},document.title,location.pathname);
-    document.getElementById('gcal-btn').textContent='📅 ✓';document.getElementById('gcal-btn').classList.add('ok');
-    loadCalDay(new Date());}
+    const b=document.getElementById('gcal-btn');
+    if(b){b.textContent='📅 ✓';b.classList.add('ok');}
+    loadCalDay(new Date());
+    showNotif('✓ Google Calendar מחובר');
+    return;
+  }
+  // Check query string (?cal_token=...) from server-side code flow
+  const q=new URLSearchParams(location.search);
+  const qt=q.get('cal_token');
+  if(qt){gat=qt;history.replaceState({},document.title,location.pathname);
+    const b=document.getElementById('gcal-btn');
+    if(b){b.textContent='📅 ✓';b.classList.add('ok');}
+    loadCalDay(new Date());
+    showNotif('✓ Google Calendar מחובר');
+  }
+  const ae=q.get('auth_error');
+  if(ae)showNotif('⚠️ Calendar: '+decodeURIComponent(ae));
 }
 async function loadCalDay(d){
   if(!gat)return;
@@ -1734,15 +1753,18 @@ function saveWorkout(){
 function delWorkout(i){S.workouts.splice(i,1);save();renderWorkouts();updateStats();}
 
 // ─── JOB FILTERS ────────────────────────────────────────────────────────────
-const jobFilters={type:new Set(),exp:new Set(),loc:new Set(),size:new Set()};
+const jobFilters={type:new Set(),exp:new Set(),loc:new Set(),size:new Set(),source:new Set()};
 function toggleJobFilter(el){
   const g=el.dataset.g,v=el.dataset.v;
+  if(!jobFilters[g])jobFilters[g]=new Set();
   if(jobFilters[g].has(v)){jobFilters[g].delete(v);el.classList.remove('on');}
   else{jobFilters[g].add(v);el.classList.add('on');}
+  if(typeof renderKanban==='function')renderKanban();
 }
 function clearJobFilters(){
   Object.keys(jobFilters).forEach(g=>jobFilters[g].clear());
   document.querySelectorAll('.fchip.on').forEach(c=>c.classList.remove('on'));
+  if(typeof renderKanban==='function')renderKanban();
 }
 
 // ─── AUTO MATCH SCORE (locked, CV-profile-based, not user-editable) ─────────
@@ -2218,12 +2240,14 @@ async function claude(msg,sys){
   }catch(e){return'שגיאה בחיבור';}
 }
 
-// ALWAYS-ON WEB SEARCH — every agent gets contextual DDG results automatically
+// ALWAYS-ON WEB SEARCH — every agent gets contextual search results automatically
 const SEARCH_CTX={
   jobs:' משרות עבודה דרושים ישראל 2025',
+  'job-hunter':' job vacancy Israel 2025 AI Analyst Data Growth',
+  'career-coach':' career advice interview tips Israel hi-tech',
   health:' קלוריות תזונה מתכון בריא',
-  apt:' דירה שכירות תל אביב דיזינגוף',
-  upselles:' SaaS startup שוק ישראל',
+  apt:' דירה שכירות תל אביב',
+  upselles:' SaaS startup ישראל שוק',
   family:' פעילות משפחה ילדים',
   ideas:' startup idea market opportunity',
   main:'',week:'',
@@ -2232,13 +2256,16 @@ async function autoSearch(text,ctx){
   try{
     const suffix=SEARCH_CTX[ctx]??'';
     const q=text.slice(0,120)+suffix;
-    const r=await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+    const r=await fetch('/api/search',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({query:q,count:5,search_depth:'basic'})
+    });
     if(!r.ok)return'';
     const d=await r.json();
-    const hits=[...(d.Results||[]),...(d.RelatedTopics||[])]
-      .filter(x=>x.Text&&x.Text.length>20).slice(0,5);
+    const hits=(d.results||[]).filter(x=>(x.description||x.title)&&(x.url||x.description)).slice(0,4);
     if(!hits.length)return'';
-    return'\n\n[🔍 מידע מהרשת]\n'+hits.map(x=>`• ${x.Text.slice(0,160)}${x.FirstURL?'\n  '+x.FirstURL:''}`).join('\n');
+    return'\n\n[🔍 מידע מהרשת]\n'+hits.map(x=>`• ${(x.title?x.title+': ':'')}${(x.description||'').slice(0,160)}${x.url?'\n  '+x.url:''}`).join('\n');
   }catch(e){return'';}
 }
 
@@ -2766,8 +2793,9 @@ function renderKanban(){
   const activeSources=new Set([...document.querySelectorAll('.fchip.on[data-g="source"]')].map(el=>el.dataset.v));
 
   const filtered=jobs.filter(j=>{
-    if(j.match_score<minMatch)return false;
-    if(activeSources.size>0&&!activeSources.has(j.source||'other'))return false;
+    if((j.match_score||0)<minMatch)return false;
+    // Source filter: if any chips are ON, show only those sources; if none ON, show all
+    if(activeSources.size>0&&!activeSources.has(j.source||'other')&&!activeSources.has('other'))return false;
     return true;
   });
 
