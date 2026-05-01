@@ -2785,7 +2785,7 @@ async function sendChat(ctx){
 function handleCredentialResponse(response){
   try{
     const b64=response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
-    const payload=JSON.parse(atob(b64));
+    const payload=JSON.parse(decodeURIComponent(escape(atob(b64))));
     currentUser={sub:payload.sub,name:payload.name,email:payload.email,picture:payload.picture||''};
     localStorage.setItem('pos_user',JSON.stringify(currentUser));
     const saved=localStorage.getItem(storageKey());
