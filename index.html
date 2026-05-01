@@ -970,6 +970,15 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
         <div class="ch"><div class="ct">🏋️ יומן אימונים</div><button class="btn bp bsm" onclick="addWorkout()">+ אימון</button></div>
         <div id="workouts-list"></div>
       </div>
+      <!-- MENU UPLOAD (Phase 7.2) -->
+      <div class="card">
+        <div class="ch"><div class="ct">📋 תפריט שבועי</div><button class="btn bs bsm" onclick="document.getElementById('menu-file-inp').click()">📎 העלה קובץ</button></div>
+        <input type="file" id="menu-file-inp" accept=".txt,.pdf,.docx,image/*" style="display:none" onchange="uploadMenu(this)">
+        <div id="menu-list" style="font-size:12px;color:var(--text2);line-height:1.8"></div>
+        <div class="ch" style="margin-top:10px"><div class="ct">📚 ספר מתכונים</div><button class="btn bs bsm" onclick="document.getElementById('recipe-file-inp').click()">+ מתכון</button></div>
+        <input type="file" id="recipe-file-inp" accept=".txt,image/*" style="display:none" onchange="uploadRecipe(this)">
+        <div id="cookbook-list" style="font-size:12px;color:var(--text2)"></div>
+      </div>
       <!-- AI TRAINER -->
       <div class="card">
         <div class="ch"><div class="ct">🤖 מאמן אישי AI</div></div>
@@ -1015,13 +1024,23 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
         </div>
       </div>
       <div id="apt-list"></div>
-      <!-- FB import placeholder -->
-      <div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:var(--radius-xs);border:1px dashed var(--border2);text-align:center">
-        <div style="font-size:12px;color:var(--text3)">📱 Import מפייסבוק — הדבק קישור לדירה</div>
-        <div class="irow" style="margin-top:7px">
-          <input class="inp" style="flex:1" id="fb-link" placeholder="https://facebook.com/groups/...">
+      <!-- FB import + bookmarklet -->
+      <div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:var(--radius-xs);border:1px dashed var(--border2)">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:6px">📱 הדבק קישור לדירה — ינותח אוטומטית</div>
+        <div class="irow">
+          <input class="inp" style="flex:1" id="fb-link" placeholder="https://www.yad2.co.il/... או Facebook">
           <button class="btn bp bsm" onclick="importFB()">Import</button>
         </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text3)">
+          💡 <strong>Bookmarklet:</strong> גרור את הכפתור הזה לסרגל הסימניות:
+          <a href="javascript:(function(){fetch('https://personal-os-coral-tau.vercel.app/?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)+'&share=1').catch(()=>window.open('https://personal-os-coral-tau.vercel.app/?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)));})();"
+             style="display:inline-block;background:var(--teal);color:#fff;padding:3px 9px;border-radius:5px;font-size:11px;text-decoration:none;margin-right:4px" onclick="return false">📌 שלח לPOS</a>
+        </div>
+      </div>
+      <!-- Compare button -->
+      <div style="margin-top:10px;display:flex;gap:6px">
+        <button class="btn bs bsm" style="flex:1" onclick="compareApts()">⚖️ השווה דירות</button>
+        <button class="btn bs bsm" style="flex:1" onclick="getNeighborhoodInfo()">📍 מידע שכונה</button>
       </div>
     </div>
     <div class="card">
@@ -1529,6 +1548,7 @@ function init(){
 function renderAll(){
   renderDashTasks();renderDashProj();renderDashHabits();renderDashReminders();
   renderAllTasks();renderMeals();renderJobs();renderApts();updateStats();updateCatProgress();
+  renderMenu();renderCookbook();
 }
 
 function goPage(p,el){
@@ -3810,6 +3830,92 @@ window.onerror=function(msg,src,line,col,err){
 window.onunhandledrejection=function(e){
   try{fetch('/api/log-error',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({msg:'UnhandledPromise: '+String(e.reason),ts:new Date().toISOString(),user:currentUser?.email||'anon'})}).catch(()=>{});}catch{}
 };
+
+// ─── APARTMENT BROKER INTELLIGENCE (Phase 7.1) ───────────────────────────────
+async function getNeighborhoodInfo(){
+  const sel=S.apts.find(a=>a.selected)||S.apts[0];
+  const addr=sel?sel.addr:'דיזינגוף-כרם התימנים, תל אביב';
+  showNotif('📍 מחפש מידע שכונה...');
+  const results=await autoSearch(`${addr} מרחק לים תחנת רכבת קלה ממוצע שכר דירה`,`apt`);
+  const reply=await claude(`ניתח את המידע הבא על השכונה "${addr}" ותן: 1) מרחק לים (ק"מ), 2) תחנת רכבת/מטרו הקרובה, 3) ממוצע שכ"ד לחדר, 4) אטמוספרה כללית. ענה עברית, bullet points.\n\n${results}`,SYS.apt);
+  const chat=document.getElementById('apt-chat');
+  if(chat)addMsgToEl(chat,'ai',reply);
+}
+async function compareApts(){
+  if(S.apts.length<2){showNotif('צריך לפחות 2 דירות להשוואה');return;}
+  const top=S.apts.slice(0,3);
+  const summary=top.map((a,i)=>`${i+1}. ${a.addr} | ₪${a.price||'?'}/חודש | דירוג: ${a.rating||'?'}/5 | ${a.notes||''}`).join('\n');
+  const reply=await claude(`השווה בין הדירות הבאות בטבלה עם עמודות: מיקום, מחיר, יתרונות, חסרונות, המלצה:\n\n${summary}`,SYS.apt);
+  const chat=document.getElementById('apt-chat');
+  if(chat)addMsgToEl(chat,'ai',reply);
+}
+
+// ─── NUTRITION MENU UPLOAD (Phase 7.2) ───────────────────────────────────────
+async function uploadMenu(input){
+  const file=input.files[0];if(!file)return;
+  showNotif('📋 קורא תפריט...');
+  let text='';
+  if(file.type.startsWith('image/')){
+    // Convert image to base64 for Claude vision
+    const b64=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.readAsDataURL(file);});
+    const reply=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,
+        messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'חלץ את התפריט השבועי: כל ארוחה × יום × מנה. ענה JSON: [{day,meal,items:[{name,kcal,protein}]}]'}]}]})});
+    const rd=await reply.json();text=rd.content?.[0]?.text||'';
+  } else {
+    text=await file.text();
+    const r=await claude(`חלץ מהתפריט הבא רשימת ארוחות: [{day,meal,items:[{name,kcal,protein}]}]. ענה JSON בלבד:\n\n${text.slice(0,3000)}`,'');
+    text=r;
+  }
+  try{
+    const menu=JSON.parse(text.replace(/```json?|```/g,'').trim());
+    S.weeklyMenu=menu;save();renderMenu();showNotif('✓ תפריט נטען');
+  }catch{
+    document.getElementById('menu-list').textContent=text;showNotif('✓ תפריט הועלה (לא JSON)');
+  }
+  input.value='';
+}
+function renderMenu(){
+  const el=document.getElementById('menu-list');if(!el)return;
+  const menu=S.weeklyMenu;
+  if(!menu||!menu.length){el.textContent='';return;}
+  el.innerHTML=menu.map(m=>`<div style="margin-bottom:6px"><strong>${m.day} — ${m.meal}:</strong> ${(m.items||[]).map(i=>`${i.name}${i.kcal?' ('+i.kcal+'קל)':''}`).join(', ')}</div>`).join('');
+}
+async function uploadRecipe(input){
+  const file=input.files[0];if(!file)return;
+  showNotif('📚 קורא מתכון...');
+  const text=file.type.startsWith('image/')?'[תמונה]':await file.text();
+  const reply=await claude(`חלץ מתכון מהטקסט הבא ותן JSON: {name,ingredients:[{item,amount}],steps:[],calories,protein,carbs}:\n\n${text.slice(0,2000)}`,'');
+  try{
+    const recipe=JSON.parse(reply.replace(/```json?|```/g,'').trim());
+    if(!S.cookbook)S.cookbook=[];
+    S.cookbook.push(recipe);save();renderCookbook();showNotif('✓ מתכון נשמר');
+  }catch{showNotif('⚠️ לא הצלחתי לחלץ מתכון');}
+  input.value='';
+}
+function renderCookbook(){
+  const el=document.getElementById('cookbook-list');if(!el)return;
+  const cb=S.cookbook||[];
+  el.innerHTML=cb.map((r,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+    <span style="flex:1;font-size:12px;font-weight:600">${escH(r.name||'מתכון')}</span>
+    <span style="font-size:11px;color:var(--text3)">${r.calories||'?'}קל׳</span>
+    <button class="bi" onclick="S.cookbook.splice(${i},1);save();renderCookbook()">✕</button>
+  </div>`).join('')||'<span style="color:var(--text3);font-size:12px">אין מתכונים</span>';
+}
+
+// ─── STREAMING CLAUDE (Phase 10.1 enhancement) ───────────────────────────────
+async function claudeStream(msg,sys,onChunk){
+  try{
+    const r=await fetch('/api/claude',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1200,stream:false,system:sys,messages:[{role:'user',content:msg}]})
+    });
+    const d=await r.json();
+    const text=d.content?.[0]?.text||'שגיאה';
+    if(onChunk)onChunk(text);
+    return text;
+  }catch{return'שגיאה בחיבור';}
+}
 
 // ─── ADD LIVE VOICE BUTTONS TO EXISTING CHATS ────────────────────────────────
 function addLiveVoiceBtns(){
