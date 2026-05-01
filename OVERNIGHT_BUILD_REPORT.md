@@ -1,146 +1,171 @@
-# OVERNIGHT BUILD REPORT — Personal OS Job Search v2
-**Date:** 2026-04-30 (built) → 2026-04-30 (audited + fixed)
-**Live URL:** https://personal-os-coral-tau.vercel.app
-**GitHub:** https://github.com/tklroei1/personal-os
+# OVERNIGHT BUILD REPORT — Personal OS v3 (Phases 5-10)
+**Date:** 2026-05-01  
+**Live URL:** https://personal-os-coral-tau.vercel.app  
+**GitHub:** https://github.com/tklroei1/personal-os  
+**Phases completed:** 5, 6, 7, 8, 9, 10  
 
 ---
 
-## Honest Audit Results
+## ✅ What Shipped
 
-After the initial build, the user tested the live site and reported: "nothing works — profile switcher does nothing, chat output jumbled, expand button missing, Calendar still broken, most features not visible."
+### Phase 5 — Profile & User Hardening
 
-A full audit was run on the live site HTML. Here is what was actually found:
+| Feature | Status | Notes |
+|---------|--------|-------|
+| 5.1 User name font fix | ✅ | Added `font-family:'Heebo',system-ui,sans-serif` to `.user-name` |
+| 5.2 Profile setup modal | ✅ | Shown on first sign-in: name, role, city, LinkedIn, goals, languages, bio |
+| 5.3 New users start blank | ✅ | Non-Roei users get empty state; Roei (tklroei1@gmail.com) keeps seeded data |
+| 5.3 Template selection | ✅ | 6 templates (Jobs, Health, Apartment, Family, Finance, Notes) with toggle cards |
+| 5.4 Add/delete projects | ✅ | "+ פרויקט חדש" modal with emoji picker + color; delete via confirm |
+| 5.5 LinkedIn on profile | ✅ | Profile setup field; defaults to `linkedin.com/in/roei-klein` |
+| 5.5 Upselles links | ⚠️ | Profile links exist in setup; Upselles page card links placeholder — Roei fills URL |
+| 5.6 Calendar OAuth fix | ✅ | Changed to `location.origin` (no trailing slash). Right-click Calendar button → shows exact URI to paste in Google Console |
+| 5.6 Calendar setup helper | ✅ | Inline popup with copy button for redirect URI |
+| Profile dropdown: Edit Profile | ✅ | Opens profile setup modal |
 
----
+### Phase 6 — Finance & Notes
 
-## ✅ What Worked Correctly (Audit Confirmed)
+| Feature | Status | Notes |
+|---------|--------|-------|
+| 6.1 Finance page | ✅ | Quick-add bar (amount, merchant, type, category chips) |
+| 6.1 Finance tabs | ✅ | Today / Week / Month / Stats tabs |
+| 6.1 Category bar chart | ✅ | Pure-CSS bar chart by spending category |
+| 6.1 AI insights | ✅ | "ניתוח AI" button → Claude summarizes spending patterns |
+| 6.1 Stats cards | ✅ | Income, Expenses, Balance, Transaction count (monthly) |
+| 6.2 Notes page | ✅ | List with pinning, search, timestamps, preview |
+| 6.2 Note editor | ✅ | Fullscreen overlay, title + content inputs, auto-save on typing |
+| 6.2 Pin / Delete note | ✅ | Pin button toggles, delete with confirm |
+| 6.2 Markdown support | ✅ | Via existing marked.js |
 
-| Feature | Status | Evidence |
-|---------|--------|----------|
-| Kanban board HTML (7 columns) | ✅ | `#kb-discovered` through `#kb-archive` all present |
-| SortableJS drag-and-drop | ✅ | CDN loads HTTP 200, `initKanbanDnD()` present |
-| canvas-confetti on Offer | ✅ | CDN loads HTTP 200, `fireConfetti()` on stage=offer |
-| marked.js Markdown rendering | ✅ | CDN loads HTTP 200, `addMsgToEl()` uses `marked.parse()` |
-| Chat expand button function | ✅ | `openChatFullscreen()` / `closeChatFullscreen()` present |
-| Job Hunter agent | ✅ | `SYS['job-hunter']`, chat ID, input, `sendChat('job-hunter')` all correct |
-| Career Coach agent | ✅ | `SYS['career-coach']`, chat ID, input, `sendChat('career-coach')` all correct |
-| Search API (POST format) | ✅ | `autoSearch()` uses POST, `api/search.js` handles both GET+POST |
-| Match score calculation | ✅ | `calcMatchScore()` + `api/match-score.js` both present |
-| Job data migration (v2) | ✅ | `migrateJobsToV2()` called in `getJobsV2()` |
-| Source filter chips | ✅ | `toggleJobFilter()` calls `renderKanban()` |
-| Jobs page navigation | ✅ | `goPage('jobs')` calls `setTimeout(renderKanban, 50)` |
-| JS syntax | ✅ | `node --check` passes, no syntax errors |
+### Phase 7 — Project Enhancements
 
----
+| Feature | Status | Notes |
+|---------|--------|-------|
+| 7.1 Apartment: neighborhood analysis | ✅ | "ניתוח שכונה" button → searches nearest beach, train, avg rent via Tavily |
+| 7.1 Apartment: compare button | ✅ | "השווה דירות" → Claude side-by-side table of top 3 |
+| 7.1 Apartment: bookmarklet | ✅ | HTML button in UI + `docs/bookmarklet.md` |
+| 7.1 Apartment: Apify stub | ⚠️ | `api/cron/job-hunt.js` exists; Apify integration left as TODO (env: `APIFY_TOKEN`) |
+| 7.2 Nutrition: menu upload | ✅ | File input (.txt, image) → Claude extracts meal plan, renders as weekly list |
+| 7.2 Nutrition: recipe upload | ✅ | File → Claude extracts recipe → saved to cookbook |
+| 7.2 Cookbook render | ✅ | Listed under workout log, deletable |
+| 7.3 Auto-run cron | ✅ | `/api/cron/job-hunt.js` scheduled daily 08:00 in `vercel.json` |
+| 7.3 Facebook: bookmarklet | ✅ | Full documentation in `docs/bookmarklet.md` |
 
-## 🐛 Bugs Found and Fixed
+### Phase 8 — Integrations
 
-### Bug A — Profile dropdown positioned on wrong side (FIXED)
-**Root cause:** `.profile-dropdown` CSS had `right:14px;left:auto`. In `<html dir="rtl">`, flex containers flow right→left, so `.ava` (last element in topbar DOM order) appears on the **LEFT** side of the topbar. The dropdown opened on the **RIGHT** side — invisible unless you happened to look in the wrong corner.
+| Feature | Status | Notes |
+|---------|--------|-------|
+| 8.1 Gmail send (client-side) | ✅ | `sendGmailEmail()` uses access token from Calendar OAuth. Compose modal + AI draft. |
+| 8.1 Gmail API (server-side) | ✅ | `api/email/send.js` (optional server endpoint) |
+| 8.1 Email log | ⚠️ | `S.emailLog` not yet surfaced in UI; emails logged in state only |
+| 8.2 WhatsApp via Twilio | ✅ | `api/whatsapp/send.js` with helpful error if env vars not set |
+| 8.2 WhatsApp UI button | ✅ | `sendWhatsApp(to, body)` callable from any page |
+| 8.2 Twilio docs | ✅ | `docs/whatsapp-setup.md` |
+| 8.3 PWA Share Target | ✅ | `manifest.json` updated; shared URLs land in Inbox page |
+| 8.3 Inbox page | ✅ | Route to Jobs / Apartment / Notes from each item |
+| 8.3 PWA Shortcuts | ✅ | Job Search, New Note, Finance in `manifest.json` shortcuts |
 
-**Fix:** Changed to `right:auto;left:14px` so the dropdown appears directly below the avatar.
+### Phase 9 — Live Voice
 
-**Commit:** `fix: profile dropdown positioned on left to match RTL avatar location`
+| Feature | Status | Notes |
+|---------|--------|-------|
+| 9.1 Live voice toggle | ✅ | `toggleLiveVoice(ctx, btn)` added to chat headers |
+| 9.1 Continuous recognition | ✅ | `webkitSpeechRecognition` continuous=true, 1.2s silence → auto-send |
+| 9.1 Auto language switch | ✅ | Detects Latin chars → switches to `en-US` |
+| 9.1 TTS response | ✅ | `SpeechSynthesisUtterance` with Hebrew voice preference, rate=1.05 |
+| 9.1 Pause during speech | ✅ | Recognition paused while AI speaks, resumes on `onend` |
+| 9.2 ElevenLabs TTS | ⚠️ | Stub in code; `ELEVENLABS_API_KEY` not yet wired to `/api/tts.js` (future) |
 
----
+### Phase 10 — Polish & Performance
 
-### Bug B — Expand button character ⛶ not rendering on Windows (FIXED)
-**Root cause:** U+26F6 (Square Four Corners) is in the Miscellaneous Symbols block and not included in most Windows system fonts. The button rendered as a blank box or replacement character, making it look like the expand feature was missing.
-
-**Fix:** Replaced all 6 instances with U+229E `⊞` (Squared Plus), which is in the Mathematical Operators block and universally supported.
-
-**Commit:** `fix: replace U+26F6 expand icon with U+229E which renders on all Windows systems`
-
----
-
-### Bug C — Missing `</span>` in kanban card days badge (FIXED)
-**Root cause:** In `kanbanCardHTML()`: `` ${days>0?`<span class="kb-days">${days}י׳`:''}`` was missing the closing `</span>`. Browsers auto-closed it, but it could cause layout glitches and breaks HTML semantics.
-
-**Fix:** `` ${days>0?`<span class="kb-days">${days}י׳</span>`:''} ``
-
-**Commit:** `fix: missing closing </span> in kanban card days badge`
-
----
-
-## ⚠️ Known Limitations (Not Bugs in the Code)
-
-### Calendar OAuth — Manual Step Required
-The Calendar connect button uses the implicit OAuth flow correctly (`response_type=token`). The redirect URI is `location.origin + '/'` (stable). **However**: you must manually add `https://personal-os-coral-tau.vercel.app` to:
-1. **Authorized JavaScript origins** in Google Cloud Console
-2. **Authorized redirect URIs** in Google Cloud Console
-
-Until this is done, clicking Calendar connect will show a Google OAuth error.
-
-URL: https://console.cloud.google.com/apis/credentials (select your OAuth 2.0 client)
-
-### Job data is localStorage only
-No backend database. Jobs don't sync between devices. Multi-device sync would require Vercel KV or Firestore.
-
-### Job Hunter search quality depends on API results
-Tavily/Brave results for job listings are inconsistent because job boards often block scrapers. **Pasting a direct job URL gives much better results than keyword search.**
-
----
-
-## 📁 Files in This Build
-
-**New API endpoints:**
-- `api/match-score.js` — Weighted scoring (title 35%, keywords 30%, seniority 15%, company 10%, location/lang 10%)
-- `api/google-callback.js` — OAuth 2.0 code exchange (for server-side code flow)
-- `api/jobs/list.js` — Stub endpoint
-- `api/jobs/create.js` — Validates + scores new jobs
-- `api/jobs/update.js` — Updates fields + stage history
-- `api/jobs/delete.js` — Soft-delete (archive) or hard delete
-
-**Modified:**
-- `api/search.js` — 5-min cache, 8s timeout, POST format, topic/domain filters
-- `index.html` — ~900 lines added for Phases 1-4 + 3 post-audit bug fixes
+| Feature | Status | Notes |
+|---------|--------|-------|
+| 10.1 Haiku for short replies | ✅ | `claudeFast()` uses Haiku for <200 char messages |
+| 10.1 Streaming end-to-end | ⚠️ | `claudeStream()` helper added but Claude API streaming disabled (no SSE in current endpoint) |
+| 10.2 Mobile bottom nav | ✅ | 5-tab bottom nav (Dashboard, Jobs, Finance, Notes, Tasks) on <768px |
+| 10.2 Bottom sheet modals | ✅ | Profile setup modal: `border-radius:0;width:100%` on mobile |
+| 10.3 Error tracking | ✅ | `window.onerror` + `onunhandledrejection` → POST to `/api/log-error.js` |
+| 10.3 Error log endpoint | ✅ | `GET /api/log-error?user=tklroei1@gmail.com` returns last 50 errors (Roei only) |
 
 ---
 
-## 🧪 Manual Test Guide
+## ⚠️ Requires Manual Action
 
-### 1. Profile avatar
-Click the avatar circle (top-right of topbar). A dropdown should slide down from the **LEFT** side (below the avatar) showing your name, email, switch account, sign out.
+### 1. Google Cloud Console — CRITICAL
+Add these two entries to your OAuth 2.0 Client:
 
-### 2. Jobs page — Kanban
-Click "חיפוש עבודה" in sidebar. You should see:
-- 4 stats cards (total, active, offers, avg match)
-- Source filter chips (LinkedIn/AllJobs/Comeet pre-selected)
-- Match slider (0-100%)
-- 7-column Kanban board
+**Authorized JavaScript origins:**
+```
+https://personal-os-coral-tau.vercel.app
+```
 
-If you have existing jobs in `S.jobs`, they are auto-migrated to `S.jobsV2` on first load.
+**Authorized redirect URIs:**
+```
+https://personal-os-coral-tau.vercel.app
+https://personal-os-coral-tau.vercel.app/api/google-callback
+```
 
-### 3. Add a job manually
-Click "+ ידני" button in the filter bar. Enter a title, company, URL, source. The job appears in the Saved column with a match %.
+→ https://console.cloud.google.com/apis/credentials
 
-### 4. Drag and drop
-Drag a card between columns. Dragging to "הצעה" (Offer) triggers confetti 🎉
+### 2. Vercel Environment Variables
+See `docs/SETUP.md` for the full list. Critical ones:
+- `ANTHROPIC_API_KEY` — already set
+- `TAVILY_API_KEY` — already set
+- `TWILIO_SID` / `TWILIO_TOKEN` / `TWILIO_FROM` — for WhatsApp
+- `CRON_SECRET` — for job hunt cron security
 
-### 5. Job Hunter agent
-In the Job Hunter chat, type: `מצא לי 3 AI Analyst jobs בתל אביב`
-Should search, show results with match%, and auto-add qualifying jobs (≥55%) to the Discovered column.
-
-Or paste a LinkedIn job URL directly — it reads the full page and gives a detailed match analysis.
-
-### 6. Career Coach agent
-Type anything career-related. Responds in Hebrew with structured ADHD-friendly format (bullet points, short paragraphs, specific next steps).
-
-### 7. Chat expand
-Click `⊞` on any chat header. Should open fullscreen modal. Type something, get response, close (`✕`) → message should appear in the inline chat too.
+### 3. Gmail OAuth Scope
+The Calendar connect button now also requests `gmail.send` scope. When clicking Calendar for the first time, Google will ask permission for both Calendar and Gmail. Accept both.
 
 ---
 
-## ✏️ What's Not Done (Phase 5-7, Out of Scope)
+## 📁 New Files
 
-- CV auto-tailoring (`/api/tailor-cv.js`)
-- Cover letter generation
-- Interview prep document generator
-- Follow-up scheduling + Calendar sync
-- Networking module (Recruiters / Coffee Chats / Referrals)
-- Daily brief on dashboard load
-- Pomodoro mode
+**API:**
+- `api/log-error.js` — error ingestion + admin view
+- `api/email/send.js` — Gmail API server endpoint
+- `api/whatsapp/send.js` — Twilio WhatsApp
+- `api/cron/job-hunt.js` — daily job search cron
+
+**Docs:**
+- `docs/SETUP.md` — all env vars and external setup
+- `docs/whatsapp-setup.md` — Twilio sandbox walkthrough
+- `docs/bookmarklet.md` — Facebook/Web bookmarklet instructions
+
+**Config:**
+- `vercel.json` — updated with cron + wildcard API routes
+- `manifest.json` — PWA share target + shortcuts
 
 ---
 
-*Built by Claude Sonnet 4.6. Audited and fixed in same session. שמור על עצמך רואי 🌱*
+## 🧪 Manual Test Checklist
+
+### Profile
+- [ ] Click avatar → dropdown shows Edit Profile → opens modal with fields
+- [ ] Fill in name/role/city/LinkedIn → Save → notif appears
+
+### Finance
+- [ ] Go to "פיננסים" → add expense ₪50 coffee → appears in Today
+- [ ] Switch to Stats → bar chart shows category
+- [ ] Click "ניתוח AI" → Claude summarizes spending
+
+### Notes
+- [ ] Go to "פתקים" → click "+ פתק" → editor opens
+- [ ] Type title and content → close → note appears in list
+- [ ] Click 📌 to pin → note moves to top with amber background
+
+### Live Voice
+- [ ] Open any chat → click "🎙 Live" button
+- [ ] Say something in Hebrew → should auto-send after 1.2s silence
+- [ ] AI responds → text-to-speech reads the response
+
+### PWA Share
+- [ ] Install PWA → Share any URL → routes to Inbox → click "💼 עבודה" → goes to Pipeline
+
+### WhatsApp
+- [ ] Go to any page with a contact → call `sendWhatsApp('+972501234567','שלום')` in console
+- [ ] Should show Twilio error with setup instructions if not configured
+
+---
+
+*Built by Claude Sonnet 4.6 across two sessions. שמור על עצמך רואי 🌱*
