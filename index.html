@@ -2807,7 +2807,7 @@ function handleCredentialResponse(response){
     }
     save();renderAll();renderUserProfile();
     showNotif('✓ מחובר כ-'+currentUser.name);
-    if(isNew){
+    if(isNew || !S.userProfile?.name){
       setTimeout(()=>openProfileSetupModal(false),400);
     }
   }catch(e){console.error('Sign-in error:',e);}
