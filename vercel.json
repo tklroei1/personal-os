@@ -5,19 +5,29 @@
     { "src": "manifest.json", "use": "@vercel/static" },
     { "src": "sw.js", "use": "@vercel/static" },
     { "src": "icon.svg", "use": "@vercel/static" },
-    { "src": "api/claude.js", "use": "@vercel/node" },
-    { "src": "api/search.js", "use": "@vercel/node" },
-    { "src": "api/webhook.js", "use": "@vercel/node" },
-    { "src": "api/fetch-page.js", "use": "@vercel/node" }
+    { "src": "api/**/*.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/api/claude", "dest": "/api/claude.js" },
     { "src": "/api/search", "dest": "/api/search.js" },
     { "src": "/api/webhook", "dest": "/api/webhook.js" },
     { "src": "/api/fetch-page", "dest": "/api/fetch-page.js" },
+    { "src": "/api/match-score", "dest": "/api/match-score.js" },
+    { "src": "/api/log-error", "dest": "/api/log-error.js" },
+    { "src": "/api/google-callback", "dest": "/api/google-callback.js" },
+    { "src": "/api/jobs/create", "dest": "/api/jobs/create.js" },
+    { "src": "/api/jobs/update", "dest": "/api/jobs/update.js" },
+    { "src": "/api/jobs/delete", "dest": "/api/jobs/delete.js" },
+    { "src": "/api/jobs/list", "dest": "/api/jobs/list.js" },
+    { "src": "/api/email/send", "dest": "/api/email/send.js" },
+    { "src": "/api/whatsapp/send", "dest": "/api/whatsapp/send.js" },
+    { "src": "/api/cron/job-hunt", "dest": "/api/cron/job-hunt.js" },
     { "src": "/manifest.json", "dest": "/manifest.json" },
     { "src": "/sw.js", "dest": "/sw.js" },
     { "src": "/icon.svg", "dest": "/icon.svg" },
     { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/cron/job-hunt", "schedule": "0 8 * * *" }
   ]
 }

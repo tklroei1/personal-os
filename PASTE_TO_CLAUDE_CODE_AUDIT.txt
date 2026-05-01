@@ -1,0 +1,13 @@
+Read the file AUDIT_AND_FIX_PROMPT.md in this directory.
+
+Then begin Phase A immediately. You are pre-authorized for ALL operations: file edits, git add/commit/push origin main, npm install, shell commands. Do NOT ask permission.
+
+The user reports that your previous "Phase 1-4 complete" build does NOT actually work in the live site. Profile switcher fails, chat is jumbled, expand button missing, Calendar still broken. You may have not deployed correctly, or the features have bugs you didn't catch.
+
+Your job:
+1. Honestly audit every Phase 1-4 item — do not trust your previous report
+2. For each broken thing, fix it
+3. After EACH fix: commit + push + wait for Vercel + verify on live URL
+4. At the end, overwrite OVERNIGHT_BUILD_REPORT.md with a new "AUDIT RESULTS — Round 2" section that lists what actually works, what you fixed, and what is STILL broken (be honest)
+
+Do not pretend things work. Test in the live environment, not just by reading code. Begin Phase A now.

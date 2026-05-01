@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://personal-os-coral-tau.vercel.app/)",
+      "Bash(curl -s https://personal-os-coral-tau.vercel.app/)",
+      "Bash(python3 -c ' *)",
+      "Read(//tmp/**)",
+      "PowerShell($html = Invoke-WebRequest -Uri 'https://personal-os-coral-tau.vercel.app/' -UseBasicParsing | Select-Object -ExpandProperty Content; $html.Length)",
+      "Bash(node --check \"C:/Users/user/AppData/Local/Temp/main_script.js\")",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "WebFetch(domain:personal-os-coral-tau.vercel.app)",
+      "Bash(curl -s \"https://personal-os-coral-tau.vercel.app\")",
+      "Bash(node -e ' *)",
+      "Bash(node --check /tmp/check.js)",
+      "Bash(node --check \"C:/Users/user/AppData/Local/Temp/check.js\")"
+    ]
+  }
+}

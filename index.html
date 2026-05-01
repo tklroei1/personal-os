@@ -228,7 +228,7 @@ select.inp{cursor:pointer}
 .user-row{display:flex;align-items:center;gap:8px}
 .user-avatar-img{width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0}
 .user-details{flex:1;min-width:0}
-.user-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Heebo',system-ui,sans-serif}
 .user-email{font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gsignin-wrap{margin-bottom:8px}
 #webhook-badge{position:fixed;top:14px;right:50%;transform:translateX(50%);background:var(--teal);color:#fff;padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;z-index:1000;opacity:0;transition:opacity 0.3s;pointer-events:none}
@@ -349,7 +349,98 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   .kb-col{flex:0 0 85vw}
   .fc-modal-inner{border-radius:0;height:100vh}
   .aic{max-height:none !important}
+  .psetup-inner{width:100%;border-radius:0;max-height:100vh}
+  .tmpl-grid{grid-template-columns:1fr}
+  .note-editor-hdr{padding:10px 12px}
+  .mob-bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);z-index:100;padding:4px 0 calc(4px + env(safe-area-inset-bottom))}
+  .mob-bottom-nav .mbn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 0;cursor:pointer;color:var(--text3);font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+  .mob-bottom-nav .mbn-item.active{color:var(--accent)}
+  .mob-bottom-nav .mbn-item-icon{font-size:18px;line-height:1}
+  .main{padding-bottom:70px}
+  .topbar{padding:0 12px}
 }
+@media(min-width:769px){.mob-bottom-nav{display:none}}
+/* ── PROFILE SETUP MODAL ── */
+.psetup-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:900;display:none;align-items:center;justify-content:center}
+.psetup-overlay.open{display:flex}
+.psetup-inner{background:var(--bg2);border-radius:var(--radius);width:min(560px,95vw);max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-md)}
+.psetup-hdr{background:linear-gradient(135deg,#6c63ff,#7c3aed);padding:22px 24px;color:#fff;border-radius:var(--radius) var(--radius) 0 0}
+.psetup-hdr h2{font-size:18px;font-weight:700;margin-bottom:4px}
+.psetup-hdr p{font-size:12px;opacity:0.85}
+.psetup-body{padding:20px 24px;display:flex;flex-direction:column;gap:14px}
+.psetup-row{display:flex;flex-direction:column;gap:4px}
+.psetup-lbl{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px}
+.psetup-goals{display:flex;gap:7px;flex-wrap:wrap}
+.psetup-goal{padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);cursor:pointer;font-size:12px;color:var(--text2);transition:all 0.15s;user-select:none}
+.psetup-goal.sel{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+/* ── TEMPLATE SELECTION ── */
+.tmpl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.tmpl-card{border:2px solid var(--border);border-radius:var(--radius-sm);padding:14px;cursor:pointer;transition:all 0.15s;user-select:none}
+.tmpl-card:hover{border-color:var(--accent)}
+.tmpl-card.sel{border-color:var(--accent);background:var(--accent-light)}
+.tmpl-icon{font-size:24px;margin-bottom:6px}
+.tmpl-title{font-size:13px;font-weight:600;margin-bottom:3px}
+.tmpl-desc{font-size:11px;color:var(--text2)}
+/* ── CALENDAR HELPER ── */
+.cal-helper{background:var(--blue-bg);border:1px solid var(--blue);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;line-height:1.8;margin-top:8px}
+.cal-helper code{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:11px;font-family:monospace;word-break:break-all;direction:ltr;unicode-bidi:isolate;display:inline-block}
+.cal-copy-btn{font-size:11px;padding:5px 12px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;margin-top:6px}
+/* ── FINANCE PAGE ── */
+.fin-quick{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.fin-cats{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.fin-cat{padding:4px 10px;border-radius:20px;font-size:11px;background:var(--bg3);border:1.5px solid var(--border);cursor:pointer;color:var(--text2);transition:all 0.12s;user-select:none}
+.fin-cat.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+.fin-entry{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px}
+.fin-entry:last-child{border-bottom:none}
+.fin-amount{font-weight:700;min-width:68px;font-size:14px}
+.fin-amount.expense{color:var(--red)}.fin-amount.income{color:var(--green)}
+.fin-merchant{flex:1}
+.fin-cat-tag{font-size:10px;padding:2px 7px;border-radius:10px;background:var(--bg3);color:var(--text2);flex-shrink:0}
+.fin-ts{font-size:10px;color:var(--text3);flex-shrink:0}
+.fin-del-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;flex-shrink:0}
+.fin-del-btn:hover{color:var(--red)}
+.fin-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px}
+.fin-bar-bg{flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden}
+.fin-bar-fill{height:100%;border-radius:4px;transition:width 0.4s}
+.fin-bar-lbl{min-width:36px;text-align:left;color:var(--text3)}
+.fin-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:14px}
+.fin-tab{padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s}
+.fin-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+/* ── NOTES ── */
+.notes-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.note-row{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;cursor:pointer;background:var(--bg2);transition:background 0.1s;border-bottom:1px solid var(--border)}
+.note-row:last-child{border-bottom:none}
+.note-row:hover{background:var(--bg3)}
+.note-row.pinned{background:var(--amber-bg)}
+.note-pin{font-size:12px;flex-shrink:0;margin-top:2px}
+.note-body{flex:1;min-width:0}
+.note-title{font-size:13px;font-weight:600;line-height:1.3;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note-preview{font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note-ts{font-size:10px;color:var(--text3);flex-shrink:0;white-space:nowrap}
+.note-editor{position:fixed;inset:0;background:var(--bg2);z-index:700;display:none;flex-direction:column}
+.note-editor.open{display:flex}
+.note-editor-hdr{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.note-title-inp{font-size:18px;font-weight:700;background:none;border:none;outline:none;font-family:'Heebo',sans-serif;color:var(--text);width:100%;margin-bottom:12px;direction:rtl}
+.note-content-inp{font-size:14px;background:none;border:none;outline:none;font-family:'Heebo',sans-serif;color:var(--text);width:100%;min-height:50vh;resize:none;line-height:1.9;direction:rtl}
+/* ── INBOX (PWA Share) ── */
+.inbox-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px}
+.inbox-item-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.inbox-item-url{font-size:11px;color:var(--blue);word-break:break-all;direction:ltr;unicode-bidi:isolate;margin-bottom:8px}
+.inbox-actions{display:flex;gap:6px;flex-wrap:wrap}
+/* ── ADD PROJECT MODAL ── */
+.proj-add-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.emoji-opt{padding:6px 10px;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;font-size:16px;text-align:center;transition:border 0.12s}
+.emoji-opt.sel{border-color:var(--accent);background:var(--accent-light)}
+/* ── LIVE VOICE ── */
+.live-voice-btn{background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3);padding:2px 6px;border-radius:4px;transition:all 0.15s;font-family:'Heebo',sans-serif;white-space:nowrap}
+.live-voice-btn:hover{color:var(--accent);background:var(--accent-light)}
+.live-voice-btn.on{color:#fff;background:var(--red);animation:pulse 1.2s infinite}
+.soundwave{display:inline-flex;gap:2px;align-items:center;height:14px;vertical-align:middle}
+.soundwave span{display:inline-block;width:3px;background:var(--accent);border-radius:2px;animation:wave 0.8s ease-in-out infinite}
+.soundwave span:nth-child(2){animation-delay:0.15s}
+.soundwave span:nth-child(3){animation-delay:0.3s}
+.soundwave span:nth-child(4){animation-delay:0.45s}
+@keyframes wave{0%,100%{height:3px}50%{height:14px}}
 </style>
 </head>
 <body>
@@ -379,6 +470,9 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div class="ni" onclick="goPage('apartment',this)"><span class="ni-icon">🏡</span>מציאת דירה</div>
     <div class="ni" onclick="goPage('family',this)"><span class="ni-icon">👨‍👩‍👧</span>זמן משפחתי</div>
     <div class="nav-sec">כלים</div>
+    <div class="ni" onclick="goPage('finance',this)"><span class="ni-icon">💰</span>פיננסים</div>
+    <div class="ni" onclick="goPage('notes',this)"><span class="ni-icon">📝</span>פתקים</div>
+    <div class="ni" onclick="goPage('inbox',this)"><span class="ni-icon">📥</span>תיבת כניסה</div>
     <div class="ni" onclick="goPage('ideas',this)"><span class="ni-icon">💡</span>רעיונות</div>
     <div class="ni" onclick="goPage('journal',this)"><span class="ni-icon">✍️</span>יומן</div>
     <div class="ni" onclick="goPage('goals',this)"><span class="ni-icon">🎯</span>מטרות</div>
@@ -421,7 +515,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   <div><div class="tb-title" id="pt">דשבורד</div><div class="tb-date" id="td"></div></div>
   <div class="tb-space"></div>
   <input class="tb-search inp" placeholder="חיפוש...">
-  <button class="gcal-btn" id="gcal-btn" onclick="connectCal()">📅 Calendar</button>
+  <button class="gcal-btn" id="gcal-btn" onclick="connectCal()" oncontextmenu="event.preventDefault();showCalHelper()">📅 Calendar</button>
   <div class="ava" id="ava" title="פרופיל" onclick="openProfileModal()">ר</div>
 </header>
 <div id="webhook-badge">📡 עדכון התקבל</div>
@@ -1028,8 +1122,112 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   </div>
 </div>
 
+<!-- FINANCE -->
+<div class="page" id="page-finance">
+  <div class="sr s4">
+    <div class="sc sc-g"><div class="sl">הכנסות החודש</div><div class="sv" id="fin-income">₪0</div></div>
+    <div class="sc sc-r"><div class="sl">הוצאות החודש</div><div class="sv" id="fin-expenses">₪0</div></div>
+    <div class="sc sc-b"><div class="sl">יתרה</div><div class="sv" id="fin-balance">₪0</div></div>
+    <div class="sc sc-a"><div class="sl">עסקאות</div><div class="sv" id="fin-count">0</div></div>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ct">➕ הוספה מהירה</div></div>
+    <div class="fin-quick">
+      <input class="inp" id="fin-amount" type="number" placeholder="סכום (₪)" style="width:110px" onkeydown="if(event.key==='Enter')addFinEntry()">
+      <input class="inp" id="fin-merchant" placeholder="קניה / מקום" style="flex:1" onkeydown="if(event.key==='Enter')addFinEntry()">
+      <select class="inp" id="fin-type-sel" style="width:110px">
+        <option value="expense">הוצאה</option>
+        <option value="income">הכנסה</option>
+      </select>
+      <button class="btn bp bsm" onclick="addFinEntry()">+ הוסף</button>
+    </div>
+    <div class="fin-cats" id="fin-cat-chips">
+      <div class="fin-cat sel" data-cat="מזון" onclick="selectFinCat(this)">🍔 מזון</div>
+      <div class="fin-cat" data-cat="קפה" onclick="selectFinCat(this)">☕ קפה</div>
+      <div class="fin-cat" data-cat="סופר" onclick="selectFinCat(this)">🛒 סופר</div>
+      <div class="fin-cat" data-cat="תחבורה" onclick="selectFinCat(this)">🚗 תחבורה</div>
+      <div class="fin-cat" data-cat="מסעדות" onclick="selectFinCat(this)">🍽️ מסעדות</div>
+      <div class="fin-cat" data-cat="בידור" onclick="selectFinCat(this)">🎮 בידור</div>
+      <div class="fin-cat" data-cat="בריאות" onclick="selectFinCat(this)">💊 בריאות</div>
+      <div class="fin-cat" data-cat="קניות" onclick="selectFinCat(this)">🛍️ קניות</div>
+      <div class="fin-cat" data-cat="הכנסה" onclick="selectFinCat(this)">💚 הכנסה</div>
+      <div class="fin-cat" data-cat="אחר" onclick="selectFinCat(this)">📦 אחר</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="fin-tabs">
+      <div class="fin-tab active" onclick="switchFinTab('today',this)">היום</div>
+      <div class="fin-tab" onclick="switchFinTab('week',this)">שבוע</div>
+      <div class="fin-tab" onclick="switchFinTab('month',this)">חודש</div>
+      <div class="fin-tab" onclick="switchFinTab('stats',this)">סטטיסטיקות</div>
+    </div>
+    <div id="fin-list"></div>
+    <div id="fin-stats-view" style="display:none">
+      <div id="fin-cat-chart"></div>
+      <div id="fin-insight" style="margin-top:12px;font-size:12px;color:var(--text2);line-height:1.7"></div>
+      <button class="btn bs bsm" style="margin-top:8px" onclick="genFinInsight()">🧠 ניתוח AI</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTES -->
+<div class="page" id="page-notes">
+  <div class="card" style="padding:12px 14px">
+    <div style="display:flex;gap:8px;align-items:center">
+      <input class="inp" style="flex:1" id="notes-search" placeholder="חפש פתקים..." oninput="renderNotes()">
+      <button class="btn bp bsm" onclick="newNote()">+ פתק</button>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="notes-list" id="notes-list"></div>
+  </div>
+</div>
+<!-- Note editor overlay -->
+<div class="note-editor" id="note-editor">
+  <div class="note-editor-hdr">
+    <button class="btn bs bsm" onclick="closeNoteEditor()">← חזור</button>
+    <span style="flex:1"></span>
+    <button class="btn bs bsm" onclick="pinCurrentNote()">📌</button>
+    <button class="btn" style="color:var(--red);background:var(--red-bg);border:none;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px" onclick="deleteCurrentNote()">מחק</button>
+  </div>
+  <div class="note-editor-body" style="padding:18px;overflow-y:auto;flex:1">
+    <input class="note-title-inp" id="note-title-inp" placeholder="כותרת...">
+    <textarea class="note-content-inp" id="note-content-inp" placeholder="כתוב כאן..."></textarea>
+  </div>
+</div>
+
+<!-- INBOX -->
+<div class="page" id="page-inbox">
+  <div class="card">
+    <div class="ch"><div class="ct">📥 פריטים שהתקבלו</div><span style="font-size:11px;color:var(--text3)">שיתוף מהדפדפן / PWA</span></div>
+    <div id="inbox-list"></div>
+    <div id="inbox-empty" style="text-align:center;padding:20px;color:var(--text3);font-size:12px;display:none">
+      תיבת הכניסה ריקה — שתף קישורים דרך PWA
+    </div>
+  </div>
+</div>
+
 </main>
 </div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mob-bottom-nav" id="mob-bottom-nav">
+  <div class="mbn-item active" id="mbn-dashboard" onclick="goPage('dashboard',document.querySelector('.ni.active'));setMobNav('dashboard',this)">
+    <div class="mbn-item-icon">🏠</div>דשבורד
+  </div>
+  <div class="mbn-item" id="mbn-jobs" onclick="goPage('jobs',null);setMobNav('jobs',this)">
+    <div class="mbn-item-icon">💼</div>עבודה
+  </div>
+  <div class="mbn-item" id="mbn-finance" onclick="goPage('finance',null);setMobNav('finance',this)">
+    <div class="mbn-item-icon">💰</div>פיננסים
+  </div>
+  <div class="mbn-item" id="mbn-notes" onclick="goPage('notes',null);setMobNav('notes',this)">
+    <div class="mbn-item-icon">📝</div>פתקים
+  </div>
+  <div class="mbn-item" id="mbn-tasks" onclick="goPage('tasks',null);setMobNav('tasks',this)">
+    <div class="mbn-item-icon">✅</div>משימות
+  </div>
+</nav>
 
 <!-- FLOAT CHAT -->
 <div class="fc">
@@ -1064,9 +1262,68 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
       <div class="pd-email" id="pd-email">לא מחובר</div>
     </div>
   </div>
+  <div class="pd-action" onclick="closeProfileModal();openProfileSetupModal(true)">✏️ ערוך פרופיל</div>
   <div class="pd-action" onclick="switchGoogleAccount()">🔄 החלף חשבון Google</div>
   <div class="pd-divider"></div>
   <div class="pd-action" onclick="signOut();closeProfileModal()">🚪 התנתק</div>
+</div>
+
+<!-- PROFILE SETUP MODAL -->
+<div class="psetup-overlay" id="psetup-overlay">
+  <div class="psetup-inner">
+    <div class="psetup-hdr">
+      <h2>👋 ברוך הבא לPersonal OS!</h2>
+      <p id="psetup-subtitle">בוא נגדיר את הפרופיל שלך — 30 שניות בלבד</p>
+    </div>
+    <div class="psetup-body">
+      <div class="psetup-row"><div class="psetup-lbl">שם מלא</div><input class="inp inp-full" id="psetup-name" placeholder="שם מלא"></div>
+      <div class="psetup-row"><div class="psetup-lbl">תפקיד / תחום</div><input class="inp inp-full" id="psetup-role" placeholder="לדוגמה: AI Analyst, מפתח, יזם"></div>
+      <div class="psetup-row"><div class="psetup-lbl">עיר</div><input class="inp inp-full" id="psetup-city" placeholder="תל אביב, חיפה..."></div>
+      <div class="psetup-row"><div class="psetup-lbl">LinkedIn</div><input class="inp inp-full" id="psetup-linkedin" placeholder="https://linkedin.com/in/..."></div>
+      <div class="psetup-row"><div class="psetup-lbl">אתר / פורטפוליו</div><input class="inp inp-full" id="psetup-website" placeholder="https://..."></div>
+      <div class="psetup-row"><div class="psetup-lbl">מה אתה רוצה לנהל? (בחר הכל שרלוונטי)</div>
+        <div class="psetup-goals" id="psetup-goals-wrap">
+          <div class="psetup-goal sel" data-v="jobs">💼 חיפוש עבודה</div>
+          <div class="psetup-goal" data-v="upselles">🚀 פרויקטים</div>
+          <div class="psetup-goal sel" data-v="health">💪 כושר ובריאות</div>
+          <div class="psetup-goal" data-v="apartment">🏡 מציאת דירה</div>
+          <div class="psetup-goal" data-v="family">👨‍👩‍👧 זמן משפחתי</div>
+          <div class="psetup-goal sel" data-v="finance">💰 פיננסים</div>
+          <div class="psetup-goal" data-v="notes">📝 פתקים</div>
+        </div>
+      </div>
+      <div class="psetup-row"><div class="psetup-lbl">שפות</div><input class="inp inp-full" id="psetup-langs" placeholder="עברית, אנגלית..."></div>
+      <div class="psetup-row"><div class="psetup-lbl">ביו קצרה (אופציונלי)</div><textarea class="inp inp-full" id="psetup-bio" rows="2" placeholder="משפט או שניים על עצמך..."></textarea></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:8px">
+        <button class="btn bs" onclick="closePsetupModal()">דלג</button>
+        <button class="btn bp" onclick="saveProfileSetup()">שמור ✓</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TEMPLATE SELECTION MODAL -->
+<div class="psetup-overlay" id="tmpl-overlay">
+  <div class="psetup-inner">
+    <div class="psetup-hdr">
+      <h2>🚀 בחר תחומים להתחיל</h2>
+      <p>נוסיף לך תבניות ראשוניות — תמיד אפשר לשנות</p>
+    </div>
+    <div class="psetup-body">
+      <div class="tmpl-grid" id="tmpl-grid">
+        <div class="tmpl-card sel" data-t="jobs" onclick="this.classList.toggle('sel')"><div class="tmpl-icon">💼</div><div class="tmpl-title">חיפוש עבודה</div><div class="tmpl-desc">Kanban Pipeline + Job Hunter + Career Coach</div></div>
+        <div class="tmpl-card sel" data-t="health" onclick="this.classList.toggle('sel')"><div class="tmpl-icon">💪</div><div class="tmpl-title">כושר ותזונה</div><div class="tmpl-desc">מעקב קלוריות, אימונים, הרגלים</div></div>
+        <div class="tmpl-card" data-t="apartment" onclick="this.classList.toggle('sel')"><div class="tmpl-icon">🏡</div><div class="tmpl-title">מציאת דירה</div><div class="tmpl-desc">רשימת דירות, השוואות, סוכן AI</div></div>
+        <div class="tmpl-card" data-t="family" onclick="this.classList.toggle('sel')"><div class="tmpl-icon">👨‍👩‍👧</div><div class="tmpl-title">זמן משפחתי</div><div class="tmpl-desc">לו"ז משפחה, פעילויות, זמן איכות</div></div>
+        <div class="tmpl-card sel" data-t="finance" onclick="this.classList.toggle('sel')"><div class="tmpl-icon">💰</div><div class="tmpl-title">פיננסים</div><div class="tmpl-desc">מעקב הוצאות/הכנסות, קטגוריות</div></div>
+        <div class="tmpl-card sel" data-t="notes" onclick="this.classList.toggle('sel')"><div class="tmpl-icon">📝</div><div class="tmpl-title">פתקים</div><div class="tmpl-desc">פתקים מהירים עם Markdown</div></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:12px">
+        <button class="btn bs" onclick="document.getElementById('tmpl-overlay').classList.remove('open')">דלג</button>
+        <button class="btn bp" onclick="applyTemplates()">התחל ✓</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- FULLSCREEN CHAT MODAL -->
@@ -1173,6 +1430,11 @@ function getDefaultState(){return{
 };}
 
 let S=JSON.parse(localStorage.getItem(storageKey())||'null')||getDefaultState();
+// Migrate: add new fields if missing
+if(!S.finance)S.finance=[];
+if(!S.notes)S.notes=[];
+if(!S.inbox)S.inbox=[];
+if(!S.userProfile)S.userProfile={};
 function save(){localStorage.setItem(storageKey(),JSON.stringify(S))}
 
 // CLAUDE CV
@@ -1274,10 +1536,13 @@ function goPage(p,el){
   document.getElementById('page-'+p).classList.add('active');
   document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
   if(el)el.classList.add('active');
-  const T={dashboard:'דשבורד',agenda:'לוז שבועי',tasks:'משימות',reminders:'תזכורות',jobs:'חיפוש עבודה',upselles:'Upselles',health:'כושר ותזונה',apartment:'מציאת דירה',family:'זמן משפחתי',ideas:'רעיונות',journal:'יומן',goals:'מטרות'};
+  const T={dashboard:'דשבורד',agenda:'לוז שבועי',tasks:'משימות',reminders:'תזכורות',jobs:'חיפוש עבודה',upselles:'Upselles',health:'כושר ותזונה',apartment:'מציאת דירה',family:'זמן משפחתי',ideas:'רעיונות',journal:'יומן',goals:'מטרות',finance:'פיננסים',notes:'פתקים',inbox:'תיבת כניסה'};
   document.getElementById('pt').textContent=T[p]||p;
   if(p==='agenda')buildWeekGrid();
   if(p==='jobs'&&typeof renderKanban==='function')setTimeout(renderKanban,50);
+  if(p==='finance')renderFinance();
+  if(p==='notes')renderNotes();
+  if(p==='inbox')renderInbox();
 }
 
 // TASKS
@@ -1572,13 +1837,29 @@ function selDay(iso){
 
 // GOOGLE CALENDAR
 let gat=null;
+const CAL_REDIRECT=location.origin; // no trailing slash — must match Google Cloud Console exactly
 function connectCal(){
   const CID='786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com';
-  const SC='https://www.googleapis.com/auth/calendar.readonly';
-  // Use current origin as redirect (implicit flow — must be in Google OAuth authorized JS origins)
-  const origin=location.origin;
-  const red=encodeURIComponent(origin+'/');
-  location.href=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${CID}&redirect_uri=${red}&response_type=token&scope=${encodeURIComponent(SC)}&prompt=consent`;
+  const SC='https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.send';
+  location.href=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${CID}&redirect_uri=${encodeURIComponent(CAL_REDIRECT)}&response_type=token&scope=${encodeURIComponent(SC)}&prompt=consent`;
+}
+function showCalHelper(){
+  const d=document.getElementById('cal-helper-box');
+  if(d){d.style.display=d.style.display==='none'?'block':'none';}
+  else{
+    const b=document.getElementById('gcal-btn');
+    if(!b)return;
+    const box=document.createElement('div');
+    box.id='cal-helper-box';
+    box.className='cal-helper';
+    box.style.cssText='position:fixed;top:62px;right:auto;left:80px;width:320px;z-index:600';
+    box.innerHTML=`<strong>🔧 הגדרת Google Calendar</strong><br>
+הוסף את ה-URL הזה ב-<a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a> → OAuth 2.0 Client → Authorized JavaScript origins וגם Authorized redirect URIs:<br>
+<code id="cal-uri-code">${CAL_REDIRECT}</code><br>
+<button class="cal-copy-btn" onclick="navigator.clipboard.writeText('${CAL_REDIRECT}');this.textContent='✓ הועתק'">העתק</button>
+<button class="btn bs bsm" style="margin-right:6px" onclick="document.getElementById('cal-helper-box').remove()">✕</button>`;
+    document.body.appendChild(box);
+  }
 }
 function checkCalToken(){
   // Check fragment (#access_token=...) from implicit flow
@@ -2482,16 +2763,32 @@ async function sendChat(ctx){
 // GOOGLE SIGN-IN (GIS)
 function handleCredentialResponse(response){
   try{
-    // Decode JWT payload (base64url → JSON)
     const b64=response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
     const payload=JSON.parse(atob(b64));
     currentUser={sub:payload.sub,name:payload.name,email:payload.email,picture:payload.picture||''};
     localStorage.setItem('pos_user',JSON.stringify(currentUser));
-    // Load this user's data (or start fresh)
     const saved=localStorage.getItem(storageKey());
-    S=saved?JSON.parse(saved):getDefaultState();
+    const isNew=!saved;
+    if(isNew){
+      // Roei gets pre-seeded data; everyone else gets blank + template selection
+      S=currentUser.email==='tklroei1@gmail.com'?getDefaultState():{
+        tasks:[],habits:[],projects:[],goals:[],meals:[],workouts:[],water:0,
+        bodyProfile:{weight:'',goal:'',height:'',kcal:'',protein:''},
+        weekEvents:{},jobs:[],jobsV2:[],apts:[],leads:[],reminders:[],
+        ideas:[],journalEntries:[],workspace:'',roadmap:[],
+        finance:[],notes:[],inbox:[],userProfile:{},
+      };
+    } else {
+      S=JSON.parse(saved);
+      if(!S.finance)S.finance=[];
+      if(!S.notes)S.notes=[];
+      if(!S.inbox)S.inbox=[];
+    }
     save();renderAll();renderUserProfile();
     showNotif('✓ מחובר כ-'+currentUser.name);
+    if(isNew){
+      setTimeout(()=>openProfileSetupModal(false),400);
+    }
   }catch(e){console.error('Sign-in error:',e);}
 }
 function signOut(){
@@ -2577,7 +2874,7 @@ function showNotif(msg){
   const n=document.getElementById('notif');n.textContent=msg;n.classList.add('show');
   setTimeout(()=>n.classList.remove('show'),2500);
 }
-function editProfile(){showNotif('✏️ עריכת פרופיל — בקרוב');}
+function editProfile(){openProfileSetupModal(true);}
 
 // ─── PROFILE MODAL (Bug 1 fix) ─────────────────────────────────────────────
 function openProfileModal(){
@@ -3051,6 +3348,484 @@ if('serviceWorker'in navigator){
 }
 // WEBHOOK POLLING — poll every 30 seconds for remote commands
 setInterval(pollWebhook,30000);
+
+// ─── PWA SHARE TARGET + SHORTCUTS ───────────────────────────────────────────
+(function(){
+  const p=new URLSearchParams(location.search);
+  // Share target: any URL with title/text/url params (from manifest share_target)
+  if(p.get('url')||p.get('title')){
+    const item={id:Date.now(),title:p.get('title')||'',text:p.get('text')||'',url:p.get('url')||'',ts:new Date().toISOString()};
+    if(!S.inbox)S.inbox=[];
+    S.inbox.unshift(item);save();
+    history.replaceState({},'',location.pathname);
+    showNotif('📥 פריט התקבל בתיבת הכניסה');
+    setTimeout(()=>goPage('inbox',null),300);
+  }
+  // Shortcut deep links
+  const pg=p.get('page');
+  if(pg)setTimeout(()=>{goPage(pg,null);if(p.get('new')==='1'&&pg==='notes')newNote();},300);
+})();
+
+// ─── MOBILE BOTTOM NAV ───────────────────────────────────────────────────────
+function setMobNav(page,el){
+  document.querySelectorAll('.mbn-item').forEach(x=>x.classList.remove('active'));
+  if(el)el.classList.add('active');
+}
+
+// ─── PROFILE SETUP MODAL (Phase 5.2) ────────────────────────────────────────
+document.querySelectorAll('.psetup-goal').forEach(el=>el.addEventListener('click',function(){this.classList.toggle('sel');}));
+
+function openProfileSetupModal(isEdit){
+  const ov=document.getElementById('psetup-overlay');
+  const up=S.userProfile||{};
+  document.getElementById('psetup-name').value=up.name||currentUser?.name||'';
+  document.getElementById('psetup-role').value=up.role||'';
+  document.getElementById('psetup-city').value=up.city||'';
+  document.getElementById('psetup-linkedin').value=up.linkedin||'https://www.linkedin.com/in/roei-klein';
+  document.getElementById('psetup-website').value=up.website||'';
+  document.getElementById('psetup-langs').value=up.langs||'עברית, אנגלית';
+  document.getElementById('psetup-bio').value=up.bio||'';
+  document.getElementById('psetup-subtitle').textContent=isEdit?'ערוך את הפרופיל שלך':'בוא נגדיר את הפרופיל שלך — 30 שניות בלבד';
+  ov.classList.add('open');
+}
+function closePsetupModal(){
+  document.getElementById('psetup-overlay').classList.remove('open');
+  // Show template selection for new non-Roei users
+  if(!S.userProfile?.setupDone&&currentUser?.email!=='tklroei1@gmail.com'){
+    document.getElementById('tmpl-overlay').classList.add('open');
+  }
+}
+function saveProfileSetup(){
+  const goals=[...document.querySelectorAll('#psetup-goals-wrap .psetup-goal.sel')].map(e=>e.dataset.v);
+  S.userProfile={
+    name:document.getElementById('psetup-name').value.trim(),
+    role:document.getElementById('psetup-role').value.trim(),
+    city:document.getElementById('psetup-city').value.trim(),
+    linkedin:document.getElementById('psetup-linkedin').value.trim(),
+    website:document.getElementById('psetup-website').value.trim(),
+    langs:document.getElementById('psetup-langs').value.trim(),
+    bio:document.getElementById('psetup-bio').value.trim(),
+    goals,setupDone:true,
+  };
+  save();
+  document.getElementById('psetup-overlay').classList.remove('open');
+  showNotif('✓ פרופיל נשמר');
+  if(currentUser?.email!=='tklroei1@gmail.com'){
+    document.getElementById('tmpl-overlay').classList.add('open');
+  }
+}
+
+// ─── TEMPLATE SELECTION (Phase 5.3) ─────────────────────────────────────────
+const STARTER_TASKS={
+  jobs:[{id:Date.now()+1,text:'שלח קורות חיים ל-3 חברות',done:false,cat:'work',period:'weekly',proj:'jobs',progress:0,status:''}],
+  health:[{id:Date.now()+2,text:'אימון בוקר',done:false,cat:'health',period:'daily',proj:'health',progress:0,status:''}],
+  apartment:[{id:Date.now()+3,text:'חפש דירות בפייסבוק',done:false,cat:'home',period:'weekly',proj:'apartment',progress:0,status:''}],
+  family:[{id:Date.now()+4,text:'ערב משפחתי',done:false,cat:'family',period:'weekly',proj:'family',progress:0,status:''}],
+};
+const STARTER_PROJECTS={
+  jobs:{id:'jobs',name:'חיפוש עבודה',progress:0,color:'var(--blue)'},
+  health:{id:'health',name:'כושר ותזונה',progress:0,color:'var(--green)'},
+  apartment:{id:'apartment',name:'מציאת דירה',progress:0,color:'var(--teal)'},
+  family:{id:'family',name:'זמן משפחתי',progress:0,color:'var(--amber)'},
+  finance:{id:'finance',name:'פיננסים',progress:0,color:'var(--purple)'},
+  notes:{id:'notes',name:'פתקים',progress:0,color:'var(--blue)'},
+};
+function applyTemplates(){
+  const sel=[...document.querySelectorAll('#tmpl-grid .tmpl-card.sel')].map(e=>e.dataset.t);
+  sel.forEach(t=>{
+    if(STARTER_PROJECTS[t]&&!S.projects.find(p=>p.id===t))S.projects.push({...STARTER_PROJECTS[t]});
+    if(STARTER_TASKS[t])STARTER_TASKS[t].forEach(tk=>{S.tasks.push({...tk,id:Date.now()+Math.random()});});
+  });
+  save();renderAll();
+  document.getElementById('tmpl-overlay').classList.remove('open');
+  showNotif('✓ תבניות הוספו');
+}
+
+// ─── PROJECTS ADD/DELETE (Phase 5.4) ────────────────────────────────────────
+function openAddProjectModal(){
+  showModal(`<div style="display:flex;flex-direction:column;gap:12px">
+    <div style="font-size:15px;font-weight:700">➕ פרויקט חדש</div>
+    <input class="inp inp-full" id="np-name" placeholder="שם הפרויקט">
+    <div style="display:flex;gap:8px;flex-wrap:wrap" id="np-emojis">
+      ${['💼','🚀','💪','🏡','👨‍👩‍👧','💰','🎯','💡','🔬','🎨','🛒','📚'].map(e=>`<div class="emoji-opt" onclick="selectEmoji(this,'${e}')">${e}</div>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px">
+      <input class="inp" id="np-color" type="color" value="#6c63ff" style="width:44px;height:36px;padding:2px;cursor:pointer">
+      <span style="font-size:12px;color:var(--text2);align-self:center">צבע</span>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn bs" onclick="closeModal()">ביטול</button>
+      <button class="btn bp" onclick="saveNewProject()">צור</button>
+    </div>
+  </div>`);
+}
+function selectEmoji(el,e){
+  document.querySelectorAll('#np-emojis .emoji-opt').forEach(x=>x.classList.remove('sel'));
+  el.classList.add('sel');el.dataset.selected=e;
+}
+function saveNewProject(){
+  const name=document.getElementById('np-name').value.trim();
+  if(!name)return;
+  const sel=document.querySelector('#np-emojis .emoji-opt.sel');
+  const emoji=sel?sel.dataset.selected:'📁';
+  const color=document.getElementById('np-color').value;
+  const id='proj_'+Date.now();
+  S.projects.push({id,name:`${emoji} ${name}`,progress:0,color});
+  save();renderDashProj();closeModal();showNotif('✓ פרויקט נוצר');
+}
+function deleteProject(id){
+  if(!confirm('למחוק את הפרויקט? המשימות הקשורות יישארו.'))return;
+  S.projects=S.projects.filter(p=>p.id!==id);
+  save();renderDashProj();showNotif('פרויקט נמחק');
+}
+
+// ─── FINANCE (Phase 6.1) ─────────────────────────────────────────────────────
+let currentFinCat='מזון';
+let currentFinTab='today';
+function selectFinCat(el){
+  document.querySelectorAll('.fin-cat').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');currentFinCat=el.dataset.cat;
+}
+function addFinEntry(){
+  const amtEl=document.getElementById('fin-amount');
+  const merEl=document.getElementById('fin-merchant');
+  const typeEl=document.getElementById('fin-type-sel');
+  const amt=parseFloat(amtEl.value);
+  if(!amt||!merEl.value.trim())return;
+  const entry={id:Date.now(),ts:new Date().toISOString(),type:typeEl.value,amount:amt,currency:'ILS',merchant:merEl.value.trim(),category:currentFinCat};
+  S.finance.unshift(entry);save();
+  amtEl.value='';merEl.value='';
+  renderFinance();showNotif(`✓ ${typeEl.value==='income'?'הכנסה':'הוצאה'} נרשמה`);
+}
+function deleteFinEntry(id){
+  S.finance=S.finance.filter(e=>e.id!==id);save();renderFinance();
+}
+function switchFinTab(tab,el){
+  currentFinTab=tab;
+  document.querySelectorAll('.fin-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderFinance();
+}
+function renderFinance(){
+  const now=new Date();
+  const startOfDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const startOfWeek=new Date(startOfDay);startOfWeek.setDate(startOfDay.getDate()-startOfDay.getDay());
+  const startOfMonth=new Date(now.getFullYear(),now.getMonth(),1);
+  const monthEntries=S.finance.filter(e=>new Date(e.ts)>=startOfMonth);
+  const income=monthEntries.filter(e=>e.type==='income').reduce((a,b)=>a+b.amount,0);
+  const expenses=monthEntries.filter(e=>e.type==='expense').reduce((a,b)=>a+b.amount,0);
+  document.getElementById('fin-income').textContent='₪'+Math.round(income).toLocaleString();
+  document.getElementById('fin-expenses').textContent='₪'+Math.round(expenses).toLocaleString();
+  document.getElementById('fin-balance').textContent='₪'+Math.round(income-expenses).toLocaleString();
+  document.getElementById('fin-count').textContent=monthEntries.length;
+  const statsView=document.getElementById('fin-stats-view');
+  const listView=document.getElementById('fin-list');
+  if(currentFinTab==='stats'){
+    statsView.style.display='block';listView.style.display='none';
+    renderFinChart();return;
+  }
+  statsView.style.display='none';listView.style.display='block';
+  let cutoff=startOfDay;
+  if(currentFinTab==='week')cutoff=startOfWeek;
+  else if(currentFinTab==='month')cutoff=startOfMonth;
+  const filtered=S.finance.filter(e=>new Date(e.ts)>=cutoff);
+  if(!filtered.length){listView.innerHTML='<div style="text-align:center;padding:18px;color:var(--text3);font-size:12px">אין רשומות</div>';return;}
+  listView.innerHTML=filtered.map(e=>{
+    const d=new Date(e.ts);
+    const ts=`${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return`<div class="fin-entry">
+      <span class="fin-amount ${e.type}">${e.type==='income'?'+':'-'}₪${e.amount.toLocaleString()}</span>
+      <span class="fin-merchant">${escH(e.merchant)}</span>
+      <span class="fin-cat-tag">${escH(e.category)}</span>
+      <span class="fin-ts">${ts}</span>
+      <button class="fin-del-btn" onclick="deleteFinEntry(${e.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+function renderFinChart(){
+  const expenses=S.finance.filter(e=>e.type==='expense');
+  if(!expenses.length){document.getElementById('fin-cat-chart').innerHTML='<div style="color:var(--text3);font-size:12px;padding:12px">אין נתונים</div>';return;}
+  const cats={};
+  expenses.forEach(e=>{if(!cats[e.category])cats[e.category]=0;cats[e.category]+=e.amount;});
+  const max=Math.max(...Object.values(cats));
+  const colors=['#6c63ff','#16a34a','#d97706','#dc2626','#0d9488','#7c3aed','#ea580c','#2563eb','#db2777','#374151'];
+  let i=0;
+  document.getElementById('fin-cat-chart').innerHTML=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>{
+    const pct=Math.round(amt/max*100);
+    const c=colors[i++%colors.length];
+    return`<div class="fin-bar-row">
+      <span style="min-width:70px;color:var(--text2)">${cat}</span>
+      <div class="fin-bar-bg"><div class="fin-bar-fill" style="width:${pct}%;background:${c}"></div></div>
+      <span class="fin-bar-lbl">₪${Math.round(amt).toLocaleString()}</span>
+    </div>`;
+  }).join('');
+}
+async function genFinInsight(){
+  const expenses=S.finance.filter(e=>e.type==='expense').slice(0,40);
+  if(!expenses.length){showNotif('אין הוצאות לניתוח');return;}
+  const insightEl=document.getElementById('fin-insight');
+  insightEl.textContent='⏳ מנתח...';
+  const summary=Object.entries(expenses.reduce((a,e)=>{a[e.category]=(a[e.category]||0)+e.amount;return a;},{})).map(([k,v])=>`${k}: ₪${Math.round(v)}`).join(', ');
+  const reply=await claude(`נתח את ההוצאות הבאות ותן 2-3 תובנות ממוקדות ועצות חיסכון בעברית: ${summary}`,'אתה יועץ פיננסי ישיר וממוקד.');
+  insightEl.innerHTML=typeof marked!=='undefined'?marked.parse(reply):reply;
+}
+
+// ─── NOTES (Phase 6.2) ──────────────────────────────────────────────────────
+let currentNoteId=null;
+function renderNotes(){
+  const q=(document.getElementById('notes-search')?.value||'').toLowerCase();
+  let notes=(S.notes||[]).filter(n=>!q||(n.title+n.content).toLowerCase().includes(q));
+  const pinned=notes.filter(n=>n.pinned);
+  const rest=notes.filter(n=>!n.pinned);
+  const all=[...pinned,...rest];
+  const el=document.getElementById('notes-list');
+  if(!el)return;
+  if(!all.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text3);font-size:12px">אין פתקים — לחץ "+ פתק"</div>';return;}
+  el.innerHTML=all.map(n=>{
+    const d=new Date(n.updated||n.created);
+    const ts=`${d.getDate()}/${d.getMonth()+1}`;
+    const preview=(n.content||'').replace(/[#*`]/g,'').slice(0,80);
+    return`<div class="note-row${n.pinned?' pinned':''}" onclick="openNote('${n.id}')">
+      <div class="note-pin">${n.pinned?'📌':''}</div>
+      <div class="note-body">
+        <div class="note-title">${escH(n.title||'פתק ללא כותרת')}</div>
+        <div class="note-preview">${escH(preview)}</div>
+      </div>
+      <div class="note-ts">${ts}</div>
+    </div>`;
+  }).join('');
+}
+function newNote(){
+  const note={id:'note_'+Date.now(),title:'',content:'',created:new Date().toISOString(),updated:new Date().toISOString(),pinned:false};
+  if(!S.notes)S.notes=[];
+  S.notes.unshift(note);save();
+  openNote(note.id);
+}
+function openNote(id){
+  const note=(S.notes||[]).find(n=>n.id===id);
+  if(!note)return;
+  currentNoteId=id;
+  document.getElementById('note-title-inp').value=note.title;
+  document.getElementById('note-content-inp').value=note.content;
+  document.getElementById('note-editor').classList.add('open');
+}
+function closeNoteEditor(){
+  if(currentNoteId){
+    const note=(S.notes||[]).find(n=>n.id===currentNoteId);
+    if(note){
+      note.title=document.getElementById('note-title-inp').value;
+      note.content=document.getElementById('note-content-inp').value;
+      note.updated=new Date().toISOString();
+      save();
+    }
+  }
+  document.getElementById('note-editor').classList.remove('open');
+  renderNotes();
+}
+function pinCurrentNote(){
+  const note=(S.notes||[]).find(n=>n.id===currentNoteId);
+  if(note){note.pinned=!note.pinned;save();showNotif(note.pinned?'📌 נעוץ':'הסרת נעיצה');}
+}
+function deleteCurrentNote(){
+  if(!confirm('למחוק את הפתק?'))return;
+  S.notes=(S.notes||[]).filter(n=>n.id!==currentNoteId);
+  save();closeNoteEditor();
+}
+// Auto-save note while typing
+document.addEventListener('DOMContentLoaded',()=>{
+  ['note-title-inp','note-content-inp'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('input',()=>{
+      const note=(S.notes||[]).find(n=>n.id===currentNoteId);
+      if(note){
+        note.title=document.getElementById('note-title-inp').value;
+        note.content=document.getElementById('note-content-inp').value;
+        note.updated=new Date().toISOString();
+        save();
+      }
+    });
+  });
+});
+
+// ─── INBOX (Phase 8.3 PWA Share) ─────────────────────────────────────────────
+function renderInbox(){
+  const items=S.inbox||[];
+  const el=document.getElementById('inbox-list');
+  const empty=document.getElementById('inbox-empty');
+  if(!items.length){el.innerHTML='';if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
+  el.innerHTML=items.map((item,i)=>`<div class="inbox-item">
+    <div class="inbox-item-title">${escH(item.title||item.text||'פריט ללא כותרת')}</div>
+    ${item.url?`<div class="inbox-item-url">${escH(item.url)}</div>`:''}
+    <div class="inbox-actions">
+      <button class="btn bs bxs" onclick="routeInbox(${i},'jobs')">💼 עבודה</button>
+      <button class="btn bs bxs" onclick="routeInbox(${i},'apartment')">🏡 דירה</button>
+      <button class="btn bs bxs" onclick="routeInbox(${i},'notes')">📝 פתק</button>
+      <button class="btn" style="color:var(--red);background:var(--red-bg);border:none;padding:4px 9px;border-radius:6px;cursor:pointer;font-size:11px" onclick="deleteInboxItem(${i})">✕</button>
+    </div>
+  </div>`).join('');
+}
+function deleteInboxItem(i){S.inbox.splice(i,1);save();renderInbox();}
+async function routeInbox(i,dest){
+  const item=S.inbox[i];
+  if(!item)return;
+  if(dest==='notes'){
+    newNote();
+    const note=S.notes[0];
+    note.title=item.title||item.url||'פתק מתיבת הכניסה';
+    note.content=`${item.text||''}\n${item.url||''}`.trim();
+    save();showNotif('✓ נשמר בפתקים');
+  } else if(dest==='jobs'&&item.url){
+    addJobToKanban({title:item.title||'משרה מהתיבה',company:'',url:item.url,source:'other',match:calcMatchScore(item.title||'',item.text||'')});
+    renderKanban();showNotif('✓ נוסף לPipeline');
+  } else if(dest==='apartment'&&item.url){
+    S.apts.push({addr:item.title||'דירה',price:'',url:item.url,notes:item.text||'',rating:0,date:new Date().toLocaleDateString('he-IL')});
+    save();showNotif('✓ נוסף לדירות');
+  }
+  deleteInboxItem(i);
+}
+
+// ─── EMAIL SEND via Gmail API (Phase 8.1) ────────────────────────────────────
+async function sendGmailEmail(to,subject,body){
+  if(!gat){showNotif('⚠️ חבר Google Calendar/Gmail תחילה');showCalHelper();return;}
+  try{
+    const raw=btoa(unescape(encodeURIComponent(
+      `To: ${to}\r\nSubject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=\r\nContent-Type: text/html; charset=utf-8\r\n\r\n${body}`
+    ))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    const r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
+      method:'POST',headers:{'Authorization':'Bearer '+gat,'Content-Type':'application/json'},
+      body:JSON.stringify({raw}),
+    });
+    if(r.ok){showNotif('✉️ מייל נשלח!');}
+    else{const e=await r.json();showNotif('שגיאת Gmail: '+e.error?.message);}
+  }catch(e){showNotif('שגיאה בשליחת מייל');}
+}
+function openEmailCompose(to='',context=''){
+  showModal(`<div style="display:flex;flex-direction:column;gap:10px">
+    <div style="font-size:14px;font-weight:700">✉️ שליחת מייל</div>
+    <input class="inp inp-full" id="email-to" placeholder="אל..." value="${escH(to)}">
+    <input class="inp inp-full" id="email-subj" placeholder="נושא...">
+    <textarea class="inp inp-full" id="email-body" rows="6" placeholder="תוכן..."></textarea>
+    <div style="display:flex;gap:8px">
+      <button class="btn bs bsm" onclick="genEmailDraft('${escH(context)}')">🤖 טיוטה AI</button>
+      <span style="flex:1"></span>
+      <button class="btn bs" onclick="closeModal()">ביטול</button>
+      <button class="btn bp" onclick="sendGmailEmail(document.getElementById('email-to').value,document.getElementById('email-subj').value,document.getElementById('email-body').value);closeModal()">שלח</button>
+    </div>
+  </div>`);
+}
+async function genEmailDraft(context){
+  const subj=document.getElementById('email-subj').value;
+  const to=document.getElementById('email-to').value;
+  document.getElementById('email-body').value='⏳ יוצר טיוטה...';
+  const reply=await claude(`כתוב מייל מקצועי בעברית ל-${to} בנושא "${subj||context}". ענה רק בגוף המייל, ללא כותרות.`,SYS.main);
+  document.getElementById('email-body').value=reply;
+}
+
+// ─── WHATSAPP via Twilio (Phase 8.2) ─────────────────────────────────────────
+async function sendWhatsApp(to,body){
+  try{
+    const r=await fetch('/api/whatsapp/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,body})});
+    const d=await r.json();
+    if(d.sid){showNotif('📱 WhatsApp נשלח!');}
+    else{showNotif('⚠️ '+( d.error||'שגיאת WhatsApp — בדוק env vars'));}
+  }catch{showNotif('⚠️ שגיאת WhatsApp');}
+}
+
+// ─── LIVE VOICE MODE (Phase 9) ────────────────────────────────────────────────
+const liveVoiceState={};
+function toggleLiveVoice(ctx,btnEl){
+  if(liveVoiceState[ctx]){
+    liveVoiceState[ctx].recog?.stop();
+    window.speechSynthesis?.cancel();
+    delete liveVoiceState[ctx];
+    btnEl.classList.remove('on');btnEl.textContent='🎙 Live';
+    return;
+  }
+  if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){
+    showNotif('Voice not supported — use Chrome');return;
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const recog=new SR();
+  recog.continuous=true;recog.interimResults=true;
+  recog.lang='he-IL';
+  let silenceTimer=null;
+  let lastFinal='';
+  const chatEl=document.getElementById(`${ctx==='main'?'main':ctx}-chat`);
+  recog.onresult=async(e)=>{
+    let interim='',final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)final+=e.results[i][0].transcript;
+      else interim+=e.results[i][0].transcript;
+    }
+    // Auto-detect language switch
+    const isLatin=/[a-zA-Z]{4,}/.test(interim||final);
+    recog.lang=isLatin?'en-US':'he-IL';
+    if(final&&final!==lastFinal){
+      lastFinal=final;
+      clearTimeout(silenceTimer);
+      silenceTimer=setTimeout(async()=>{
+        recog.stop();
+        if(chatEl)addMsgToEl(chatEl,'user',final);
+        const sys=SYS[ctx]||SYS.main;
+        const th=chatEl?addMsgToEl(chatEl,'ai','...'):{querySelector:()=>({innerHTML:''})};
+        const reply=await claude(final,sys);
+        const cleanReply=parseCommands(reply);
+        if(th)renderMarkdownMsg(th.querySelector('.mb'),cleanReply);
+        // TTS
+        const utter=new SpeechSynthesisUtterance(cleanReply.replace(/[#*`\[\]]/g,''));
+        const voices=window.speechSynthesis.getVoices();
+        const heVoice=voices.find(v=>v.lang.startsWith('he'));
+        if(heVoice)utter.voice=heVoice;
+        utter.rate=1.05;
+        utter.onend=()=>{if(liveVoiceState[ctx])recog.start();};
+        window.speechSynthesis.speak(utter);
+      },1200);
+    }
+  };
+  recog.onerror=()=>btnEl.classList.remove('on');
+  recog.onend=()=>{if(liveVoiceState[ctx]&&!window.speechSynthesis.speaking)recog.start();};
+  recog.start();
+  liveVoiceState[ctx]={recog};
+  btnEl.classList.add('on');btnEl.textContent='🔴 Live';
+}
+
+// ─── CLAUDE MODEL SWITCH (Phase 10.1) ────────────────────────────────────────
+async function claudeFast(msg,sys){
+  // Haiku for short replies, Sonnet otherwise
+  const model=msg.length<200&&!msg.includes('ניתוח')?'claude-haiku-4-5-20251001':'claude-sonnet-4-6';
+  try{
+    const r=await fetch('/api/claude',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model,max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
+    });
+    const d=await r.json();return d.content?.[0]?.text||'שגיאה';
+  }catch{return'שגיאה בחיבור';}
+}
+
+// ─── ERROR TRACKING (Phase 10.3) ─────────────────────────────────────────────
+window.onerror=function(msg,src,line,col,err){
+  try{fetch('/api/log-error',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({msg:String(msg),src,line,col,stack:err?.stack?.slice(0,500)||'',user:currentUser?.email||'anon',ts:new Date().toISOString()})}).catch(()=>{});}catch{}
+};
+window.onunhandledrejection=function(e){
+  try{fetch('/api/log-error',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({msg:'UnhandledPromise: '+String(e.reason),ts:new Date().toISOString(),user:currentUser?.email||'anon'})}).catch(()=>{});}catch{}
+};
+
+// ─── ADD LIVE VOICE BUTTONS TO EXISTING CHATS ────────────────────────────────
+function addLiveVoiceBtns(){
+  const chats=['main','job-hunter','career-coach','upselles','health','family','ideas'];
+  chats.forEach(ctx=>{
+    const hdr=document.querySelector(`[onclick="openChatFullscreen('${ctx}-chat','${ctx==='main'?'💬 סוכן ראשי':''}'"]`)?.closest('.ch')||
+              document.querySelector(`[onclick*="sendChat('${ctx}')"]`)?.closest('.card')?.querySelector('.ch');
+    if(hdr&&!hdr.querySelector('.live-voice-btn')){
+      const btn=document.createElement('button');
+      btn.className='live-voice-btn';btn.textContent='🎙 Live';
+      btn.onclick=function(){toggleLiveVoice(ctx,this);};
+      hdr.insertBefore(btn,hdr.firstChild);
+    }
+  });
+}
+setTimeout(addLiveVoiceBtns,500);
 </script>
 </body>
 </html>
