@@ -240,3 +240,69 @@ f09ff72  feat(sidebar): add + פרויקט button (Step 1)
 752d8e0  fix(mobile): padding-bottom for bottom nav (Step 5)
 8cd4f38  fix(auth): FedCM opt-in + cancel_on_tap_outside=false (Step 6)
 ```
+
+---
+
+## Platform v3.0 — Multi-User Onboarding + Template System
+**Date:** 2026-05-01  
+**Session:** Claude Opus 4.7  
+**Commit:** `bad2c9e` — +540 lines, -123 lines  
+**Deploy:** HTTP 200, Content-Length 255923, Last-Modified Fri 01 May 2026 20:04:51
+
+### What was built
+
+#### Phase 1 — New user onboarding ✅
+- Full-screen overlay (`#onb-overlay`) shown after Google sign-in when `!S.userProfile.onboardingComplete`
+- Step 1: name input + 6 primary-goal cards (חיפוש עבודה, עסק/סטארטאפ, כספים, כושר, דירה, מאורגן)
+- "דלג" → sets `onboardingComplete=true`, lands on dashboard with hint
+- "המשך" → saves name+goal to `S.userProfile`, opens template gallery (Step 2)
+- Roei (`tklroei1@gmail.com`) always bypasses onboarding — `onboardingComplete=true` set on sign-in
+
+#### Phase 2 — Template library + project creator ✅
+- `+פרויקט` sidebar button now opens a full gallery modal (7 template cards)
+- Filter chips: הכל / עבודה / כספים / בריאות / כלים / אחר
+- **Built-in templates** (job search, finance, fitness, apartment, family, startup) navigate to existing hardcoded pages — zero rebuild, zero regression risk
+- **Custom projects**: create dynamic pages injected into `#main` + dynamic nav items under `#tmpl-nav-items`
+- `loadDynProjects()` called at `init()` to restore dynamic nav+pages on reload from `S.projects`
+- "✨ בנה בעצמך" → opens builder directly
+
+#### Phase 3 — D&D project builder ✅
+- Full-screen overlay builder with 10-widget library (left panel) + canvas (right panel)
+- HTML5 drag API from library → canvas; SortableJS reorder within canvas
+- Per-widget delete button (✕)
+- "שמור" → persists `widget[]` array to `S.projects[].widgets`, closes builder
+- "תצוגה מקדימה" → navigates to the project page
+- New project from builder: modal → name → create → navigate
+
+#### Finance v2 — Rebuilt properly ✅ (old page removed)
+- **4 summary cards**: income, expenses, balance, savings % (color-coded green/amber/red)
+- **SVG donut pie chart** — pure JS, no external chart library; shows expense breakdown by category with legend + percentages
+- **Budget bars** — 14 preset categories (שכירות, סופר, קפה, מסעדות…) with actual-vs-budget bar + overspend warning (⚠️)
+- **Monthly trend** — 6-month bar charts for expenses AND income (CSS flex bars)
+- **AI insight** button on trend tab → calls `/api/claude`
+- Category chips update between expense/income mode
+- All existing `S.finance` data preserved (same storage, compatible category names)
+
+### What was skipped / noted
+- `templates/` directory files — template manifests inlined in `index.html` (simpler, avoids adding new static files to vercel routing)
+- `js/` split files — same reason (Vercel needs explicit static file routes)
+- Widget renderers for dynamic projects — canvas shows "add widgets" CTA; widgets saved as config but not yet rendered as functional UI (that's the next build phase)
+- `genFinInsight()` (old function) — dead code, remains in file but unreachable; new equivalent is `fin2Insight()`
+
+### API function count (unchanged)
+```
+9 functions ≤ 12 Hobby limit ✓
+```
+
+### curl verification
+```
+HTTP/1.1 200 OK
+Age: 0
+Content-Length: 255923
+Last-Modified: Fri, 01 May 2026 20:04:51 GMT
+```
+
+### Honest caveats
+- Onboarding, template gallery, and builder require browser testing with a real Google sign-in (new account) to verify visual flow — not possible in this headless session
+- Dynamic project widget rendering (showing actual charts/lists inside a created project) is deferred to the next build cycle
+- Roei's existing projects (jobs/upselles/health/apartment/family/finance/notes) are fully preserved and unchanged
