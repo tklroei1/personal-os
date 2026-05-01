@@ -441,6 +441,74 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 .soundwave span:nth-child(3){animation-delay:0.3s}
 .soundwave span:nth-child(4){animation-delay:0.45s}
 @keyframes wave{0%,100%{height:3px}50%{height:14px}}
+/* ─── ONBOARDING ────────────────────────────────────────────────────────────── */
+.onb-overlay{position:fixed;inset:0;background:rgba(13,15,26,0.97);z-index:1100;display:none;align-items:center;justify-content:center;padding:20px}
+.onb-overlay.open{display:flex}
+.onb-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:32px;max-width:480px;width:100%;text-align:center}
+.onb-step{font-size:10px;color:var(--text3);letter-spacing:1px;margin-bottom:10px;text-transform:uppercase}
+.onb-h{font-size:22px;font-weight:700;margin-bottom:6px}
+.onb-sub{font-size:13px;color:var(--text2);margin-bottom:22px;line-height:1.6}
+.onb-goal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 22px;text-align:right}
+.onb-goal-btn{padding:11px 12px;border:1.5px solid var(--border);border-radius:12px;cursor:pointer;font-size:12px;font-family:'Heebo',sans-serif;background:var(--bg3);color:var(--text);display:flex;align-items:center;gap:8px;transition:all 0.15s}
+.onb-goal-btn:hover{border-color:var(--accent);background:var(--accent-light)}
+.onb-goal-btn.sel{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600}
+/* ─── TEMPLATE GALLERY ──────────────────────────────────────────────────────── */
+.tgal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:950;display:none;align-items:center;justify-content:center;padding:16px}
+.tgal-overlay.open{display:flex}
+.tgal-modal{background:var(--bg2);border-radius:18px;padding:24px;max-width:580px;width:100%;max-height:88vh;overflow-y:auto}
+.tgal-h{font-size:17px;font-weight:700;margin-bottom:4px}
+.tgal-sub{font-size:12px;color:var(--text3);margin-bottom:14px}
+.tgal-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tgal-filter{padding:4px 13px;border-radius:20px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--bg3);color:var(--text2);font-family:'Heebo',sans-serif;transition:all 0.15s}
+.tgal-filter.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tgal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:480px){.tgal-grid{grid-template-columns:repeat(2,1fr)}}
+.tgal-card{background:var(--bg3);border:1.5px solid var(--border);border-radius:12px;padding:16px 10px;cursor:pointer;transition:all 0.15s;text-align:center}
+.tgal-card:hover{border-color:var(--accent);background:var(--accent-light);transform:translateY(-2px)}
+.tgal-icon{font-size:28px;margin-bottom:6px}
+.tgal-name{font-size:13px;font-weight:600;margin-bottom:3px}
+.tgal-desc{font-size:10px;color:var(--text3);line-height:1.4}
+.tgal-name-step{background:var(--bg3);border-radius:12px;padding:16px;margin-top:14px;display:none}
+.tgal-name-step.open{display:block}
+/* ─── BUILDER ───────────────────────────────────────────────────────────────── */
+.builder-overlay{position:fixed;inset:0;background:var(--bg);z-index:960;display:none;flex-direction:column}
+.builder-overlay.open{display:flex}
+.builder-hdr{padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.builder-ptitle{font-size:14px;font-weight:700;flex:1}
+.builder-body{display:grid;grid-template-columns:190px 1fr;flex:1;overflow:hidden;min-height:0}
+@media(max-width:600px){.builder-body{grid-template-columns:1fr;grid-template-rows:160px 1fr}}
+.builder-lib{background:var(--bg2);border-left:1px solid var(--border);padding:10px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.builder-canvas{padding:16px;overflow-y:auto;background:var(--bg)}
+.wdg-lib-item{padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:grab;font-size:11px;display:flex;align-items:center;gap:8px;user-select:none;transition:all 0.1s}
+.wdg-lib-item:hover{border-color:var(--accent);background:var(--accent-light)}
+.wdg-canvas-item{padding:10px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;cursor:move;user-select:none;font-size:12px}
+.wdg-canvas-del{margin-right:auto;background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:2px 6px;border-radius:4px}
+.wdg-canvas-del:hover{color:var(--red);background:var(--red-bg)}
+.builder-drop-hint{border:2px dashed var(--border);border-radius:10px;padding:30px;text-align:center;color:var(--text3);font-size:12px}
+/* ─── FINANCE v2 ────────────────────────────────────────────────────────────── */
+.fin2-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:12px;overflow-x:auto}
+.fin2-tab{padding:8px 14px;font-size:12px;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.15s;font-family:'Heebo',sans-serif;background:none;border-top:none;border-left:none;border-right:none}
+.fin2-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.fin2-period-btn{padding:3px 10px;font-size:11px;cursor:pointer;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-family:'Heebo',sans-serif;transition:all 0.15s}
+.fin2-period-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fin2-pie-wrap{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.fin2-legend{display:flex;flex-direction:column;gap:5px;flex:1;min-width:120px}
+.fin2-legend-row{display:flex;align-items:center;gap:6px;font-size:11px}
+.fin2-legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.fin2-budget-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.fin2-budget-label{font-size:11px;color:var(--text2);min-width:80px;text-align:right}
+.fin2-budget-bar{flex:1;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden}
+.fin2-budget-fill{height:100%;border-radius:4px;transition:width 0.5s}
+.fin2-budget-amt{font-size:10px;color:var(--text3);white-space:nowrap;min-width:80px}
+.fin2-trend-wrap{display:flex;align-items:flex-end;gap:4px;height:65px}
+.fin2-trend-bar{flex:1;min-width:8px;border-radius:3px 3px 0 0;transition:height 0.4s}
+.fin2-trend-labels{display:flex;gap:4px;margin-top:4px}
+.fin2-trend-label{flex:1;font-size:9px;color:var(--text3);text-align:center}
+/* ─── DYNAMIC PROJECTS ──────────────────────────────────────────────────────── */
+.dyn-empty{text-align:center;padding:50px 20px;color:var(--text3)}
+.dyn-empty-icon{font-size:44px;margin-bottom:10px}
+#tmpl-nav-items .ni-tmpl{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.15s;color:var(--text2)}
+#tmpl-nav-items .ni-tmpl:hover,#tmpl-nav-items .ni-tmpl.active{background:var(--accent-light);color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
@@ -464,7 +532,8 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div class="ni" onclick="goPage('tasks',this)"><span class="ni-icon">✅</span>משימות</div>
     <div class="ni" onclick="goPage('reminders',this)"><span class="ni-icon">🔔</span>תזכורות</div>
     <div class="nav-sec">פרויקטים</div>
-    <button class="btn bp bsm" onclick="openAddProjectModal()" style="margin:4px 8px 2px;width:calc(100% - 16px);font-size:11px">+ פרויקט</button>
+    <button class="btn bp bsm" onclick="openTemplateGallery(false)" style="margin:4px 8px 2px;width:calc(100% - 16px);font-size:11px">+ פרויקט</button>
+    <div id="tmpl-nav-items"></div>
     <div class="ni" onclick="goPage('jobs',this)"><span class="ni-icon">💼</span>חיפוש עבודה<span class="ntag" style="background:var(--blue-bg);color:var(--blue)">פעיל</span></div>
     <div class="ni" onclick="goPage('upselles',this)"><span class="ni-icon">🚀</span>Upselles<span class="ntag" style="background:var(--purple-bg);color:var(--purple)">MVP</span></div>
     <div class="ni" onclick="goPage('health',this)"><span class="ni-icon">💪</span>כושר ותזונה</div>
@@ -1148,48 +1217,69 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 
 <!-- FINANCE -->
 <div class="page" id="page-finance">
+  <!-- Summary cards -->
   <div class="sr s4">
-    <div class="sc sc-g"><div class="sl">הכנסות החודש</div><div class="sv" id="fin-income">₪0</div></div>
-    <div class="sc sc-r"><div class="sl">הוצאות החודש</div><div class="sv" id="fin-expenses">₪0</div></div>
-    <div class="sc sc-b"><div class="sl">יתרה</div><div class="sv" id="fin-balance">₪0</div></div>
-    <div class="sc sc-a"><div class="sl">עסקאות</div><div class="sv" id="fin-count">0</div></div>
+    <div class="sc sc-g"><div class="sl">הכנסות</div><div class="sv" id="fin2-income">₪0</div><div class="ss">החודש</div></div>
+    <div class="sc sc-r"><div class="sl">הוצאות</div><div class="sv" id="fin2-expenses">₪0</div><div class="ss">החודש</div></div>
+    <div class="sc sc-b"><div class="sl">יתרה</div><div class="sv" id="fin2-balance">₪0</div><div class="ss"> </div></div>
+    <div class="sc sc-a"><div class="sl">חיסכון</div><div class="sv" id="fin2-savings" style="font-size:20px">0%</div><div class="ss">מהכנסות</div></div>
   </div>
+  <!-- Quick add -->
   <div class="card">
     <div class="ch"><div class="ct">➕ הוספה מהירה</div></div>
     <div class="fin-quick">
-      <input class="inp" id="fin-amount" type="number" placeholder="סכום (₪)" style="width:110px" onkeydown="if(event.key==='Enter')addFinEntry()">
-      <input class="inp" id="fin-merchant" placeholder="קניה / מקום" style="flex:1" onkeydown="if(event.key==='Enter')addFinEntry()">
-      <select class="inp" id="fin-type-sel" style="width:110px">
+      <input class="inp" id="fin2-amount" type="number" placeholder="סכום ₪" style="width:100px" onkeydown="if(event.key==='Enter')fin2Add()">
+      <input class="inp" id="fin2-merchant" placeholder="קנייה / מקום" style="flex:1" onkeydown="if(event.key==='Enter')fin2Add()">
+      <select class="inp" id="fin2-type" style="width:95px" onchange="fin2UpdateCats()">
         <option value="expense">הוצאה</option>
         <option value="income">הכנסה</option>
       </select>
-      <button class="btn bp bsm" onclick="addFinEntry()">+ הוסף</button>
+      <button class="btn bp bsm" onclick="fin2Add()">+ הוסף</button>
     </div>
-    <div class="fin-cats" id="fin-cat-chips">
-      <div class="fin-cat sel" data-cat="מזון" onclick="selectFinCat(this)">🍔 מזון</div>
-      <div class="fin-cat" data-cat="קפה" onclick="selectFinCat(this)">☕ קפה</div>
-      <div class="fin-cat" data-cat="סופר" onclick="selectFinCat(this)">🛒 סופר</div>
-      <div class="fin-cat" data-cat="תחבורה" onclick="selectFinCat(this)">🚗 תחבורה</div>
-      <div class="fin-cat" data-cat="מסעדות" onclick="selectFinCat(this)">🍽️ מסעדות</div>
-      <div class="fin-cat" data-cat="בידור" onclick="selectFinCat(this)">🎮 בידור</div>
-      <div class="fin-cat" data-cat="בריאות" onclick="selectFinCat(this)">💊 בריאות</div>
-      <div class="fin-cat" data-cat="קניות" onclick="selectFinCat(this)">🛍️ קניות</div>
-      <div class="fin-cat" data-cat="הכנסה" onclick="selectFinCat(this)">💚 הכנסה</div>
-      <div class="fin-cat" data-cat="אחר" onclick="selectFinCat(this)">📦 אחר</div>
-    </div>
+    <div class="fin-cats" id="fin2-cats"></div>
   </div>
+  <!-- Tabs -->
   <div class="card">
-    <div class="fin-tabs">
-      <div class="fin-tab active" onclick="switchFinTab('today',this)">היום</div>
-      <div class="fin-tab" onclick="switchFinTab('week',this)">שבוע</div>
-      <div class="fin-tab" onclick="switchFinTab('month',this)">חודש</div>
-      <div class="fin-tab" onclick="switchFinTab('stats',this)">סטטיסטיקות</div>
+    <div class="fin2-tabs">
+      <button class="fin2-tab active" onclick="fin2Tab('list',this)">עסקאות</button>
+      <button class="fin2-tab" onclick="fin2Tab('pie',this)">התפלגות</button>
+      <button class="fin2-tab" onclick="fin2Tab('budget',this)">תקציב</button>
+      <button class="fin2-tab" onclick="fin2Tab('trend',this)">מגמה</button>
     </div>
-    <div id="fin-list"></div>
-    <div id="fin-stats-view" style="display:none">
-      <div id="fin-cat-chart"></div>
-      <div id="fin-insight" style="margin-top:12px;font-size:12px;color:var(--text2);line-height:1.7"></div>
-      <button class="btn bs bsm" style="margin-top:8px" onclick="genFinInsight()">🧠 ניתוח AI</button>
+    <!-- Transactions -->
+    <div id="fin2-list-view">
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="fin2-period-btn active" onclick="fin2Period('today',this)">היום</button>
+        <button class="fin2-period-btn" onclick="fin2Period('week',this)">שבוע</button>
+        <button class="fin2-period-btn" onclick="fin2Period('month',this)">חודש</button>
+        <button class="fin2-period-btn" onclick="fin2Period('all',this)">הכל</button>
+      </div>
+      <div id="fin2-list"></div>
+    </div>
+    <!-- Pie chart -->
+    <div id="fin2-pie-view" style="display:none">
+      <div class="fin2-pie-wrap">
+        <div id="fin2-pie-svg"></div>
+        <div class="fin2-legend" id="fin2-legend"></div>
+      </div>
+    </div>
+    <!-- Budget bars -->
+    <div id="fin2-budget-view" style="display:none">
+      <div id="fin2-budget-bars"></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:10px">תקציב ברירת מחדל. בעתיד — עריכה ידנית לפי קטגוריה.</div>
+    </div>
+    <!-- Monthly trend -->
+    <div id="fin2-trend-view" style="display:none">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">הוצאות — 6 חודשים</div>
+      <div class="fin2-trend-wrap" id="fin2-exp-trend"></div>
+      <div class="fin2-trend-labels" id="fin2-exp-labels"></div>
+      <div style="font-size:11px;font-weight:600;color:var(--text2);margin:14px 0 6px">הכנסות — 6 חודשים</div>
+      <div class="fin2-trend-wrap" id="fin2-inc-trend"></div>
+      <div class="fin2-trend-labels" id="fin2-inc-labels"></div>
+      <div style="margin-top:14px;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
+        <button class="btn bs bsm" onclick="fin2Insight()">🧠 ניתוח AI</button>
+        <div id="fin2-insight" style="font-size:12px;color:var(--text2);line-height:1.7;flex:1"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1347,6 +1437,65 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
         <button class="btn bs" onclick="document.getElementById('tmpl-overlay').classList.remove('open')">דלג</button>
         <button class="btn bp" onclick="applyTemplates()">התחל ✓</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ONBOARDING OVERLAY -->
+<div class="onb-overlay" id="onb-overlay">
+  <div class="onb-box">
+    <div class="onb-step">שלב 1 מתוך 2</div>
+    <div class="onb-h">👋 ברוך הבא!</div>
+    <div class="onb-sub">Personal OS מוכן לך — 30 שניות לקביעת הפרופיל</div>
+    <input class="inp inp-full" id="onb-name" placeholder="שם מלא" style="margin-bottom:14px;text-align:center;font-size:15px">
+    <div style="font-size:12px;color:var(--text2);text-align:right;margin-bottom:8px">מה המטרה העיקרית שלך?</div>
+    <div class="onb-goal-grid" id="onb-goal-grid">
+      <button class="onb-goal-btn" onclick="onbSelectGoal(this,'job_search')">💼 חיפוש עבודה</button>
+      <button class="onb-goal-btn" onclick="onbSelectGoal(this,'startup')">🚀 עסק / סטארטאפ</button>
+      <button class="onb-goal-btn" onclick="onbSelectGoal(this,'finance')">💰 ניהול כספים</button>
+      <button class="onb-goal-btn" onclick="onbSelectGoal(this,'fitness')">💪 כושר ובריאות</button>
+      <button class="onb-goal-btn" onclick="onbSelectGoal(this,'apartment')">🏠 מציאת דירה</button>
+      <button class="onb-goal-btn" onclick="onbSelectGoal(this,'organized')">🗂️ להיות מאורגן</button>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:space-between;align-items:center">
+      <button class="btn bs bsm" onclick="onbSkip()">דלג</button>
+      <button class="btn bp" onclick="onbNext()" style="padding:10px 28px">המשך → בחר תבנית</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEMPLATE GALLERY -->
+<div class="tgal-overlay" id="tgal-overlay" onclick="if(event.target===this)closeTemplateGallery()">
+  <div class="tgal-modal">
+    <div class="tgal-h">🧩 בחר תבנית לפרויקט</div>
+    <div class="tgal-sub">כל תבנית מגיעה עם ממשק מותאם — ריק לחלוטין, מוכן לנתונים שלך</div>
+    <div class="tgal-filters" id="tgal-filters"></div>
+    <div class="tgal-grid" id="tgal-grid"></div>
+    <div class="tgal-name-step" id="tgal-name-step">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">שם הפרויקט</div>
+      <div style="display:flex;gap:8px">
+        <input class="inp" id="tgal-proj-name" placeholder="לדוגמה: הכספים שלי" style="flex:1" onkeydown="if(event.key==='Enter')createProjectFromTemplate()">
+        <button class="btn bp" onclick="createProjectFromTemplate()">צור פרויקט ✓</button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-start;margin-top:14px">
+      <button class="btn bs bsm" onclick="closeTemplateGallery()">← ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECT BUILDER -->
+<div class="builder-overlay" id="builder-overlay">
+  <div class="builder-hdr">
+    <div class="builder-ptitle">🔧 בונה פרויקט — <span id="builder-proj-title">פרויקט</span></div>
+    <button class="btn bs bsm" onclick="builderPreview()">👁 תצוגה מקדימה</button>
+    <button class="btn bp bsm" onclick="saveBuilder()">💾 שמור</button>
+    <button class="btn bs bsm" onclick="closeBuilder()">✕</button>
+  </div>
+  <div class="builder-body">
+    <div class="builder-lib" id="builder-lib-items"></div>
+    <div class="builder-canvas" id="builder-canvas-items" ondragover="event.preventDefault()" ondrop="builderCanvasDrop(event)">
+      <div class="builder-drop-hint">גרור ווידג'טים מהרשימה לכאן</div>
     </div>
   </div>
 </div>
@@ -1547,6 +1696,7 @@ function init(){
   renderBodyProfile();renderWater();renderWorkouts();renderJEntries();renderLeads();
   updateWeekRing();checkCalToken();
   renderUserProfile();
+  loadDynProjects();
   // Init Kanban after DOM is ready
   setTimeout(()=>{if(typeof renderKanban==='function')renderKanban();},100);
 }
@@ -2812,7 +2962,13 @@ function handleCredentialResponse(response){
     }
     save();renderAll();renderUserProfile();
     showNotif('✓ מחובר כ-'+currentUser.name);
-    if(isNew || !S.userProfile?.name){
+    if(currentUser.email==='tklroei1@gmail.com'){
+      // Roei: mark onboarding done, skip to dashboard
+      if(!S.userProfile)S.userProfile={};
+      S.userProfile.onboardingComplete=true;S.userProfile.setupDone=true;save();
+    } else if(!S.userProfile?.onboardingComplete){
+      setTimeout(()=>showOnboarding(),400);
+    } else if(!S.userProfile?.name){
       setTimeout(()=>openProfileSetupModal(false),400);
     }
   }catch(e){console.error('Sign-in error:',e);}
@@ -3468,36 +3624,233 @@ function applyTemplates(){
 }
 
 // ─── PROJECTS ADD/DELETE (Phase 5.4) ────────────────────────────────────────
-function openAddProjectModal(){
-  showModal(`<div style="display:flex;flex-direction:column;gap:12px">
-    <div style="font-size:15px;font-weight:700">➕ פרויקט חדש</div>
-    <input class="inp inp-full" id="np-name" placeholder="שם הפרויקט">
-    <div style="display:flex;gap:8px;flex-wrap:wrap" id="np-emojis">
-      ${['💼','🚀','💪','🏡','👨‍👩‍👧','💰','🎯','💡','🔬','🎨','🛒','📚'].map(e=>`<div class="emoji-opt" onclick="selectEmoji(this,'${e}')">${e}</div>`).join('')}
-    </div>
-    <div style="display:flex;gap:8px">
-      <input class="inp" id="np-color" type="color" value="#6c63ff" style="width:44px;height:36px;padding:2px;cursor:pointer">
-      <span style="font-size:12px;color:var(--text2);align-self:center">צבע</span>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn bs" onclick="closeModal()">ביטול</button>
-      <button class="btn bp" onclick="saveNewProject()">צור</button>
-    </div>
-  </div>`);
+// openAddProjectModal is replaced by openTemplateGallery
+function openAddProjectModal(){openTemplateGallery(false);}
+function selectEmoji(){}
+function saveNewProject(){}
+
+// ─── ONBOARDING ──────────────────────────────────────────────────────────────
+let onbGoal='';
+function showOnboarding(){
+  const ov=document.getElementById('onb-overlay');if(!ov)return;
+  ov.classList.add('open');
+  const ni=document.getElementById('onb-name');
+  if(ni&&currentUser?.name)ni.value=currentUser.name;
 }
-function selectEmoji(el,e){
-  document.querySelectorAll('#np-emojis .emoji-opt').forEach(x=>x.classList.remove('sel'));
-  el.classList.add('sel');el.dataset.selected=e;
+function onbSelectGoal(el,id){
+  document.querySelectorAll('.onb-goal-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');onbGoal=id;
 }
-function saveNewProject(){
-  const name=document.getElementById('np-name').value.trim();
-  if(!name)return;
-  const sel=document.querySelector('#np-emojis .emoji-opt.sel');
-  const emoji=sel?sel.dataset.selected:'📁';
-  const color=document.getElementById('np-color').value;
+function onbNext(){
+  const name=document.getElementById('onb-name')?.value.trim();
+  if(!name){showNotif('נא להזין שם');return;}
+  S.userProfile={...S.userProfile,name,primaryGoal:onbGoal,onboardingComplete:true,setupDone:true};
+  save();
+  const av=document.getElementById('ava');if(av)av.textContent=name.charAt(0).toUpperCase();
+  document.getElementById('onb-overlay').classList.remove('open');
+  openTemplateGallery(true);
+}
+function onbSkip(){
+  if(!S.userProfile)S.userProfile={};
+  S.userProfile.onboardingComplete=true;S.userProfile.setupDone=true;save();
+  document.getElementById('onb-overlay').classList.remove('open');
+  showNotif('ברוך הבא! לחץ "+ פרויקט" כדי להתחיל');
+}
+
+// ─── TEMPLATE GALLERY ────────────────────────────────────────────────────────
+const TEMPLATES=[
+  {id:'job_search',name:'חיפוש עבודה',icon:'💼',cat:'עבודה',desc:'Kanban pipeline, סוכן AI לקריירה',color:'#2563eb',builtIn:'jobs'},
+  {id:'finance',name:'ניהול כספים',icon:'💰',cat:'כספים',desc:'הכנסות/הוצאות, תקציב, גרפים, AI',color:'#5c6bc0',builtIn:'finance'},
+  {id:'fitness',name:'כושר ותזונה',icon:'💪',cat:'בריאות',desc:'אימונים, קלוריות, מעקב הרגלים',color:'#16a34a',builtIn:'health'},
+  {id:'apartment',name:'מציאת דירה',icon:'🏠',cat:'אחר',desc:'מעקב דירות, השוואה, סוכן נדל"ן',color:'#0d9488',builtIn:'apartment'},
+  {id:'family',name:'משפחה ואישי',icon:'👨‍👩‍👧',cat:'אחר',desc:'בלוז שבועי, פעילויות, זמן איכות',color:'#d97706',builtIn:'family'},
+  {id:'startup',name:'סטארטאפ / עסק',icon:'🚀',cat:'עבודה',desc:'Roadmap, לידים, סוכן עסקי AI',color:'#7c3aed',builtIn:'upselles'},
+  {id:'custom',name:'בנה בעצמך',icon:'✨',cat:'כלים',desc:'D&D builder — הוסף ווידג\'טים',color:'#6c63ff'},
+];
+let tgalFilter='הכל';let tgalSelected=null;
+function openTemplateGallery(isOnb){
+  tgalSelected=null;
+  document.getElementById('tgal-overlay').classList.add('open');
+  document.getElementById('tgal-name-step').classList.remove('open');
+  tgalFilter='הכל';renderTemplateGallery();
+}
+function closeTemplateGallery(){
+  document.getElementById('tgal-overlay').classList.remove('open');tgalSelected=null;
+}
+function setTgalFilter(cat,el){
+  tgalFilter=cat;document.querySelectorAll('.tgal-filter').forEach(f=>f.classList.remove('active'));el.classList.add('active');renderTemplateGallery();
+}
+function renderTemplateGallery(){
+  const cats=['הכל',...new Set(TEMPLATES.map(t=>t.cat))];
+  const fEl=document.getElementById('tgal-filters');
+  if(fEl)fEl.innerHTML=cats.map(c=>`<div class="tgal-filter${c===tgalFilter?' active':''}" onclick="setTgalFilter('${c}',this)">${c}</div>`).join('');
+  const filtered=tgalFilter==='הכל'?TEMPLATES:TEMPLATES.filter(t=>t.cat===tgalFilter);
+  const gEl=document.getElementById('tgal-grid');
+  if(gEl)gEl.innerHTML=filtered.map(t=>`<div class="tgal-card" onclick="selectTemplate('${t.id}')">
+    <div class="tgal-icon">${t.icon}</div>
+    <div class="tgal-name">${t.name}</div>
+    <div class="tgal-desc">${t.desc}</div>
+  </div>`).join('');
+}
+function selectTemplate(id){
+  tgalSelected=id;
+  if(id==='custom'){closeTemplateGallery();openBuilder(null);return;}
+  const tmpl=TEMPLATES.find(t=>t.id===id);
+  const ns=document.getElementById('tgal-name-step');
+  if(ns){ns.classList.add('open');const ni=document.getElementById('tgal-proj-name');if(ni){ni.value=tmpl.name;ni.focus();ni.select();}}
+}
+function createProjectFromTemplate(){
+  const name=document.getElementById('tgal-proj-name')?.value.trim();
+  if(!name){showNotif('נא להזין שם לפרויקט');return;}
+  const tmpl=TEMPLATES.find(t=>t.id===tgalSelected);if(!tmpl)return;
+  // built-in projects → just navigate
+  if(tmpl.builtIn){closeTemplateGallery();goPage(tmpl.builtIn,null);showNotif(`✓ ${tmpl.name}`);return;}
   const id='proj_'+Date.now();
-  S.projects.push({id,name:`${emoji} ${name}`,progress:0,color});
-  save();renderDashProj();closeModal();showNotif('✓ פרויקט נוצר');
+  const proj={id,name,templateId:tgalSelected,icon:tmpl.icon,color:tmpl.color,progress:0,createdAt:new Date().toISOString()};
+  S.projects.push(proj);save();
+  addDynNavItem(proj);addDynPage(proj);
+  closeTemplateGallery();goPage(id,null);
+  showNotif(`✓ פרויקט "${name}" נוצר`);
+}
+function addDynNavItem(proj){
+  const nav=document.getElementById('tmpl-nav-items');if(!nav)return;
+  if(document.querySelector(`[data-projid="${proj.id}"]`))return;
+  const div=document.createElement('div');div.setAttribute('data-projid',proj.id);
+  div.innerHTML=`<div class="ni" onclick="goPage('${proj.id}',this)"><span class="ni-icon">${proj.icon}</span>${escH(proj.name)}</div>`;
+  nav.appendChild(div);
+}
+function addDynPage(proj){
+  if(document.getElementById('page-'+proj.id))return;
+  const main=document.getElementById('main');if(!main)return;
+  const pg=document.createElement('div');pg.className='page';pg.id='page-'+proj.id;
+  pg.innerHTML=dynProjectHTML(proj);main.appendChild(pg);
+}
+function dynProjectHTML(proj){
+  const tmpl=TEMPLATES.find(t=>t.id===proj.templateId)||{icon:'📁',desc:''};
+  return`<div class="card" style="border-top:3px solid ${proj.color||'var(--accent)'}">
+    <div class="ch">
+      <div class="ct">${proj.icon} ${escH(proj.name)}</div>
+      <button class="btn bs bxs" onclick="openBuilder('${proj.id}')">🔧 ערוך תצוגה</button>
+      <button class="btn bxs" style="color:var(--red);background:var(--red-bg);border:none" onclick="deleteDynProj('${proj.id}')">✕</button>
+    </div>
+  </div>
+  <div id="dyn-widgets-${proj.id}">
+    <div class="dyn-empty">
+      <div class="dyn-empty-icon">${proj.icon}</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px">${escH(proj.name)}</div>
+      <div style="font-size:12px;margin-bottom:16px">${tmpl.desc||'פרויקט ריק'}</div>
+      <button class="btn bp" onclick="openBuilder('${proj.id}')">🔧 הוסף ווידג\'טים</button>
+    </div>
+  </div>`;
+}
+function deleteDynProj(id){
+  if(!confirm('למחוק פרויקט?'))return;
+  S.projects=S.projects.filter(p=>p.id!==id);save();
+  const n=document.querySelector(`[data-projid="${id}"]`);if(n)n.remove();
+  const pg=document.getElementById('page-'+id);if(pg)pg.remove();
+  goPage('dashboard',null);showNotif('פרויקט נמחק');
+}
+function loadDynProjects(){
+  S.projects.filter(p=>p.id.startsWith('proj_')).forEach(proj=>{addDynNavItem(proj);addDynPage(proj);});
+}
+
+// ─── PROJECT BUILDER (D&D) ───────────────────────────────────────────────────
+const WIDGET_LIB=[
+  {id:'summary_cards',icon:'💳',name:'כרטיסי סיכום'},
+  {id:'kanban',icon:'📌',name:'קנבן'},
+  {id:'list',icon:'📋',name:'רשימה'},
+  {id:'habit_tracker',icon:'✅',name:'מעקב הרגלים'},
+  {id:'notes',icon:'📝',name:'הערות'},
+  {id:'goals',icon:'🎯',name:'יעדים'},
+  {id:'ai_chat',icon:'💬',name:'צ\'אט AI'},
+  {id:'pie_chart',icon:'📊',name:'גרף עוגה'},
+  {id:'line_chart',icon:'📈',name:'גרף קווים'},
+  {id:'calendar',icon:'📅',name:'לוח שנה'},
+];
+let builderProjId=null;let builderWidgets=[];let builderSortable=null;
+function openBuilder(projId){
+  builderProjId=projId;
+  const proj=projId?S.projects.find(p=>p.id===projId):null;
+  builderWidgets=proj?.widgets?[...proj.widgets]:[];
+  document.getElementById('builder-overlay').classList.add('open');
+  document.getElementById('builder-proj-title').textContent=proj?proj.name:'פרויקט חדש';
+  renderBuilderLib();renderBuilderCanvas();initBuilderSortable();
+}
+function closeBuilder(){
+  document.getElementById('builder-overlay').classList.remove('open');
+  if(builderSortable){try{builderSortable.destroy();}catch(e){}builderSortable=null;}
+}
+function renderBuilderLib(){
+  const el=document.getElementById('builder-lib-items');if(!el)return;
+  el.innerHTML=`<div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-align:center">גרור לאזור הפרויקט</div>`+
+    WIDGET_LIB.map(w=>`<div class="wdg-lib-item" draggable="true" data-wtype="${w.id}" ondragstart="bDragStart(event,'${w.id}')">${w.icon} ${w.name}</div>`).join('');
+}
+function renderBuilderCanvas(){
+  const el=document.getElementById('builder-canvas-items');if(!el)return;
+  if(!builderWidgets.length){el.innerHTML='<div class="builder-drop-hint">גרור ווידג\'טים מהרשימה לכאן</div>';return;}
+  el.innerHTML=builderWidgets.map((w,i)=>{
+    const info=WIDGET_LIB.find(x=>x.id===w.type)||{icon:'📦',name:w.type};
+    return`<div class="wdg-canvas-item" data-widx="${i}">
+      <span style="font-size:15px">${info.icon}</span>
+      <span style="flex:1">${info.name}</span>
+      <button class="wdg-canvas-del" onclick="bDelWidget(${i})">✕</button>
+    </div>`;
+  }).join('');
+  initBuilderSortable();
+}
+let bDragType=null;
+function bDragStart(e,type){bDragType=type;}
+function builderCanvasDrop(e){
+  e.preventDefault();if(!bDragType)return;
+  builderWidgets.push({type:bDragType,config:{}});
+  renderBuilderCanvas();bDragType=null;
+}
+function bDelWidget(i){builderWidgets.splice(i,1);renderBuilderCanvas();}
+function initBuilderSortable(){
+  const canvas=document.getElementById('builder-canvas-items');
+  if(!canvas||typeof Sortable==='undefined')return;
+  if(builderSortable){try{builderSortable.destroy();}catch(e){}}
+  if(canvas.querySelectorAll('.wdg-canvas-item').length===0)return;
+  builderSortable=Sortable.create(canvas,{
+    animation:150,
+    handle:'.wdg-canvas-item',
+    filter:'.wdg-canvas-del',
+    onEnd:()=>{
+      const newOrder=[];
+      canvas.querySelectorAll('.wdg-canvas-item').forEach(item=>{
+        const idx=parseInt(item.dataset.widx);if(!isNaN(idx)&&builderWidgets[idx])newOrder.push(builderWidgets[idx]);
+      });
+      if(newOrder.length===builderWidgets.length){builderWidgets=newOrder;renderBuilderCanvas();}
+    }
+  });
+}
+function saveBuilder(){
+  if(!builderProjId){
+    showModal(`<div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:14px;font-weight:700">💾 שמור פרויקט חדש</div>
+      <input class="inp inp-full" id="builder-save-name" placeholder="שם הפרויקט">
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn bs" onclick="closeModal()">ביטול</button>
+        <button class="btn bp" onclick="builderSaveNew()">צור</button>
+      </div>
+    </div>`);
+    return;
+  }
+  const proj=S.projects.find(p=>p.id===builderProjId);
+  if(proj){proj.widgets=[...builderWidgets];save();showNotif('✓ פרויקט נשמר');}
+  closeBuilder();
+}
+function builderSaveNew(){
+  const name=document.getElementById('builder-save-name')?.value.trim();if(!name)return;
+  const id='proj_'+Date.now();
+  const proj={id,name,templateId:'custom',icon:'✨',color:'#6c63ff',progress:0,widgets:[...builderWidgets],createdAt:new Date().toISOString()};
+  S.projects.push(proj);save();addDynNavItem(proj);addDynPage(proj);
+  closeModal();closeBuilder();goPage(id,null);showNotif(`✓ "${name}" נוצר`);
+}
+function builderPreview(){
+  const proj=builderProjId?S.projects.find(p=>p.id===builderProjId):null;
+  if(!proj){showNotif('שמור תחילה');return;}
+  closeBuilder();goPage(proj.id,null);
 }
 function deleteProject(id){
   if(!confirm('למחוק את הפרויקט? המשימות הקשורות יישארו.'))return;
@@ -3505,86 +3858,150 @@ function deleteProject(id){
   save();renderDashProj();showNotif('פרויקט נמחק');
 }
 
-// ─── FINANCE (Phase 6.1) ─────────────────────────────────────────────────────
-let currentFinCat='מזון';
-let currentFinTab='today';
-function selectFinCat(el){
-  document.querySelectorAll('.fin-cat').forEach(c=>c.classList.remove('sel'));
-  el.classList.add('sel');currentFinCat=el.dataset.cat;
+// ─── FINANCE v2 ──────────────────────────────────────────────────────────────
+const FIN2_EXP_CATS=[
+  {id:'שכירות',icon:'🏠',color:'#5c6bc0',budget:3800},{id:'סופר',icon:'🛒',color:'#4caf50',budget:1200},
+  {id:'קפה',icon:'☕',color:'#ff9800',budget:400},{id:'מסעדות',icon:'🍕',color:'#ef5350',budget:600},
+  {id:'תחבורה',icon:'🚌',color:'#29b6f6',budget:500},{id:'בריאות',icon:'💊',color:'#ec407a',budget:300},
+  {id:'בידור',icon:'🎭',color:'#ab47bc',budget:400},{id:'טכנולוגיה',icon:'💻',color:'#26c6da',budget:300},
+  {id:'כושר',icon:'💪',color:'#66bb6a',budget:200},{id:'חשבונות',icon:'💡',color:'#8d6e63',budget:500},
+  {id:'בגדים',icon:'👕',color:'#ffa726',budget:300},{id:'מזון',icon:'🍔',color:'#ef6c00',budget:500},
+  {id:'קניות',icon:'🛍️',color:'#9c27b0',budget:400},{id:'אחר',icon:'📦',color:'#78909c',budget:500},
+];
+const FIN2_INC_CATS=[{id:'משכורת',icon:'💼'},{id:'פרילנס',icon:'🖥️'},{id:'השקעות',icon:'📈'},{id:'אחר',icon:'💰'}];
+let fin2CurCat='סופר';let fin2CurTab='list';let fin2CurPeriod='today';
+function fin2UpdateCats(){
+  const isExp=document.getElementById('fin2-type')?.value==='expense';
+  const cats=isExp?FIN2_EXP_CATS:FIN2_INC_CATS;
+  if(isExp&&!FIN2_EXP_CATS.find(c=>c.id===fin2CurCat))fin2CurCat='סופר';
+  if(!isExp)fin2CurCat='משכורת';
+  const el=document.getElementById('fin2-cats');if(!el)return;
+  el.innerHTML=cats.map(c=>`<div class="fin-cat${c.id===fin2CurCat?' sel':''}" onclick="fin2SelectCat(this,'${c.id}')">${c.icon||''} ${c.id}</div>`).join('');
 }
-function addFinEntry(){
-  const amtEl=document.getElementById('fin-amount');
-  const merEl=document.getElementById('fin-merchant');
-  const typeEl=document.getElementById('fin-type-sel');
+function fin2SelectCat(el,cat){
+  document.querySelectorAll('#fin2-cats .fin-cat').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');fin2CurCat=cat;
+}
+function fin2Add(){
+  const amtEl=document.getElementById('fin2-amount');
+  const merEl=document.getElementById('fin2-merchant');
+  const typeEl=document.getElementById('fin2-type');
+  if(!amtEl||!merEl||!typeEl)return;
   const amt=parseFloat(amtEl.value);
   if(!amt||!merEl.value.trim())return;
-  const entry={id:Date.now(),ts:new Date().toISOString(),type:typeEl.value,amount:amt,currency:'ILS',merchant:merEl.value.trim(),category:currentFinCat};
-  S.finance.unshift(entry);save();
-  amtEl.value='';merEl.value='';
+  S.finance.unshift({id:Date.now(),ts:new Date().toISOString(),type:typeEl.value,amount:amt,currency:'ILS',merchant:merEl.value.trim(),category:fin2CurCat});
+  save();amtEl.value='';merEl.value='';
   renderFinance();showNotif(`✓ ${typeEl.value==='income'?'הכנסה':'הוצאה'} נרשמה`);
 }
-function deleteFinEntry(id){
-  S.finance=S.finance.filter(e=>e.id!==id);save();renderFinance();
-}
-function switchFinTab(tab,el){
-  currentFinTab=tab;
-  document.querySelectorAll('.fin-tab').forEach(t=>t.classList.remove('active'));
+function fin2Tab(tab,el){
+  fin2CurTab=tab;
+  document.querySelectorAll('.fin2-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  renderFinance();
+  ['list','pie','budget','trend'].forEach(t=>{const v=document.getElementById(`fin2-${t}-view`);if(v)v.style.display=t===tab?'block':'none';});
+  if(tab==='pie')renderFin2Pie();else if(tab==='budget')renderFin2Budget();else if(tab==='trend')renderFin2Trend();else renderFin2List();
 }
-function renderFinance(){
+function fin2Period(period,el){
+  fin2CurPeriod=period;
+  document.querySelectorAll('.fin2-period-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');renderFin2List();
+}
+function renderFin2List(){
   const now=new Date();
-  const startOfDay=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  const startOfWeek=new Date(startOfDay);startOfWeek.setDate(startOfDay.getDate()-startOfDay.getDay());
-  const startOfMonth=new Date(now.getFullYear(),now.getMonth(),1);
-  const monthEntries=S.finance.filter(e=>new Date(e.ts)>=startOfMonth);
-  const income=monthEntries.filter(e=>e.type==='income').reduce((a,b)=>a+b.amount,0);
-  const expenses=monthEntries.filter(e=>e.type==='expense').reduce((a,b)=>a+b.amount,0);
-  document.getElementById('fin-income').textContent='₪'+Math.round(income).toLocaleString();
-  document.getElementById('fin-expenses').textContent='₪'+Math.round(expenses).toLocaleString();
-  document.getElementById('fin-balance').textContent='₪'+Math.round(income-expenses).toLocaleString();
-  document.getElementById('fin-count').textContent=monthEntries.length;
-  const statsView=document.getElementById('fin-stats-view');
-  const listView=document.getElementById('fin-list');
-  if(currentFinTab==='stats'){
-    statsView.style.display='block';listView.style.display='none';
-    renderFinChart();return;
-  }
-  statsView.style.display='none';listView.style.display='block';
-  let cutoff=startOfDay;
-  if(currentFinTab==='week')cutoff=startOfWeek;
-  else if(currentFinTab==='month')cutoff=startOfMonth;
-  const filtered=S.finance.filter(e=>new Date(e.ts)>=cutoff);
-  if(!filtered.length){listView.innerHTML='<div style="text-align:center;padding:18px;color:var(--text3);font-size:12px">אין רשומות</div>';return;}
-  listView.innerHTML=filtered.map(e=>{
-    const d=new Date(e.ts);
-    const ts=`${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const cuts={today:new Date(now.getFullYear(),now.getMonth(),now.getDate()),week:new Date(now-6*864e5),month:new Date(now.getFullYear(),now.getMonth(),1),all:new Date(0)};
+  const filtered=S.finance.filter(e=>new Date(e.ts)>=(cuts[fin2CurPeriod]||cuts.today));
+  const el=document.getElementById('fin2-list');if(!el)return;
+  if(!filtered.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">אין רשומות</div>';return;}
+  el.innerHTML=filtered.map(e=>{
+    const d=new Date(e.ts);const ts=`${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const ci=FIN2_EXP_CATS.find(c=>c.id===e.category)||{color:'#78909c',icon:'📦'};
     return`<div class="fin-entry">
+      <span style="width:8px;height:8px;border-radius:50%;background:${e.type==='income'?'var(--green)':ci.color};display:inline-block;flex-shrink:0;margin-left:4px"></span>
       <span class="fin-amount ${e.type}">${e.type==='income'?'+':'-'}₪${e.amount.toLocaleString()}</span>
       <span class="fin-merchant">${escH(e.merchant)}</span>
-      <span class="fin-cat-tag">${escH(e.category)}</span>
+      <span class="fin-cat-tag">${ci.icon||''} ${escH(e.category)}</span>
       <span class="fin-ts">${ts}</span>
-      <button class="fin-del-btn" onclick="deleteFinEntry(${e.id})">✕</button>
+      <button class="fin-del-btn" onclick="fin2Del(${e.id})">✕</button>
     </div>`;
   }).join('');
 }
-function renderFinChart(){
-  const expenses=S.finance.filter(e=>e.type==='expense');
-  if(!expenses.length){document.getElementById('fin-cat-chart').innerHTML='<div style="color:var(--text3);font-size:12px;padding:12px">אין נתונים</div>';return;}
-  const cats={};
-  expenses.forEach(e=>{if(!cats[e.category])cats[e.category]=0;cats[e.category]+=e.amount;});
-  const max=Math.max(...Object.values(cats));
-  const colors=['#6c63ff','#16a34a','#d97706','#dc2626','#0d9488','#7c3aed','#ea580c','#2563eb','#db2777','#374151'];
-  let i=0;
-  document.getElementById('fin-cat-chart').innerHTML=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>{
-    const pct=Math.round(amt/max*100);
-    const c=colors[i++%colors.length];
-    return`<div class="fin-bar-row">
-      <span style="min-width:70px;color:var(--text2)">${cat}</span>
-      <div class="fin-bar-bg"><div class="fin-bar-fill" style="width:${pct}%;background:${c}"></div></div>
-      <span class="fin-bar-lbl">₪${Math.round(amt).toLocaleString()}</span>
+function fin2Del(id){S.finance=S.finance.filter(e=>e.id!==id);save();renderFinance();}
+function svgPie(data,size){
+  size=size||150;
+  const total=data.reduce((s,d)=>s+d.value,0);
+  if(!total)return`<svg width="${size}" height="${size}"><text x="${size/2}" y="${size/2}" text-anchor="middle" fill="var(--text3)" font-size="11" dy="4">אין נתונים</text></svg>`;
+  let a=-Math.PI/2;const cx=size/2,cy=size/2,ro=size/2-4,ri=size/3.2;
+  const paths=data.map(d=>{
+    const sw=(d.value/total)*2*Math.PI,sa=a,ea=a+sw;a=ea;
+    const x1=cx+ro*Math.cos(sa),y1=cy+ro*Math.sin(sa),x2=cx+ro*Math.cos(ea),y2=cy+ro*Math.sin(ea);
+    const ix1=cx+ri*Math.cos(ea),iy1=cy+ri*Math.sin(ea),ix2=cx+ri*Math.cos(sa),iy2=cy+ri*Math.sin(sa);
+    const lg=sw>Math.PI?1:0;
+    return`<path d="M${x1.toFixed(1)},${y1.toFixed(1)} A${ro},${ro} 0 ${lg},1 ${x2.toFixed(1)},${y2.toFixed(1)} L${ix1.toFixed(1)},${iy1.toFixed(1)} A${ri},${ri} 0 ${lg},0 ${ix2.toFixed(1)},${iy2.toFixed(1)} Z" fill="${d.color}" stroke="var(--bg2)" stroke-width="2"/>`;
+  });
+  return`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${paths.join('')}</svg>`;
+}
+function renderFin2Pie(){
+  const monthStart=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+  const cats={};S.finance.filter(e=>e.type==='expense'&&new Date(e.ts)>=monthStart).forEach(e=>{cats[e.category]=(cats[e.category]||0)+e.amount;});
+  const data=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([id,value])=>{const ci=FIN2_EXP_CATS.find(c=>c.id===id)||{color:'#78909c',icon:'📦'};return{id,value,color:ci.color,icon:ci.icon};});
+  const svgEl=document.getElementById('fin2-pie-svg'),legEl=document.getElementById('fin2-legend');if(!svgEl||!legEl)return;
+  svgEl.innerHTML=svgPie(data,150);
+  const total=data.reduce((s,d)=>s+d.value,0);
+  legEl.innerHTML=data.slice(0,8).map(d=>`<div class="fin2-legend-row">
+    <div class="fin2-legend-dot" style="background:${d.color}"></div>
+    <span style="flex:1;color:var(--text2)">${d.icon} ${d.id}</span>
+    <span style="font-weight:600">₪${Math.round(d.value).toLocaleString()}</span>
+    <span style="color:var(--text3);font-size:10px;margin-right:3px">${total?Math.round(d.value/total*100)+'%':''}</span>
+  </div>`).join('');
+}
+function renderFin2Budget(){
+  const monthStart=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+  const cats={};S.finance.filter(e=>e.type==='expense'&&new Date(e.ts)>=monthStart).forEach(e=>{cats[e.category]=(cats[e.category]||0)+e.amount;});
+  const el=document.getElementById('fin2-budget-bars');if(!el)return;
+  const rows=FIN2_EXP_CATS.filter(c=>cats[c.id]||c.budget>0).map(c=>{
+    const spent=cats[c.id]||0,pct=Math.min(100,Math.round(spent/c.budget*100)),over=spent>c.budget;
+    return`<div class="fin2-budget-row">
+      <div class="fin2-budget-label">${c.icon} ${c.id}</div>
+      <div class="fin2-budget-bar"><div class="fin2-budget-fill" style="width:${pct}%;background:${over?'var(--red)':c.color}"></div></div>
+      <div class="fin2-budget-amt">${over?'⚠️':''}₪${Math.round(spent).toLocaleString()} / ₪${c.budget.toLocaleString()}</div>
     </div>`;
-  }).join('');
+  });
+  el.innerHTML=rows.length?rows.join(''):'<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">אין הוצאות החודש</div>';
+}
+function renderFin2Trend(){
+  const now=new Date();
+  const months=Array.from({length:6},(_,i)=>{const d=new Date(now.getFullYear(),now.getMonth()-5+i,1);return{y:d.getFullYear(),m:d.getMonth(),lbl:['ינ','פב','מר','אפ','מי','יו','יל','אג','ספ','אק','נו','דצ'][d.getMonth()]};});
+  const expT=months.map(mo=>S.finance.filter(e=>e.type==='expense'&&new Date(e.ts).getFullYear()===mo.y&&new Date(e.ts).getMonth()===mo.m).reduce((s,e)=>s+e.amount,0));
+  const incT=months.map(mo=>S.finance.filter(e=>e.type==='income'&&new Date(e.ts).getFullYear()===mo.y&&new Date(e.ts).getMonth()===mo.m).reduce((s,e)=>s+e.amount,0));
+  function bars(totals,wrapId,labId,color){
+    const wEl=document.getElementById(wrapId),lEl=document.getElementById(labId);if(!wEl||!lEl)return;
+    const mx=Math.max(...totals,1);
+    wEl.innerHTML=totals.map(v=>`<div class="fin2-trend-bar" style="height:${Math.max(4,Math.round(v/mx*100))}%;background:${color}"></div>`).join('');
+    lEl.innerHTML=months.map(mo=>`<div class="fin2-trend-label">${mo.lbl}</div>`).join('');
+  }
+  bars(expT,'fin2-exp-trend','fin2-exp-labels','var(--red)');
+  bars(incT,'fin2-inc-trend','fin2-inc-labels','var(--green)');
+}
+async function fin2Insight(){
+  const expenses=S.finance.filter(e=>e.type==='expense').slice(0,40);
+  if(!expenses.length){showNotif('אין הוצאות לניתוח');return;}
+  const el=document.getElementById('fin2-insight');if(!el)return;el.textContent='⏳ מנתח...';
+  const summary=Object.entries(expenses.reduce((a,e)=>{a[e.category]=(a[e.category]||0)+e.amount;return a;},{})).map(([k,v])=>`${k}: ₪${Math.round(v)}`).join(', ');
+  const reply=await claude(`נתח את ההוצאות הבאות ותן 2-3 תובנות ממוקדות ועצות חיסכון בעברית: ${summary}`,'אתה יועץ פיננסי ישיר וממוקד.');
+  el.innerHTML=typeof marked!=='undefined'?marked.parse(reply):reply;
+}
+function renderFinance(){
+  const now=new Date();const ms=new Date(now.getFullYear(),now.getMonth(),1);
+  const me=S.finance.filter(e=>new Date(e.ts)>=ms);
+  const inc=me.filter(e=>e.type==='income').reduce((a,b)=>a+b.amount,0);
+  const exp=me.filter(e=>e.type==='expense').reduce((a,b)=>a+b.amount,0);
+  const sav=inc>0?Math.round((inc-exp)/inc*100):0;
+  const setT=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setT('fin2-income','₪'+Math.round(inc).toLocaleString());
+  setT('fin2-expenses','₪'+Math.round(exp).toLocaleString());
+  setT('fin2-balance','₪'+Math.round(inc-exp).toLocaleString());
+  const savEl=document.getElementById('fin2-savings');if(savEl){savEl.textContent=sav+'%';savEl.style.color=sav>=20?'var(--green)':sav>=0?'var(--amber)':'var(--red)';}
+  fin2UpdateCats();
+  if(fin2CurTab==='list')renderFin2List();else if(fin2CurTab==='pie')renderFin2Pie();else if(fin2CurTab==='budget')renderFin2Budget();else if(fin2CurTab==='trend')renderFin2Trend();
 }
 async function genFinInsight(){
   const expenses=S.finance.filter(e=>e.type==='expense').slice(0,40);
