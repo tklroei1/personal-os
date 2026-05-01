@@ -52,15 +52,22 @@ Quick start:
 
 ---
 
-## Vercel Cron Job (Auto Job Search)
+## Auto Job Search — `/api/cron/job-hunt`
 
-The `/api/cron/job-hunt` endpoint runs daily at 08:00 Israel time.
+The endpoint exists, but **Vercel Hobby plan does NOT support cron jobs**, so the schedule was removed from `vercel.json`. To run it daily:
 
-In `vercel.json`:
+**Option A — Upgrade to Vercel Pro** (~$20/mo) and re-add to `vercel.json`:
 ```json
 "crons": [
   { "path": "/api/cron/job-hunt", "schedule": "0 6 * * *" }
 ]
+```
+
+**Option B — External scheduler (free)**: use cron-job.org or GitHub Actions to ping the endpoint daily. The endpoint requires the `Authorization: Bearer <CRON_SECRET>` header to authorize.
+
+```
+curl -H "Authorization: Bearer YOUR_CRON_SECRET" \
+     https://personal-os-coral-tau.vercel.app/api/cron/job-hunt
 ```
 
 Requires `TAVILY_API_KEY` and `CRON_SECRET` env vars.

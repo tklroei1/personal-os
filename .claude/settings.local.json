@@ -15,7 +15,12 @@
       "Bash(node -e ' *)",
       "Bash(node --check /tmp/check.js)",
       "Bash(node --check \"C:/Users/user/AppData/Local/Temp/check.js\")",
-      "Bash(node --check \"C:/Users/user/AppData/Local/Temp/check2.js\")"
+      "Bash(node --check \"C:/Users/user/AppData/Local/Temp/check2.js\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://personal-os-coral-tau.vercel.app)",
+      "Bash(grep -n 'ct\">.*<\\\\\\\\/' \"C:/Users/user/Documents/New project/personal-os/index.html\")",
+      "Bash(curl *)",
+      "Bash(rm api/jobs/list.js api/jobs/create.js api/jobs/update.js api/jobs/delete.js api/email/send.js)",
+      "Bash(rmdir api/jobs api/email)"
     ]
   }
 }

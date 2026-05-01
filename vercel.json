@@ -15,19 +15,11 @@
     { "src": "/api/match-score", "dest": "/api/match-score.js" },
     { "src": "/api/log-error", "dest": "/api/log-error.js" },
     { "src": "/api/google-callback", "dest": "/api/google-callback.js" },
-    { "src": "/api/jobs/create", "dest": "/api/jobs/create.js" },
-    { "src": "/api/jobs/update", "dest": "/api/jobs/update.js" },
-    { "src": "/api/jobs/delete", "dest": "/api/jobs/delete.js" },
-    { "src": "/api/jobs/list", "dest": "/api/jobs/list.js" },
-    { "src": "/api/email/send", "dest": "/api/email/send.js" },
     { "src": "/api/whatsapp/send", "dest": "/api/whatsapp/send.js" },
     { "src": "/api/cron/job-hunt", "dest": "/api/cron/job-hunt.js" },
     { "src": "/manifest.json", "dest": "/manifest.json" },
     { "src": "/sw.js", "dest": "/sw.js" },
     { "src": "/icon.svg", "dest": "/icon.svg" },
     { "src": "/(.*)", "dest": "/index.html" }
-  ],
-  "crons": [
-    { "path": "/api/cron/job-hunt", "schedule": "0 8 * * *" }
   ]
 }
