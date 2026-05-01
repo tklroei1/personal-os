@@ -1,5 +1,11 @@
 {
   "version": 2,
+  "functions": {
+    "api/claude.js": { "maxDuration": 60 },
+    "api/search.js": { "maxDuration": 30 },
+    "api/news-digest.js": { "maxDuration": 30 },
+    "api/get-agent-results.js": { "maxDuration": 30 }
+  },
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "manifest.json", "use": "@vercel/static" },
@@ -17,6 +23,8 @@
     { "src": "/api/google-callback", "dest": "/api/google-callback.js" },
     { "src": "/api/whatsapp/send", "dest": "/api/whatsapp/send.js" },
     { "src": "/api/cron/job-hunt", "dest": "/api/cron/job-hunt.js" },
+    { "src": "/api/news-digest", "dest": "/api/news-digest.js" },
+    { "src": "/api/get-agent-results", "dest": "/api/get-agent-results.js" },
     { "src": "/manifest.json", "dest": "/manifest.json" },
     { "src": "/sw.js", "dest": "/sw.js" },
     { "src": "/icon.svg", "dest": "/icon.svg" },

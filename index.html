@@ -509,6 +509,14 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 .dyn-empty-icon{font-size:44px;margin-bottom:10px}
 #tmpl-nav-items .ni-tmpl{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.15s;color:var(--text2)}
 #tmpl-nav-items .ni-tmpl:hover,#tmpl-nav-items .ni-tmpl.active{background:var(--accent-light);color:var(--accent);font-weight:600}
+/* ─── NEWS PAGE ──────────────────────────────────────────────────────────── */
+.news-topic-row{display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg3);border-radius:6px;font-size:12px;margin-bottom:5px}
+.news-topic-del{margin-right:auto;color:var(--text3);cursor:pointer;font-size:13px;background:none;border:none;line-height:1}
+.news-digest-box{font-size:13px;line-height:1.8;color:var(--text);white-space:pre-line;padding:4px 0}
+/* ─── AGENT ACTIVITY ─────────────────────────────────────────────────────── */
+.agent-item{padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;line-height:1.5}
+.agent-item:last-child{border:none}
+.agent-item a{color:var(--accent);word-break:break-all}
 </style>
 </head>
 <body>
@@ -546,6 +554,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div class="ni" onclick="goPage('ideas',this)"><span class="ni-icon">💡</span>רעיונות</div>
     <div class="ni" onclick="goPage('journal',this)"><span class="ni-icon">✍️</span>יומן</div>
     <div class="ni" onclick="goPage('goals',this)"><span class="ni-icon">🎯</span>מטרות</div>
+    <div class="ni" onclick="goPage('news',this)"><span class="ni-icon">📰</span>חדשות</div>
   </nav>
   <div class="sidebar-btm">
     <!-- User profile (shown when signed in) -->
@@ -652,6 +661,14 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
         <div id="dash-reminders"></div>
       </div>
     </div>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ct">🤖 סוכן אוטונומי</div>
+      <span class="ca" onclick="refreshAgentResults()">רענן ↻</span></div>
+    <div id="dash-agent-ts" style="font-size:11px;color:var(--text3);margin-bottom:8px">לא רץ עדיין — לחץ רענן</div>
+    <div id="dash-agent-summary" style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:8px"></div>
+    <div id="dash-agent-jobs" style="margin-bottom:6px"></div>
+    <div id="dash-agent-apts"></div>
   </div>
 </div>
 
@@ -1321,6 +1338,41 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   </div>
 </div>
 
+<!-- NEWS -->
+<div class="page" id="page-news">
+  <div class="g2">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="ch"><div class="ct">📰 נושאים</div></div>
+        <div id="news-topics-list"></div>
+        <div class="irow" style="margin-top:8px">
+          <input class="inp" style="flex:1" id="news-topic-inp" placeholder="הוסף נושא (למשל: AI ישראל)..." onkeydown="if(event.key==='Enter')addNewsTopic()">
+          <button class="btn bp bsm" onclick="addNewsTopic()">+</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">💬 שוחח עם הסוכן</div>
+          <button class="live-voice-btn" onclick="toggleLiveVoice('news',this)">🎙 Live</button></div>
+        <div class="aic" id="news-chat" style="max-height:220px">
+          <div class="msg"><div class="mav ai">AI</div><div class="mb">שלום! אני הסוכן שלך לחדשות. שאל אותי על מה שמעניין אותך, או לחץ "רענן סיכום" כדי לקבל עדכון.</div></div>
+        </div>
+        <div class="crow">
+          <input class="inp" style="flex:1" id="news-inp" placeholder="שאל על חדשות..." onkeydown="if(event.key==='Enter')sendChat('news')">
+          <button class="btn bp bsm" onclick="sendChat('news')">↗</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="ch"><div class="ct">📋 סיכום חדשות</div>
+          <span class="ca" onclick="fetchNewsDigest()">רענן ↻</span></div>
+        <div id="news-ts" style="font-size:11px;color:var(--text3);margin-bottom:8px">לא נטען עדיין</div>
+        <div id="news-digest-content" class="news-digest-box">לחץ "רענן" לקבלת סיכום חדשות על הנושאים שבחרת.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </main>
 </div>
 
@@ -1684,7 +1736,14 @@ ${CMD_DOCS}`,
 טון: עברית, פסקאות קצרות, bullet points לפעולות. לא fluff כללי. תמיד ספציפי לנתונים.
 
 ${CMD_DOCS}`,
+  news:`אתה סוכן חדשות בעברית. עדכן את המשתמש בחדשות רלוונטיות בתחומים שהוא בחר. ענה בנקודות קצרות, עם הדגשת הנקודות הכי חשובות. ענה בעברית. ${CMD_DOCS}`,
 };
+
+function buildSystemPrompt(base){
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('he-IL',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  return `${base}\n\nתאריך היום: ${dateStr}.`;
+}
 
 function init(){
   const d=new Date();
@@ -1697,6 +1756,7 @@ function init(){
   updateWeekRing();checkCalToken();
   renderUserProfile();
   loadDynProjects();
+  renderNewsTopics();
   // Init Kanban after DOM is ready
   setTimeout(()=>{if(typeof renderKanban==='function')renderKanban();},100);
 }
@@ -1712,7 +1772,7 @@ function goPage(p,el){
   document.getElementById('page-'+p).classList.add('active');
   document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
   if(el)el.classList.add('active');
-  const T={dashboard:'דשבורד',agenda:'לוז שבועי',tasks:'משימות',reminders:'תזכורות',jobs:'חיפוש עבודה',upselles:'Upselles',health:'כושר ותזונה',apartment:'מציאת דירה',family:'זמן משפחתי',ideas:'רעיונות',journal:'יומן',goals:'מטרות',finance:'פיננסים',notes:'פתקים',inbox:'תיבת כניסה'};
+  const T={dashboard:'דשבורד',agenda:'לוז שבועי',tasks:'משימות',reminders:'תזכורות',jobs:'חיפוש עבודה',upselles:'Upselles',health:'כושר ותזונה',apartment:'מציאת דירה',family:'זמן משפחתי',ideas:'רעיונות',journal:'יומן',goals:'מטרות',finance:'פיננסים',notes:'פתקים',inbox:'תיבת כניסה',news:'חדשות'};
   document.getElementById('pt').textContent=T[p]||p;
   if(p==='agenda')buildWeekGrid();
   if(p==='jobs'&&typeof renderKanban==='function')setTimeout(renderKanban,50);
@@ -2686,15 +2746,56 @@ function updateWeekRing(){
 }
 
 // CLAUDE API
+// ─── SSE CLAUDE ENGINE (v3.2) ────────────────────────────────────────────────
+async function callClaude(messages,system,tools,onText,onTool,onDone){
+  const body={model:'claude-sonnet-4-6',max_tokens:1200,stream:true,messages};
+  if(system)body.system=system;
+  if(tools&&tools.length)body.tools=tools;
+  const res=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!res.ok)throw new Error('claude '+res.status);
+  const reader=res.body.getReader();
+  const dec=new TextDecoder();
+  let buf='',curEvent='',curData='';
+  const toolB={};
+  const dispatch=()=>{
+    if(!curData.trim()){curEvent='';curData='';return;}
+    try{
+      const d=JSON.parse(curData);
+      if(curEvent==='text'&&onText)onText(d.text||'');
+      else if(curEvent==='tool_start')toolB[d.index]={id:d.id,name:d.name,args:''};
+      else if(curEvent==='tool_delta'&&toolB[d.index]!=null)toolB[d.index].args+=d.delta||'';
+      else if(curEvent==='done'){
+        const calls=Object.values(toolB).map(t=>{try{return{...t,input:JSON.parse(t.args||'{}')};}catch{return{...t,input:{}};}});
+        if(calls.length&&onTool)onTool(calls);
+        if(onDone)onDone();
+      }
+    }catch{}
+    curEvent='';curData='';
+  };
+  while(true){
+    const{done,value}=await reader.read();if(done)break;
+    buf+=dec.decode(value,{stream:true});
+    const lines=buf.split('\n');buf=lines.pop()||'';
+    for(const line of lines){
+      if(line.startsWith('event: '))curEvent=line.slice(7).trim();
+      else if(line.startsWith('data: '))curData=line.slice(6);
+      else if(line==='')dispatch();
+    }
+  }
+  if(curData)dispatch();
+}
+
 async function claude(msg,sys){
+  let text='';
+  try{await callClaude([{role:'user',content:msg}],buildSystemPrompt(sys||''),null,c=>{text+=c;},null,null);}
+  catch{return'שגיאה בחיבור';}
+  return text||'שגיאה';
+}
+
+async function claudeStream(msg,sys,onChunk){
   try{
-    const r=await fetch('/api/claude',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
-    });
-    const d=await r.json();return d.content?.[0]?.text||'שגיאה';
-  }catch(e){return'שגיאה בחיבור';}
+    await callClaude([{role:'user',content:msg}],buildSystemPrompt(sys||''),null,c=>{if(onChunk)onChunk(c);},null,null);
+  }catch{if(onChunk)onChunk('שגיאה בחיבור');}
 }
 
 // ALWAYS-ON WEB SEARCH — every agent gets contextual search results automatically
@@ -2830,6 +2931,73 @@ function executeCommand(cmd){
   }catch(e){console.warn('CMD error:',e);}
 }
 
+// ─── SYSTEM TOOLS (v3.2) ─────────────────────────────────────────────────────
+const SYSTEM_TOOLS=[
+  {name:'add_task',description:'הוסף משימה חדשה למשתמש',input_schema:{type:'object',properties:{text:{type:'string',description:'תוכן המשימה'},cat:{type:'string',enum:['work','health','family','project','home']},period:{type:'string',enum:['once','daily','weekly']}},required:['text']}},
+  {name:'complete_task',description:'סמן משימה כבוצעת לפי טקסט',input_schema:{type:'object',properties:{text:{type:'string'}},required:['text']}},
+  {name:'add_note',description:'הוסף פתק חדש',input_schema:{type:'object',properties:{title:{type:'string'},content:{type:'string'}},required:['content']}},
+  {name:'get_data',description:'קבל נתונים מהמערכת',input_schema:{type:'object',properties:{type:{type:'string',enum:['tasks','habits','finance','jobs','reminders']}},required:['type']}},
+  {name:'create_event',description:'צור אירוע ביומן',input_schema:{type:'object',properties:{title:{type:'string'},date:{type:'string',description:'YYYY-MM-DD'},time:{type:'string',description:'HH:MM'}},required:['title','date']}},
+];
+
+function executeTool(tool){
+  switch(tool.name){
+    case'add_task':
+      S.tasks.unshift({id:Date.now(),text:tool.input.text,done:false,cat:tool.input.cat||'work',period:tool.input.period||'once',proj:'none',progress:0,status:''});
+      save();renderDashTasks();renderAllTasks();
+      return`משימה נוספה: "${tool.input.text}"`;
+    case'complete_task':{
+      const t=S.tasks.find(x=>x.text.includes(tool.input.text)&&!x.done);
+      if(t){t.done=true;save();renderDashTasks();renderAllTasks();return`משימה הושלמה: "${t.text}"`;}
+      return'משימה לא נמצאה';}
+    case'add_note':
+      if(!S.notes)S.notes=[];
+      S.notes.unshift({id:Date.now(),title:tool.input.title||'פתק חדש',content:tool.input.content,pinned:false,ts:new Date().toISOString()});
+      save();return'פתק נשמר';
+    case'get_data':
+      switch(tool.input.type){
+        case'tasks':return JSON.stringify(S.tasks.filter(t=>!t.done).slice(0,10).map(t=>({text:t.text,cat:t.cat,period:t.period})));
+        case'habits':return JSON.stringify((S.habits||[]).map(h=>({name:h.name,days:h.days})));
+        case'finance':return JSON.stringify((S.finance||[]).slice(-20));
+        case'jobs':return JSON.stringify((S.jobsV2||[]).slice(0,10).map(j=>({title:j.title,company:j.company,status:j.status})));
+        case'reminders':return JSON.stringify((S.reminders||[]).filter(r=>!r.done).slice(0,5));
+        default:return'{}';
+      }
+    case'create_event':
+      if(!S.weekEvents)S.weekEvents={};
+      if(!S.weekEvents[tool.input.date])S.weekEvents[tool.input.date]=[];
+      S.weekEvents[tool.input.date].push({title:tool.input.title,time:tool.input.time||'09:00'});
+      save();return`אירוע נוסף: "${tool.input.title}" ב-${tool.input.date}`;
+    default:return'כלי לא מוכר';
+  }
+}
+
+async function runAgentChat(userText,sysPrompt,chatEl){
+  const messages=[{role:'user',content:userText}];
+  let fullReply='';
+  for(let i=0;i<4;i++){
+    const th=addMsgToEl(chatEl,'ai','...');
+    const bubble=th?.querySelector('.mb');
+    let segText='';let toolCalls=null;
+    await callClaude(
+      messages,
+      buildSystemPrompt(sysPrompt),
+      SYSTEM_TOOLS,
+      chunk=>{segText+=chunk;if(bubble)renderMarkdownMsg(bubble,segText);},
+      calls=>{toolCalls=calls;},
+      null
+    );
+    fullReply+=segText;
+    if(bubble)renderMarkdownMsg(bubble,segText||'...');
+    if(!toolCalls||!toolCalls.length)break;
+    // Execute tools and add results
+    messages.push({role:'assistant',content:[...segText?[{type:'text',text:segText}]:[],...toolCalls.map(tc=>({type:'tool_use',id:tc.id,name:tc.name,input:tc.input}))]});
+    const results=toolCalls.map(tc=>{const r=executeTool(tc);return{type:'tool_result',tool_use_id:tc.id,content:r};});
+    messages.push({role:'user',content:results});
+  }
+  return parseCommands(fullReply);
+}
+
 // Workspace task helpers
 function addWsTask(wsId){
   const inp=document.getElementById(`${wsId}-quick-inp`);
@@ -2903,9 +3071,14 @@ async function sendChat(ctx){
   }
 
   if(th)th.querySelector('.mb').textContent='...';
-  const reply=await claude(msgToSend,sys);
+  let reply='';
+  const bubble=th?.querySelector('.mb');
+  await claudeStream(msgToSend,sys,chunk=>{
+    reply+=chunk;
+    if(bubble)renderMarkdownMsg(bubble,reply);
+  });
   const cleanReply=parseCommands(reply);
-  if(th)renderMarkdownMsg(th.querySelector('.mb'),cleanReply);
+  if(bubble&&cleanReply!==reply)renderMarkdownMsg(bubble,cleanReply);
 
   // Smart domain actions (use raw reply)
   if(ctx==='health'){
@@ -3156,9 +3329,14 @@ async function sendChatModal(){
     if(results)msgToSend=text+results;
   }
   if(th)th.querySelector('.mb').textContent='...';
-  const reply=await claude(msgToSend,sys);
+  let reply='';
+  const bubble2=th?.querySelector('.mb');
+  await claudeStream(msgToSend,sys,chunk=>{
+    reply+=chunk;
+    if(bubble2)renderMarkdownMsg(bubble2,reply);
+  });
   const cleanReply=parseCommands(reply);
-  if(th)renderMarkdownMsg(th.querySelector('.mb'),cleanReply);
+  if(bubble2&&cleanReply!==reply)renderMarkdownMsg(bubble2,cleanReply);
 
   // Sync to original chat
   if(fcModalChatId){
@@ -3526,7 +3704,19 @@ setInterval(()=>{
 
 // SERVICE WORKER (PWA offline support)
 if('serviceWorker'in navigator){
-  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  navigator.serviceWorker.register('/sw.js').then(reg=>{
+    reg.update();
+    reg.addEventListener('updatefound',()=>{
+      const sw=reg.installing;
+      sw.addEventListener('statechange',()=>{
+        if(sw.state==='installed'&&navigator.serviceWorker.controller){
+          showNotif('עדכון זמין — מרענן...');
+          setTimeout(()=>location.reload(),1500);
+        }
+      });
+    });
+  }).catch(()=>{});
+  navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
 }
 // WEBHOOK POLLING — poll every 30 seconds for remote commands
 setInterval(pollWebhook,30000);
@@ -3665,6 +3855,7 @@ const TEMPLATES=[
   {id:'apartment',name:'מציאת דירה',icon:'🏠',cat:'אחר',desc:'מעקב דירות, השוואה, סוכן נדל"ן',color:'#0d9488',builtIn:'apartment'},
   {id:'family',name:'משפחה ואישי',icon:'👨‍👩‍👧',cat:'אחר',desc:'בלוז שבועי, פעילויות, זמן איכות',color:'#d97706',builtIn:'family'},
   {id:'startup',name:'סטארטאפ / עסק',icon:'🚀',cat:'עבודה',desc:'Roadmap, לידים, סוכן עסקי AI',color:'#7c3aed',builtIn:'upselles'},
+  {id:'news',name:'חדשות',icon:'📰',cat:'כלים',desc:'סיכום יומי של חדשות בנושאים שבחרת',color:'#0369a1',builtIn:'news'},
   {id:'custom',name:'בנה בעצמך',icon:'✨',cat:'כלים',desc:'D&D builder — הוסף ווידג\'טים',color:'#6c63ff'},
 ];
 let tgalFilter='הכל';let tgalSelected=null;
@@ -4208,7 +4399,7 @@ function toggleLiveVoice(ctx,btnEl){
       lastFinal=final;
       clearTimeout(silenceTimer);
       silenceTimer=setTimeout(async()=>{
-        recog.stop();
+        if(liveVoiceState[ctx])recog.stop();
         if(chatEl)addMsgToEl(chatEl,'user',final);
         const sys=SYS[ctx]||SYS.main;
         const th=chatEl?addMsgToEl(chatEl,'ai','...'):{querySelector:()=>({innerHTML:''})};
@@ -4223,7 +4414,7 @@ function toggleLiveVoice(ctx,btnEl){
         utter.rate=1.05;
         utter.onend=()=>{if(liveVoiceState[ctx])recog.start();};
         window.speechSynthesis.speak(utter);
-      },1200);
+      },2000);
     }
   };
   recog.onerror=()=>btnEl.classList.remove('on');
@@ -4235,12 +4426,11 @@ function toggleLiveVoice(ctx,btnEl){
 
 // ─── CLAUDE MODEL SWITCH (Phase 10.1) ────────────────────────────────────────
 async function claudeFast(msg,sys){
-  // Haiku for short replies, Sonnet otherwise
   const model=msg.length<200&&!msg.includes('ניתוח')?'claude-haiku-4-5-20251001':'claude-sonnet-4-6';
   try{
     const r=await fetch('/api/claude',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model,max_tokens:1000,system:sys,messages:[{role:'user',content:msg}]})
+      body:JSON.stringify({model,max_tokens:1000,system:buildSystemPrompt(sys||''),messages:[{role:'user',content:msg}]})
     });
     const d=await r.json();return d.content?.[0]?.text||'שגיאה';
   }catch{return'שגיאה בחיבור';}
@@ -4326,18 +4516,70 @@ function renderCookbook(){
   </div>`).join('')||'<span style="color:var(--text3);font-size:12px">אין מתכונים</span>';
 }
 
-// ─── STREAMING CLAUDE (Phase 10.1 enhancement) ───────────────────────────────
-async function claudeStream(msg,sys,onChunk){
+// ─── NEWS PAGE (v3.2 Phase 2) ─────────────────────────────────────────────────
+function renderNewsTopics(){
+  const el=document.getElementById('news-topics-list');if(!el)return;
+  const topics=(S.newsTopics||[]);
+  el.innerHTML=topics.length
+    ?topics.map((t,i)=>`<div class="news-topic-row"><span>${escH(t)}</span><button class="news-topic-del" onclick="removeNewsTopic(${i})">✕</button></div>`).join('')
+    :'<div style="color:var(--text3);font-size:12px;padding:4px 0">אין נושאים — הוסף נושאים למעקב</div>';
+}
+function addNewsTopic(){
+  const inp=document.getElementById('news-topic-inp');if(!inp||!inp.value.trim())return;
+  if(!S.newsTopics)S.newsTopics=[];
+  if(!S.newsTopics.includes(inp.value.trim()))S.newsTopics.push(inp.value.trim());
+  inp.value='';save();renderNewsTopics();
+}
+function removeNewsTopic(i){
+  if(!S.newsTopics)return;
+  S.newsTopics.splice(i,1);save();renderNewsTopics();
+}
+async function fetchNewsDigest(){
+  const topics=S.newsTopics||[];
+  if(!topics.length){showNotif('הוסף נושאים תחילה');return;}
+  const tsEl=document.getElementById('news-ts');
+  const cEl=document.getElementById('news-digest-content');
+  if(tsEl)tsEl.textContent='טוען...';
+  if(cEl)cEl.textContent='מחפש חדשות...';
   try{
-    const r=await fetch('/api/claude',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1200,stream:false,system:sys,messages:[{role:'user',content:msg}]})
-    });
+    const r=await fetch('/api/news-digest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topics})});
     const d=await r.json();
-    const text=d.content?.[0]?.text||'שגיאה';
-    if(onChunk)onChunk(text);
-    return text;
-  }catch{return'שגיאה בחיבור';}
+    if(cEl)cEl.textContent=d.summary||'לא נמצאו תוצאות';
+    if(tsEl)tsEl.textContent=`עדכון: ${d.cached?'מטמון — ':''}`+new Date(d.ts).toLocaleTimeString('he-IL');
+  }catch{
+    if(cEl)cEl.textContent='שגיאה בטעינת חדשות';
+    if(tsEl)tsEl.textContent='שגיאה';
+  }
+}
+
+// ─── AGENT ACTIVITY (v3.2 Phase 4) ────────────────────────────────────────────
+function renderAgentActivity(data){
+  const tsEl=document.getElementById('dash-agent-ts');
+  const sumEl=document.getElementById('dash-agent-summary');
+  const jobsEl=document.getElementById('dash-agent-jobs');
+  const aptsEl=document.getElementById('dash-agent-apts');
+  if(!tsEl)return;
+  tsEl.textContent=data.ts?`עדכון: ${new Date(data.ts).toLocaleTimeString('he-IL')}`:'לא רץ עדיין — לחץ רענן';
+  if(sumEl)sumEl.textContent=data.summary||'';
+  if(jobsEl&&data.jobs?.length){
+    jobsEl.innerHTML='<div style="font-size:11px;color:var(--text3);margin-bottom:3px">💼 משרות</div>'+
+      data.jobs.slice(0,3).map(j=>`<div class="agent-item"><a href="${escH(j.url)}" target="_blank" class="agent-result-link">${escH(j.heading)}</a><div style="color:var(--text3);font-size:11px">${escH(j.snippet)}</div></div>`).join('');
+  }
+  if(aptsEl&&data.apartments?.length){
+    aptsEl.innerHTML='<div style="font-size:11px;color:var(--text3);margin-bottom:3px;margin-top:6px">🏠 דירות</div>'+
+      data.apartments.slice(0,2).map(a=>`<div class="agent-item"><a href="${escH(a.url)}" target="_blank" class="agent-result-link">${escH(a.heading)}</a></div>`).join('');
+  }
+}
+async function refreshAgentResults(){
+  const tsEl=document.getElementById('dash-agent-ts');
+  if(tsEl)tsEl.textContent='מחפש...';
+  try{
+    const r=await fetch('/api/get-agent-results');
+    const d=await r.json();
+    renderAgentActivity(d);
+  }catch{
+    if(tsEl)tsEl.textContent='שגיאה — בדוק TAVILY_API_KEY';
+  }
 }
 
 // Live voice buttons are hardcoded in HTML — no dynamic insertion needed.
