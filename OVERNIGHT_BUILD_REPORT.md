@@ -169,3 +169,74 @@ The Calendar connect button now also requests `gmail.send` scope. When clicking 
 ---
 
 *Built by Claude Sonnet 4.6 across two sessions. שמור על עצמך רואי 🌱*
+
+---
+
+## Wire-up Fixes — Round 4
+**Date:** 2026-05-01  
+**Session:** Claude Opus 4.7  
+
+### Root cause of the failed deploy
+
+Commit `c326b7f` pushed 14 serverless functions. The Vercel Hobby plan caps at **12 functions**. Five of those files were dead-code stubs — their own comments said they were placeholders that the frontend never called:
+
+- `api/jobs/list.js` — "Use localStorage as primary store. This endpoint reserved for future..."
+- `api/jobs/create.js` — same family, never routed
+- `api/jobs/update.js` — same
+- `api/jobs/delete.js` — same
+- `api/email/send.js` — "kept as a server-side option if a service account is needed"
+
+**Fix:** deleted all five. Function count: 14 → **9** (well within the limit). The failing deploy resolved immediately after push.
+
+### Function count verification (post-fix)
+
+```
+api/claude.js
+api/cron/job-hunt.js
+api/fetch-page.js
+api/google-callback.js
+api/log-error.js
+api/match-score.js
+api/search.js
+api/webhook.js
+api/whatsapp/send.js
+
+Total: 9 ≤ 12 ✓
+```
+
+### curl -I output confirming green deploy
+
+```
+HTTP/1.1 200 OK
+Age: 0
+Content-Length: 226860
+Last-Modified: Fri, 01 May 2026 18:33:33 GMT
+```
+
+### What was wired up (Steps 1–6)
+
+| Step | Fix | How |
+|------|-----|-----|
+| Step 0 | Deploy unblocked | Deleted 5 dead-code API stubs, function count 14→9 |
+| Step 1 | Sidebar "+ פרויקט" button | Added button calling `openAddProjectModal()` under the פרויקטים section header |
+| Step 2 | Hebrew name garbled (`□×□×§×`) | `atob()` returns a binary string; Hebrew UTF-8 bytes were misinterpreted as Latin-1. Fixed with `decodeURIComponent(escape(atob(b64)))` |
+| Step 3 | Profile setup modal not firing for returning users | Changed `if(isNew)` → `if(isNew \|\| !S.userProfile?.name)` so the modal also appears when a returning user has no name saved |
+| Step 4 | 🎙 Live buttons missing from chat headers | `addLiveVoiceBtns()` used querySelector selectors that didn't match the actual onclick attributes — no buttons ever appeared. Replaced with static HTML buttons in all 7 chat headers (main, job-hunter, career-coach, upselles, health, family, ideas). Removed the broken dynamic-insertion code. |
+| Step 5 | Mobile bottom nav obscures last card | Added `padding-bottom:74px` to `.main` at `@media(max-width:768px)` so content doesn't hide behind the fixed 5-tab bar |
+| Step 6 | FedCM console errors on sign-in | Added `data-use_fedcm_for_prompt="true"` and `data-cancel_on_tap_outside="false"` to the `g_id_onload` div. The `.g_id_signin` button remains as a reliable visible fallback. |
+
+### What is still not verified in browser
+
+Steps 2–6 require a live sign-in or mobile device to verify visually. The code changes are correct but browser confirmation was not performed in this session (no browser automation available). Treat the deploy as "code correct, awaiting manual smoke-test."
+
+### Commits in this round
+
+```
+920d49f  fix(deploy): remove 5 dead-code API stubs (Step 0)
+f09ff72  feat(sidebar): add + פרויקט button (Step 1)
+0f60f72  fix(auth): decode JWT as UTF-8 — Hebrew name fix (Step 2)
+9be2f9e  fix(profile): modal trigger for returning users (Step 3)
+21517f7  feat(voice): hardcode 🎙 Live in 7 chat headers (Step 4)
+752d8e0  fix(mobile): padding-bottom for bottom nav (Step 5)
+8cd4f38  fix(auth): FedCM opt-in + cancel_on_tap_outside=false (Step 6)
+```
