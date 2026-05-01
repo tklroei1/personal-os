@@ -824,6 +824,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div class="card">
       <div class="ch">
         <div class="ct">🔍 Job Hunter</div>
+        <button class="live-voice-btn" onclick="toggleLiveVoice('job-hunter',this)">🎙 Live</button>
         <button class="chat-expand-btn" onclick="openChatFullscreen('job-hunter-chat','🔍 Job Hunter — חיפוש משרות')">⊞</button>
       </div>
       <div class="chips">
@@ -844,6 +845,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div class="card">
       <div class="ch">
         <div class="ct">🧠 Career Coach</div>
+        <button class="live-voice-btn" onclick="toggleLiveVoice('career-coach',this)">🎙 Live</button>
         <button class="chat-expand-btn" onclick="openChatFullscreen('career-coach-chat','🧠 Career Coach')">⊞</button>
       </div>
       <div class="chips">
@@ -890,7 +892,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="card">
-        <div class="ch"><div class="ct">🎯 סוכן עסקי</div><button class="chat-expand-btn" onclick="openChatFullscreen('upselles-chat','🚀 סוכן Upselles')">⊞</button></div>
+        <div class="ch"><div class="ct">🎯 סוכן עסקי</div><button class="live-voice-btn" onclick="toggleLiveVoice('upselles',this)">🎙 Live</button><button class="chat-expand-btn" onclick="openChatFullscreen('upselles-chat','🚀 סוכן Upselles')">⊞</button></div>
         <div class="chips">
           <div class="chip" onclick="setUI('כתוב לי מייל שיווקי ל-SMB')">✉️ מייל שיווקי</div>
           <div class="chip" onclick="setUI('נתח את התחרות שלי')">🔍 ניתוח תחרות</div>
@@ -982,7 +984,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
       </div>
       <!-- AI TRAINER -->
       <div class="card">
-        <div class="ch"><div class="ct">🤖 מאמן אישי AI</div></div>
+        <div class="ch"><div class="ct">🤖 מאמן אישי AI</div><button class="live-voice-btn" onclick="toggleLiveVoice('health',this)">🎙 Live</button></div>
         <div class="chips">
           <div class="chip" onclick="setHI('אכלתי ')">🍽️ רשום ארוחה</div>
           <div class="chip" onclick="setHI('עשיתי אימון ')">🏋️ רשום אימון</div>
@@ -1071,7 +1073,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
       <div id="fam-week" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px"></div>
     </div>
     <div class="card">
-      <div class="ch"><div class="ct">🤖 סוכן משפחה</div><button class="chat-expand-btn" onclick="openChatFullscreen('family-chat','👨‍👩‍👧 סוכן משפחה')">⊞</button></div>
+      <div class="ch"><div class="ct">🤖 סוכן משפחה</div><button class="live-voice-btn" onclick="toggleLiveVoice('family',this)">🎙 Live</button><button class="chat-expand-btn" onclick="openChatFullscreen('family-chat','👨‍👩‍👧 סוכן משפחה')">⊞</button></div>
       <div class="aic" id="family-chat" style="max-height:200px">
         <div class="msg"><div class="mav ai">AI</div><div class="mb">עוזר לתכנן זמן משפחתי. הצעות פעילויות, תזמון אירועים וחלוקת הבלוז.</div></div>
       </div>
@@ -1098,7 +1100,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div id="ideas-list"></div>
   </div>
   <div class="card">
-    <div class="ch"><div class="ct">🤖 עוזר רעיונות AI</div><button class="chat-expand-btn" onclick="openChatFullscreen('ideas-chat','💡 עוזר רעיונות')">⊞</button></div>
+    <div class="ch"><div class="ct">🤖 עוזר רעיונות AI</div><button class="live-voice-btn" onclick="toggleLiveVoice('ideas',this)">🎙 Live</button><button class="chat-expand-btn" onclick="openChatFullscreen('ideas-chat','💡 עוזר רעיונות')">⊞</button></div>
     <div class="aic" id="ideas-chat" style="max-height:200px">
       <div class="msg"><div class="mav ai">AI</div><div class="mb">אני עוזר לפתח רעיונות! ספר לי על רעיון ואעזור לפתח אותו, לזהות הזדמנויות או לחשוב על מימוש.</div></div>
     </div>
@@ -1255,6 +1257,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div class="fc-hdr">
       <div style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.5);animation:pulse 2s infinite"></div>
       <div class="fc-title">Personal OS — סוכן ראשי</div>
+      <button class="live-voice-btn" onclick="toggleLiveVoice('main',this)">🎙 Live</button>
       <button class="chat-expand-btn" style="color:rgba(255,255,255,0.7)" onclick="openChatFullscreen('main-chat','💬 סוכן ראשי')">⊞</button>
       <button class="fc-x" onclick="toggleFC()">✕</button>
     </div>
@@ -3918,21 +3921,7 @@ async function claudeStream(msg,sys,onChunk){
   }catch{return'שגיאה בחיבור';}
 }
 
-// ─── ADD LIVE VOICE BUTTONS TO EXISTING CHATS ────────────────────────────────
-function addLiveVoiceBtns(){
-  const chats=['main','job-hunter','career-coach','upselles','health','family','ideas'];
-  chats.forEach(ctx=>{
-    const hdr=document.querySelector(`[onclick="openChatFullscreen('${ctx}-chat','${ctx==='main'?'💬 סוכן ראשי':''}'"]`)?.closest('.ch')||
-              document.querySelector(`[onclick*="sendChat('${ctx}')"]`)?.closest('.card')?.querySelector('.ch');
-    if(hdr&&!hdr.querySelector('.live-voice-btn')){
-      const btn=document.createElement('button');
-      btn.className='live-voice-btn';btn.textContent='🎙 Live';
-      btn.onclick=function(){toggleLiveVoice(ctx,this);};
-      hdr.insertBefore(btn,hdr.firstChild);
-    }
-  });
-}
-setTimeout(addLiveVoiceBtns,500);
+// Live voice buttons are hardcoded in HTML — no dynamic insertion needed.
 </script>
 </body>
 </html>
