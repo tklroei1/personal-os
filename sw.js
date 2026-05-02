@@ -1,4 +1,4 @@
-const CACHE = 'personal-os-v3';
+const CACHE = 'personal-os-v4';
 const ASSETS = ['/', '/index.html', '/manifest.json', '/icon.svg'];
 
 self.addEventListener('install', e => {

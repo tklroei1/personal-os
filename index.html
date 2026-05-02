@@ -53,6 +53,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-h
 .ni-icon{width:17px;text-align:center;font-size:14px;flex-shrink:0}
 .nbadge{margin-right:auto;background:var(--accent);color:#fff;font-size:10px;padding:1px 6px;border-radius:20px;font-weight:600}
 .ntag{margin-right:auto;font-size:9px;padding:2px 6px;border-radius:4px}
+.tool-badge{display:inline-block;margin:3px 2px 0;font-size:10px;padding:2px 7px;border-radius:4px;background:var(--accent-light);color:var(--accent);border:1px solid var(--accent);opacity:.85}
 .sidebar-btm{padding:10px;border-top:1px solid var(--border)}
 .vbtn{width:100%;padding:9px;background:var(--accent-light);border:1.5px solid var(--accent);border-radius:var(--radius-sm);color:var(--accent);font-size:13px;font-family:'Heebo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-weight:600;transition:all 0.2s}
 .vbtn:hover{background:var(--accent);color:#fff}
@@ -2998,6 +2999,60 @@ async function runAgentChat(userText,sysPrompt,chatEl){
   return parseCommands(fullReply);
 }
 
+// ─── V4.0 AGENT HELPERS ──────────────────────────────────────────────────────
+function getCurrentUserId(){return currentUser?.sub||'anon';}
+
+function buildUserContext(){
+  const today=new Date().toISOString().split('T')[0];
+  const pending=(S.tasks||[]).filter(t=>!t.done).slice(0,10).map(t=>({text:t.text,priority:t.cat==='work'?'high':'medium'}));
+  const upcoming=[];
+  Object.keys(S.weekEvents||{}).sort().filter(d=>d>=today).slice(0,7).forEach(d=>{
+    (S.weekEvents[d]||[]).forEach(e=>upcoming.push({date:d,time:e.time||'',text:e.text||e.title||''}));
+  });
+  return{pendingTasks:pending,upcomingEvents:upcoming.slice(0,8),habits:(S.habits||[]),projects:(S.projects||[])};
+}
+
+function loadAgentMemory(agentId){
+  try{return JSON.parse(localStorage.getItem(`pos_mem_${getCurrentUserId()}_${agentId}`)||'[]');}catch{return[];}
+}
+function saveAgentMemory(agentId,msgs){
+  localStorage.setItem(`pos_mem_${getCurrentUserId()}_${agentId}`,JSON.stringify(msgs.slice(-25)));
+}
+function clearAgentMemory(agentId){
+  localStorage.removeItem(`pos_mem_${getCurrentUserId()}_${agentId}`);
+  showNotif('זיכרון שיחה נוקה');
+}
+
+function executeClientTool(toolName,input){
+  switch(toolName){
+    case'add_task':
+      if(!input.title)break;
+      S.tasks.unshift({id:Date.now(),text:input.title,done:false,cat:input.category||'work',period:'once',proj:input.project||'none',progress:0,status:'',createdBy:'agent'});
+      save();renderDashTasks();renderAllTasks();break;
+    case'complete_task':{
+      const q=(input.task_title||'').toLowerCase();
+      const t=S.tasks.find(x=>!x.done&&x.text.toLowerCase().includes(q));
+      if(t){t.done=true;save();renderDashTasks();renderAllTasks();}break;}
+    case'add_event':
+      if(!S.weekEvents)S.weekEvents={};
+      if(!S.weekEvents[input.date])S.weekEvents[input.date]=[];
+      S.weekEvents[input.date].push({id:Date.now(),text:input.title+(input.time?' '+input.time:''),color:'#6c63ff'});
+      save();if(typeof renderWeek==='function')renderWeek();break;
+    case'add_habit':
+      if(!input.name||S.habits.some(h=>h.name===input.name))break;
+      S.habits.push({name:input.name,days:[0,0,0,0,0,0,0]});
+      save();renderDashHabits();break;
+    case'log_habit':{
+      const q=(input.habit_name||'').toLowerCase();
+      const h=S.habits.find(x=>x.name.toLowerCase().includes(q));
+      if(h){const day=new Date().getDay();h.days[day]=1;save();renderDashHabits();}break;}
+    case'add_note':
+      if(!S.notes)S.notes=[];
+      S.notes.unshift({id:Date.now(),title:input.title||'פתק מהסוכן',content:input.content,pinned:false,ts:new Date().toISOString()});
+      save();break;
+  }
+}
+
 // Workspace task helpers
 function addWsTask(wsId){
   const inp=document.getElementById(`${wsId}-quick-inp`);
@@ -3041,72 +3096,84 @@ async function sendChat(ctx){
   const text=inp.value.trim();if(!text)return;inp.value='';
   addMsg2(chatId,'user',text);
   const th=addMsg2(chatId,'ai','...');
-  const sys=SYS[ctx]||SYS.main;
+  const bubble=th?.querySelector('.mb');
 
   // JOBS / JOB-HUNTER: auto-fetch full page when user pastes a URL
   let msgToSend=text;
-  let urlFetched=false;
   if(ctx==='jobs'||ctx==='job-hunter'){
     const urlM=text.match(/https?:\/\/[^\s]+/);
     if(urlM){
-      if(th)th.querySelector('.mb').textContent='📄 קורא משרה...';
+      if(bubble)bubble.textContent='📄 קורא משרה...';
       try{
         const pr=await fetch(`/api/fetch-page?url=${encodeURIComponent(urlM[0])}`);
         const pd=await pr.json();
         if(pd.ok&&pd.text){
           const preScore=calcMatchScore(urlM[0],pd.text);
           msgToSend=`ניתוח משרה מלא (URL: ${urlM[0]})\n\n${pd.text.slice(0,3000)}\n\nחשב אחוזי התאמה. ציון ראשוני: ${preScore}%`;
-          urlFetched=true;
         }
       }catch{}
     }
   }
+  if(bubble)bubble.textContent='...';
 
-  // ALWAYS-ON WEB SEARCH — skip only for very short or pure-command messages and schedule context
-  const skipSearch=urlFetched||text.length<18||ctx==='week'||/^\[CMD/i.test(text);
-  if(!skipSearch){
-    if(th)th.querySelector('.mb').textContent='🔍 מחפש...';
-    const results=await autoSearch(text,ctx);
-    if(results)msgToSend=text+results;
-  }
+  // Load memory + add user message
+  const memory=loadAgentMemory(ctx);
+  memory.push({role:'user',content:msgToSend});
 
-  if(th)th.querySelector('.mb').textContent='...';
   let reply='';
-  const bubble=th?.querySelector('.mb');
-  await claudeStream(msgToSend,sys,chunk=>{
-    reply+=chunk;
-    if(bubble)renderMarkdownMsg(bubble,reply);
-  });
-  const cleanReply=parseCommands(reply);
-  if(bubble&&cleanReply!==reply)renderMarkdownMsg(bubble,cleanReply);
+  try{
+    const res=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({agentMode:true,agentId:ctx,messages:memory,userContext:buildUserContext(),userId:getCurrentUserId()})
+    });
+    if(!res.ok)throw new Error(res.status);
+    const reader=res.body.getReader();const dec=new TextDecoder();
+    let buf='',curEvent='',curData='';
+    const dispatch=()=>{
+      if(!curData.trim()){curEvent='';curData='';return;}
+      try{
+        const d=JSON.parse(curData);
+        if(curEvent==='text'&&d.delta){reply+=d.delta;if(bubble)renderMarkdownMsg(bubble,reply);}
+        else if(curEvent==='tool_call'&&d.name){
+          executeClientTool(d.name,d.input||{});
+          if(bubble){const badge=document.createElement('span');badge.className='tool-badge';badge.textContent='⚡ '+d.name.replace(/_/g,' ');bubble.parentNode.insertBefore(badge,bubble.nextSibling);}
+        }
+        else if(curEvent==='error'&&bubble)renderMarkdownMsg(bubble,'שגיאה: '+(d.message||''));
+      }catch{}
+      curEvent='';curData='';
+    };
+    while(true){
+      const{done,value}=await reader.read();if(done)break;
+      buf+=dec.decode(value,{stream:true});
+      const lines=buf.split('\n');buf=lines.pop()||'';
+      for(const line of lines){
+        if(line.startsWith('event: '))curEvent=line.slice(7).trim();
+        else if(line.startsWith('data: '))curData=line.slice(6);
+        else if(line==='')dispatch();
+      }
+    }
+  }catch(e){if(bubble)bubble.textContent='שגיאה בחיבור';}
 
-  // Smart domain actions (use raw reply)
-  if(ctx==='health'){
+  // Persist memory
+  if(reply){memory.push({role:'assistant',content:reply});saveAgentMemory(ctx,memory);}
+
+  // Smart domain actions
+  if(ctx==='health'&&reply){
     const kcalM=reply.match(/(\d+)\s*[קk]ל/i);const protM=reply.match(/(\d+)\s*g?\s*חלבון/i);
     if(kcalM&&(text.includes('אכלתי')||text.includes('שתיתי'))){
       S.meals.push({name:text.replace(/אכלתי|שתיתי/g,'').trim(),kcal:parseInt(kcalM[1]),protein:protM?parseInt(protM[1]):0,carb:0,time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
       save();renderMeals();updateStats();showNotif('✓ ארוחה נרשמה אוטומטית');
     }
   }
-  if(ctx==='jobs'||ctx==='job-hunter'){
+  if((ctx==='jobs'||ctx==='job-hunter')&&reply){
     const matchM=reply.match(/(\d+)%/);
-    if(matchM&&parseInt(matchM[1])>=55&&(text.includes('http')||text.includes('linkedin')||urlFetched)){
+    if(matchM&&parseInt(matchM[1])>=55&&(text.includes('http')||text.includes('linkedin'))){
       const titleM=reply.match(/תפקיד[:\s]+([^\n]+)/i)||reply.match(/משרת[:\s]+([^\n]+)/i)||reply.match(/^#+\s*(.+)/m);
       const compM=reply.match(/חברה[:\s]+([^\n]+)/i);
       const urlMatch=text.match(/https?:\/\/\S+/);
-      if(titleM){
-        addJobToKanban({
-          title:titleM[1].trim().slice(0,120),
-          company:compM?compM[1].trim():'',
-          match:parseInt(matchM[1]),
-          link:urlMatch?.[0]||'',
-          source:'linkedin',
-          description:reply.slice(0,400),
-        });
-        renderKanban();showNotif('✓ משרה נוספה לגילוי!');
-      }
+      if(titleM){addJobToKanban({title:titleM[1].trim().slice(0,120),company:compM?compM[1].trim():'',match:parseInt(matchM[1]),link:urlMatch?.[0]||'',source:'linkedin',description:reply.slice(0,400)});renderKanban();showNotif('✓ משרה נוספה לגילוי!');}
     }
   }
+  renderAll();
 }
 
 // GOOGLE SIGN-IN (GIS)
@@ -4371,7 +4438,6 @@ const liveVoiceState={};
 function toggleLiveVoice(ctx,btnEl){
   if(liveVoiceState[ctx]){
     liveVoiceState[ctx].recog?.stop();
-    window.speechSynthesis?.cancel();
     delete liveVoiceState[ctx];
     btnEl.classList.remove('on');btnEl.textContent='🎙 Live';
     return;
@@ -4406,19 +4472,12 @@ function toggleLiveVoice(ctx,btnEl){
         const reply=await claude(final,sys);
         const cleanReply=parseCommands(reply);
         if(th)renderMarkdownMsg(th.querySelector('.mb'),cleanReply);
-        // TTS
-        const utter=new SpeechSynthesisUtterance(cleanReply.replace(/[#*`\[\]]/g,''));
-        const voices=window.speechSynthesis.getVoices();
-        const heVoice=voices.find(v=>v.lang.startsWith('he'));
-        if(heVoice)utter.voice=heVoice;
-        utter.rate=1.05;
-        utter.onend=()=>{if(liveVoiceState[ctx])recog.start();};
-        window.speechSynthesis.speak(utter);
+        if(liveVoiceState[ctx])recog.start();
       },2000);
     }
   };
   recog.onerror=()=>btnEl.classList.remove('on');
-  recog.onend=()=>{if(liveVoiceState[ctx]&&!window.speechSynthesis.speaking)recog.start();};
+  recog.onend=()=>{if(liveVoiceState[ctx])recog.start();};
   recog.start();
   liveVoiceState[ctx]={recog};
   btnEl.classList.add('on');btnEl.textContent='🔴 Live';
