@@ -6,13 +6,6 @@
     "api/news-digest.js": { "maxDuration": 30 },
     "api/get-agent-results.js": { "maxDuration": 30 }
   },
-  "builds": [
-    { "src": "index.html", "use": "@vercel/static" },
-    { "src": "manifest.json", "use": "@vercel/static" },
-    { "src": "sw.js", "use": "@vercel/static" },
-    { "src": "icon.svg", "use": "@vercel/static" },
-    { "src": "api/**/*.js", "use": "@vercel/node" }
-  ],
   "routes": [
     { "src": "/api/claude", "dest": "/api/claude.js" },
     { "src": "/api/search", "dest": "/api/search.js" },
