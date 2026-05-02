@@ -54,6 +54,11 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-h
 .nbadge{margin-right:auto;background:var(--accent);color:#fff;font-size:10px;padding:1px 6px;border-radius:20px;font-weight:600}
 .ntag{margin-right:auto;font-size:9px;padding:2px 6px;border-radius:4px}
 .tool-badge{display:inline-block;margin:3px 2px 0;font-size:10px;padding:2px 7px;border-radius:4px;background:var(--accent-light);color:var(--accent);border:1px solid var(--accent);opacity:.85}
+.tdot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--text3);margin:0 2px;animation:tdot 1.2s infinite}
+.tdot:nth-child(2){animation-delay:.2s}.tdot:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.msg-ts{font-size:10px;color:var(--text3);margin-top:3px;display:block;text-align:left}
+.robot-badge{display:inline-flex;align-items:center;font-size:9px;padding:1px 5px;border-radius:3px;background:#7c3aed22;color:#7c3aed;margin-right:2px}
 .sidebar-btm{padding:10px;border-top:1px solid var(--border)}
 .vbtn{width:100%;padding:9px;background:var(--accent-light);border:1.5px solid var(--accent);border-radius:var(--radius-sm);color:var(--accent);font-size:13px;font-family:'Heebo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-weight:600;transition:all 0.2s}
 .vbtn:hover{background:var(--accent);color:#fff}
@@ -663,6 +668,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
       </div>
     </div>
   </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
   <div class="card">
     <div class="ch"><div class="ct">🤖 סוכן אוטונומי</div>
       <span class="ca" onclick="refreshAgentResults()">רענן ↻</span></div>
@@ -670,6 +676,14 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div id="dash-agent-summary" style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:8px"></div>
     <div id="dash-agent-jobs" style="margin-bottom:6px"></div>
     <div id="dash-agent-apts"></div>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ct">📰 חדשות</div>
+      <span class="ca" onclick="goPage('news',null)">פתח →</span>
+      <span class="ca" onclick="dashFetchNews()">רענן ↻</span></div>
+    <div id="dash-news-ts" style="font-size:11px;color:var(--text3);margin-bottom:6px"></div>
+    <div id="dash-news-content" style="font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-line">לחץ "רענן" לסיכום חדשות מהיר.</div>
+  </div>
   </div>
 </div>
 
@@ -1746,6 +1760,20 @@ function buildSystemPrompt(base){
   return `${base}\n\nתאריך היום: ${dateStr}.`;
 }
 
+function initClearMemoryBtns(){
+  document.querySelectorAll('.live-voice-btn').forEach(btn=>{
+    const m=btn.getAttribute('onclick')?.match(/'([^']+)'/);
+    if(!m)return;
+    const agentId=m[1];
+    const clearBtn=document.createElement('button');
+    clearBtn.className='btn bs bsm';
+    clearBtn.style.cssText='font-size:10px;padding:2px 5px;opacity:.55;margin-left:3px';
+    clearBtn.title='נקה זיכרון שיחה';clearBtn.textContent='🗑';
+    clearBtn.onclick=()=>{if(confirm('לנקות זיכרון השיחה עם הסוכן הזה?'))clearAgentMemory(agentId);};
+    btn.parentNode.insertBefore(clearBtn,btn.nextSibling);
+  });
+}
+
 function init(){
   const d=new Date();
   document.getElementById('td').textContent=`${d.getDate()} ב${MO[d.getMonth()]} ${d.getFullYear()}`;
@@ -1758,8 +1786,11 @@ function init(){
   renderUserProfile();
   loadDynProjects();
   renderNewsTopics();
+  initClearMemoryBtns();
   // Init Kanban after DOM is ready
   setTimeout(()=>{if(typeof renderKanban==='function')renderKanban();},100);
+  // Auto-fetch dashboard news if topics configured
+  if((S.newsTopics||[]).length)setTimeout(dashFetchNews,1500);
 }
 
 function renderAll(){
@@ -1793,6 +1824,7 @@ function taskHTML(t,full=false){
     <div class="tck ${t.done?'done':''}">${t.done?'<span style="color:#fff;font-size:10px;font-weight:700">✓</span>':''}</div>
     <div style="flex:1;min-width:0">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        ${t.createdBy==='agent'?'<span class="robot-badge">🤖</span>':''}
         <span class="ttxt ${t.done?'done':''}">${t.text}</span>
         <span class="ttag ${CTAGS[t.cat]||'tw'}">${CATS[t.cat]||t.cat}</span>
         <span class="bdg bdg-gr" style="font-size:9px">${PERS[t.period]||''}</span>
@@ -1903,7 +1935,7 @@ function renderDashHabits(){
     <div class="ti" style="cursor:default">
       <div style="font-size:12px;flex:1">${h.name}</div>
       <div style="display:flex;gap:3px">${h.days.map((d,di)=>`<div class="drop" style="width:24px;height:24px;font-size:11px;${d?'background:var(--green);border-color:var(--green);':''}" onclick="toggleHabit(${hi},${di})">${d?'✓':DH[di]}</div>`).join('')}</div>
-    </div>`).join('');
+    </div>`).join('')||'<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">אין הרגלים — אמור לסוכן "הוסף הרגל: ..."</div>';
 }
 function toggleHabit(hi,di){S.habits[hi].days[di]=S.habits[hi].days[di]?0:1;save();renderDashHabits();}
 
@@ -3119,6 +3151,7 @@ async function sendChat(ctx){
   // Load memory + add user message
   const memory=loadAgentMemory(ctx);
   memory.push({role:'user',content:msgToSend});
+  const chatContainer=document.getElementById(chatId);
 
   let reply='';
   try{
@@ -3132,7 +3165,7 @@ async function sendChat(ctx){
       if(!curData.trim()){curEvent='';curData='';return;}
       try{
         const d=JSON.parse(curData);
-        if(curEvent==='text'&&d.delta){reply+=d.delta;if(bubble)renderMarkdownMsg(bubble,reply);}
+        if(curEvent==='text'&&d.delta){reply+=d.delta;if(bubble)renderMarkdownMsg(bubble,reply);if(chatContainer)chatContainer.scrollTop=chatContainer.scrollHeight;}
         else if(curEvent==='tool_call'&&d.name){
           executeClientTool(d.name,d.input||{});
           if(bubble){const badge=document.createElement('span');badge.className='tool-badge';badge.textContent='⚡ '+d.name.replace(/_/g,' ');bubble.parentNode.insertBefore(badge,bubble.nextSibling);}
@@ -3429,12 +3462,18 @@ function addMsgToEl(chatEl,role,text){
   const div=document.createElement('div');
   div.className=`msg ${role==='user'?'u':''}`;
   const mbEl=document.createElement('div');mbEl.className='mb';
-  if(role==='ai'&&typeof marked!=='undefined'){
+  const isTyping=role==='ai'&&text==='...';
+  if(isTyping){
+    mbEl.innerHTML='<span class="tdot"></span><span class="tdot"></span><span class="tdot"></span>';
+  } else if(role==='ai'&&typeof marked!=='undefined'){
     try{mbEl.innerHTML=marked.parse(text||'',{breaks:true,gfm:true});}
     catch{mbEl.textContent=text||'';}
   } else {mbEl.textContent=text||'';}
+  const tsEl=document.createElement('span');
+  tsEl.className='msg-ts';
+  tsEl.textContent=new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
   div.innerHTML=`<div class="mav ${role==='ai'?'ai':'u'}">${role==='ai'?'AI':'ר'}</div>`;
-  div.appendChild(mbEl);
+  div.appendChild(mbEl);div.appendChild(tsEl);
   chatEl.appendChild(div);chatEl.scrollTop=chatEl.scrollHeight;
   return div;
 }
@@ -4605,9 +4644,33 @@ async function fetchNewsDigest(){
     const d=await r.json();
     if(cEl)cEl.textContent=d.summary||'לא נמצאו תוצאות';
     if(tsEl)tsEl.textContent=`עדכון: ${d.cached?'מטמון — ':''}`+new Date(d.ts).toLocaleTimeString('he-IL');
+    // Sync to dashboard news widget
+    const dc=document.getElementById('dash-news-content');const dt=document.getElementById('dash-news-ts');
+    if(dc)dc.textContent=(d.summary||'').split('\n').slice(0,6).join('\n');
+    if(dt)dt.textContent=(d.cached?'מטמון — ':'')+new Date(d.ts).toLocaleTimeString('he-IL');
   }catch{
     if(cEl)cEl.textContent='שגיאה בטעינת חדשות';
     if(tsEl)tsEl.textContent='שגיאה';
+  }
+}
+
+// ─── DASHBOARD NEWS SNIPPET ──────────────────────────────────────────────────
+async function dashFetchNews(){
+  const topics=S.newsTopics||[];
+  const tsEl=document.getElementById('dash-news-ts');
+  const cEl=document.getElementById('dash-news-content');
+  if(!topics.length){if(cEl)cEl.textContent='הוסף נושאים בדף חדשות תחילה.';return;}
+  if(tsEl)tsEl.textContent='טוען...';
+  if(cEl)cEl.textContent='מחפש...';
+  try{
+    const r=await fetch('/api/news-digest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topics})});
+    const d=await r.json();
+    const summary=(d.summary||'').split('\n').slice(0,6).join('\n');
+    if(cEl)cEl.textContent=summary||'לא נמצאו תוצאות';
+    if(tsEl)tsEl.textContent=(d.cached?'מטמון — ':'')+new Date(d.ts).toLocaleTimeString('he-IL');
+  }catch{
+    if(cEl)cEl.textContent='שגיאה בטעינת חדשות';
+    if(tsEl)tsEl.textContent='';
   }
 }
 
