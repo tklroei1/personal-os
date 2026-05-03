@@ -14,6 +14,7 @@
     { "src": "/api/match-score", "dest": "/api/match-score.js" },
     { "src": "/api/log-error", "dest": "/api/log-error.js" },
     { "src": "/api/google-callback", "dest": "/api/google-callback.js" },
+    { "src": "/api/whatsapp-command", "dest": "/api/whatsapp-command.js" },
     { "src": "/api/whatsapp/send", "dest": "/api/whatsapp/send.js" },
     { "src": "/api/cron/job-hunt", "dest": "/api/cron/job-hunt.js" },
     { "src": "/api/news-digest", "dest": "/api/news-digest.js" },

@@ -1989,6 +1989,9 @@ function init(){
   setTimeout(()=>{if(typeof renderKanban==='function')renderKanban();},100);
   // Auto-fetch dashboard news if topics configured
   if((S.newsTopics||[]).length)setTimeout(dashFetchNews,1500);
+  // WhatsApp command polling + deadline state push
+  setTimeout(pushStateToServer,3000);
+  setInterval(pollWebhook,30000);
 }
 
 function renderAll(){
@@ -5531,6 +5534,47 @@ function editDSExam(id){
     document.getElementById('dse-loc').value=e.location||'';
     document.getElementById('dse-notes').value=e.notes||'';
   },30);
+}
+
+// ── WHATSAPP INTEGRATION ─────────────────────────────────────────────────────
+async function pollWebhook(){
+  try{
+    const r=await fetch('/api/webhook');
+    if(!r.ok)return;
+    const d=await r.json();
+    (d.commands||[]).forEach(handleWebhookCommand);
+  }catch{}
+}
+
+function handleWebhookCommand(cmd){
+  const a=cmd.action;
+  if(a==='ds_add_exam'){
+    if(!DS)loadDS();
+    DS.exams.push({id:'dse'+Date.now(),title:cmd.title||'',date:cmd.date||(new Date().toISOString().split('T')[0]+'T09:00'),type:cmd.type||'exam',courseId:cmd.courseId||'',notes:cmd.notes||'',location:'',grade:null,googleEventId:null,calendarSynced:false});
+    saveDS();renderDSHW();renderDSCourses();updateDSStats();
+    showNotif('📱 '+(cmd.title||'מבחן')+' נוסף מ-WhatsApp');
+  }else if(a==='ds_add_hw'){
+    if(!DS)loadDS();
+    DS.homework.push({id:'dsh'+Date.now(),title:cmd.title||'',dueDate:cmd.dueDate||(new Date().toISOString().split('T')[0]),courseId:cmd.courseId||'',status:'not_started',notes:cmd.notes||'',grade:null,googleEventId:null,calendarSynced:false});
+    saveDS();renderDSHW();
+    showNotif('📱 '+(cmd.title||'שיעורי בית')+' נוספו מ-WhatsApp');
+  }else if(a==='finance_add_expense'){
+    S.finance.unshift({id:Date.now(),ts:new Date().toISOString(),type:'expense',amount:parseFloat(cmd.amount)||0,currency:'ILS',merchant:cmd.description||cmd.merchant||'',category:cmd.category||'אחר'});
+    save();renderFinance();
+    showNotif('📱 הוצאה נוספה מ-WhatsApp');
+  }
+}
+
+function pushStateToServer(){
+  try{
+    if(!DS)loadDS();
+    fetch('/api/whatsapp-command',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'push_state',params:{
+        homework:(DS.homework||[]).map(h=>({title:h.title,dueDate:h.dueDate,status:h.status})),
+        exams:(DS.exams||[]).map(e=>({title:e.title,date:e.date,type:e.type}))
+      }})
+    }).catch(()=>{});
+  }catch{}
 }
 
 function deleteDSExam(id){
