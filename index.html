@@ -59,6 +59,59 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-h
 @keyframes tdot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
 .msg-ts{font-size:10px;color:var(--text3);margin-top:3px;display:block;text-align:left}
 .robot-badge{display:inline-flex;align-items:center;font-size:9px;padding:1px 5px;border-radius:3px;background:#7c3aed22;color:#7c3aed;margin-right:2px}
+/* ── DS/AI MODULE ── */
+.ds-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border)}
+.ds-tab{padding:9px 16px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap}
+.ds-tab:hover{color:var(--text)}
+.ds-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.ds-tab-content{display:none}.ds-tab-content.active{display:block}
+.course-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:768px){.course-grid{grid-template-columns:1fr}}
+.course-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 14px 14px 14px;position:relative;transition:box-shadow .15s}
+.course-card:hover{box-shadow:var(--shadow-md)}
+.course-grade{font-family:'Space Mono',monospace;font-size:26px;font-weight:700}
+.ds-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.ds-stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;text-align:center}
+.ds-stat-val{font-size:22px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent)}
+.ds-stat-lbl{font-size:10px;color:var(--text3);margin-top:2px}
+@media(max-width:600px){.ds-stats{grid-template-columns:repeat(2,1fr)}}
+.hw-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:6px;transition:opacity .15s}
+.hw-check{width:18px;height:18px;min-width:18px;border-radius:4px;border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:2px;transition:all .15s}
+.hw-check.done{background:var(--green);border-color:var(--green)}
+.exam-card{padding:12px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border);border-right:3px solid #f7971e;margin-bottom:8px}
+.hw-status-ns{background:#ff6b6b22;color:#ff6b6b}
+.hw-status-ip{background:#f7971e22;color:#f7971e}
+.hw-status-dn{background:#43e97b22;color:#43e97b}
+.due-overdue{color:#ff6b6b;font-weight:600}
+.due-today{color:#f7971e;font-weight:600}
+.due-soon{color:#f7971e}
+.due-ok{color:var(--text3)}
+.grade-hi{color:#43e97b}.grade-mid{color:#f7971e}.grade-lo{color:#ff6b6b}
+.tools-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:768px){.tools-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.tools-grid{grid-template-columns:1fr}}
+.tool-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .15s;text-decoration:none;display:block;color:var(--text)}
+.tool-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.biu-links{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:480px){.biu-links{grid-template-columns:1fr}}
+.biu-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--text);transition:all .15s}
+.biu-card:hover{border-color:var(--accent)}
+.color-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.color-dot{width:26px;height:26px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border .15s}
+.color-dot.sel{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+.ds-lbl{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;display:block}
+.sched-wrap{overflow-x:auto;margin-top:4px}
+.sched-grid{display:grid;grid-template-columns:40px repeat(6,1fr);position:relative}
+.sched-hdr{font-size:11px;color:var(--text3);text-align:center;padding:6px 2px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:3}
+.sched-hdr.today{color:var(--accent);font-weight:700;background:var(--accent-light)}
+.sched-time-cell{font-size:9px;color:var(--text3);text-align:center;font-family:'Space Mono',monospace;border-bottom:1px solid var(--border)11;padding-top:1px;background:var(--bg2)}
+.sched-cell{border-left:1px solid var(--border)22;border-bottom:1px solid var(--border)11;position:relative}
+.sched-block{position:absolute;inset:1px 2px;border-radius:4px;padding:3px 5px;font-size:10px;overflow:hidden;line-height:1.3;border-right:3px solid currentColor}
+.sched-deadline{position:absolute;bottom:2px;right:2px;left:2px;font-size:9px;line-height:1.3}
+.ds-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:16px}
+.ds-modal.open{display:flex}
+.ds-modal-box{background:var(--bg2);border-radius:var(--radius);padding:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-md)}
+.slot-row{display:grid;grid-template-columns:auto auto auto auto 28px;gap:6px;margin-bottom:6px;align-items:center}
 .sidebar-btm{padding:10px;border-top:1px solid var(--border)}
 .vbtn{width:100%;padding:9px;background:var(--accent-light);border:1.5px solid var(--accent);border-radius:var(--radius-sm);color:var(--accent);font-size:13px;font-family:'Heebo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-weight:600;transition:all 0.2s}
 .vbtn:hover{background:var(--accent);color:#fff}
@@ -548,6 +601,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div class="nav-sec">פרויקטים</div>
     <button class="btn bp bsm" onclick="openTemplateGallery(false)" style="margin:4px 8px 2px;width:calc(100% - 16px);font-size:11px">+ פרויקט</button>
     <div id="tmpl-nav-items"></div>
+    <div class="ni" onclick="goPage('ds-ai',this)"><span class="ni-icon">🧠</span>דאטה סיינס & AI<span class="ntag" style="background:var(--purple-bg);color:var(--purple)">M.Sc</span></div>
     <div class="ni" onclick="goPage('jobs',this)"><span class="ni-icon">💼</span>חיפוש עבודה<span class="ntag" style="background:var(--blue-bg);color:var(--blue)">פעיל</span></div>
     <div class="ni" onclick="goPage('upselles',this)"><span class="ni-icon">🚀</span>Upselles<span class="ntag" style="background:var(--purple-bg);color:var(--purple)">MVP</span></div>
     <div class="ni" onclick="goPage('health',this)"><span class="ni-icon">💪</span>כושר ותזונה</div>
@@ -684,6 +738,141 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div id="dash-news-ts" style="font-size:11px;color:var(--text3);margin-bottom:6px"></div>
     <div id="dash-news-content" style="font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-line">לחץ "רענן" לסיכום חדשות מהיר.</div>
   </div>
+  </div>
+</div>
+
+<!-- DATA SCIENCE & AI -->
+<div class="page" id="page-ds-ai">
+  <div class="ds-stats">
+    <div class="ds-stat"><div class="ds-stat-val" id="ds-n-courses">0</div><div class="ds-stat-lbl">מקצועות</div></div>
+    <div class="ds-stat"><div class="ds-stat-val" id="ds-n-hw">0</div><div class="ds-stat-lbl">ש"ב ממתינים</div></div>
+    <div class="ds-stat"><div class="ds-stat-val" id="ds-n-exams">0</div><div class="ds-stat-lbl">מבחנים קרובים</div></div>
+    <div class="ds-stat"><div class="ds-stat-val" id="ds-gpa">—</div><div class="ds-stat-lbl">ממוצע</div></div>
+  </div>
+  <div class="ds-tabs">
+    <div class="ds-tab active" onclick="switchDSTab('courses',this)">📚 מקצועות</div>
+    <div class="ds-tab" onclick="switchDSTab('hw',this)">📝 ש"ב ומבחנים</div>
+    <div class="ds-tab" onclick="switchDSTab('schedule',this)">📅 לוח זמנים</div>
+    <div class="ds-tab" onclick="switchDSTab('tools',this)">🤖 כלי AI</div>
+  </div>
+  <!-- Tab: Courses -->
+  <div class="ds-tab-content active" id="dstab-courses">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button class="btn bp bsm" onclick="openDSModal('course')">+ מקצוע</button>
+    </div>
+    <div class="course-grid" id="ds-course-grid"></div>
+  </div>
+  <!-- Tab: HW + Exams -->
+  <div class="ds-tab-content" id="dstab-hw">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <div class="fchip on" data-dsf="all" onclick="dsDSFilter(this,'all')">הכל</div>
+        <div class="fchip" data-dsf="hw" onclick="dsDSFilter(this,'hw')">שיעורי בית</div>
+        <div class="fchip" data-dsf="exams" onclick="dsDSFilter(this,'exams')">מבחנים</div>
+        <div class="fchip" data-dsf="overdue" onclick="dsDSFilter(this,'overdue')">איחור</div>
+        <div class="fchip" data-dsf="week" onclick="dsDSFilter(this,'week')">השבוע</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn bs bsm" onclick="openDSModal('hw')">+ שיעורי בית</button>
+        <button class="btn bp bsm" onclick="openDSModal('exam')">+ מבחן/עבודה</button>
+      </div>
+    </div>
+    <div id="ds-hw-list"></div>
+  </div>
+  <!-- Tab: Schedule -->
+  <div class="ds-tab-content" id="dstab-schedule">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;gap:6px">
+        <button class="btn bs bsm" onclick="dsSchedShift(-1)">→ הקודמת</button>
+        <button class="btn bs bsm" onclick="dsSchedToday()">היום</button>
+        <button class="btn bs bsm" onclick="dsSchedShift(1)">הבאה ←</button>
+      </div>
+      <div id="ds-sched-label" style="font-size:13px;color:var(--text2);font-weight:500"></div>
+    </div>
+    <div class="sched-wrap"><div id="ds-sched" class="sched-grid"></div></div>
+  </div>
+  <!-- Tab: AI Tools -->
+  <div class="ds-tab-content" id="dstab-tools">
+    <div class="ch" style="margin-bottom:12px"><div class="ct">🤖 כלי AI מומלצים</div></div>
+    <div class="tools-grid" id="ds-tools-grid" style="margin-bottom:24px"></div>
+    <div class="ch" style="margin-bottom:12px"><div class="ct">🎓 קישורי בר-אילן</div></div>
+    <div class="biu-links" id="ds-biu-grid"></div>
+  </div>
+</div>
+
+<!-- DS: Add Course Modal -->
+<div class="ds-modal" id="dsm-course" onkeydown="if(event.key==='Escape')closeDSModal('course')">
+  <div class="ds-modal-box">
+    <div class="ch" style="margin-bottom:14px"><div class="ct" style="font-size:15px">📚 הוסף מקצוע</div><button class="bi" onclick="closeDSModal('course')">✕</button></div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div><span class="ds-lbl">שם המקצוע (עברית) *</span><input class="inp" id="dsc-name" placeholder="למידת מכונה" style="width:100%;box-sizing:border-box"></div>
+      <div><span class="ds-lbl">שם באנגלית</span><input class="inp" id="dsc-name-en" placeholder="Machine Learning" style="width:100%;box-sizing:border-box"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><span class="ds-lbl">ש"ס</span><input class="inp" id="dsc-credits" type="number" min="1" max="10" value="3" style="width:100%;box-sizing:border-box"></div>
+        <div><span class="ds-lbl">פרופסור</span><input class="inp" id="dsc-prof" placeholder="שם הפרופסור" style="width:100%;box-sizing:border-box"></div>
+      </div>
+      <div><span class="ds-lbl">צבע</span><div class="color-grid" id="dsc-colors"></div></div>
+      <div><span class="ds-lbl">התקדמות: <span id="dsc-prog-val">0%</span></span><input type="range" class="inp" id="dsc-prog" min="0" max="100" value="0" style="width:100%;padding:4px 0" oninput="document.getElementById('dsc-prog-val').textContent=this.value+'%'"></div>
+      <div>
+        <span class="ds-lbl">מפגשים שבועיים</span>
+        <div id="dsc-slots"></div>
+        <button class="btn bs bsm" style="margin-top:6px;font-size:12px" onclick="addDSSlot()">+ הוסף מפגש</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
+      <button class="btn bs" onclick="closeDSModal('course')">ביטול</button>
+      <button class="btn bp" onclick="saveDSCourse()">שמור מקצוע</button>
+    </div>
+  </div>
+</div>
+
+<!-- DS: Add HW Modal -->
+<div class="ds-modal" id="dsm-hw" onkeydown="if(event.key==='Escape')closeDSModal('hw')">
+  <div class="ds-modal-box" style="max-width:420px">
+    <div class="ch" style="margin-bottom:14px"><div class="ct" style="font-size:15px">📝 הוסף שיעורי בית</div><button class="bi" onclick="closeDSModal('hw')">✕</button></div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div><span class="ds-lbl">כותרת *</span><input class="inp" id="dsh-title" placeholder="HW1 – Linear Regression" style="width:100%;box-sizing:border-box"></div>
+      <div><span class="ds-lbl">מקצוע</span><select class="inp" id="dsh-course" style="width:100%;box-sizing:border-box"><option value="">כללי</option></select></div>
+      <div><span class="ds-lbl">תאריך הגשה *</span><input class="inp" type="date" id="dsh-due" style="width:100%;box-sizing:border-box"></div>
+      <div><span class="ds-lbl">תיאור</span><textarea class="inp" id="dsh-desc" rows="2" placeholder="פרטים נוספים..." style="width:100%;box-sizing:border-box"></textarea></div>
+      <div><span class="ds-lbl">סטטוס</span>
+        <select class="inp" id="dsh-status" style="width:100%;box-sizing:border-box">
+          <option value="not_started">לא התחלתי</option>
+          <option value="in_progress">בתהליך</option>
+          <option value="done">הגשתי</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
+      <button class="btn bs" onclick="closeDSModal('hw')">ביטול</button>
+      <button class="btn bp" onclick="saveDSHW()">שמור</button>
+    </div>
+  </div>
+</div>
+
+<!-- DS: Add Exam Modal -->
+<div class="ds-modal" id="dsm-exam" onkeydown="if(event.key==='Escape')closeDSModal('exam')">
+  <div class="ds-modal-box" style="max-width:420px">
+    <div class="ch" style="margin-bottom:14px"><div class="ct" style="font-size:15px">📋 הוסף מבחן / עבודה</div><button class="bi" onclick="closeDSModal('exam')">✕</button></div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div><span class="ds-lbl">כותרת *</span><input class="inp" id="dse-title" placeholder="מבחן אמצע" style="width:100%;box-sizing:border-box"></div>
+      <div><span class="ds-lbl">סוג</span>
+        <select class="inp" id="dse-type" style="width:100%;box-sizing:border-box">
+          <option value="exam">📝 מבחן</option>
+          <option value="quiz">🧪 בוחן</option>
+          <option value="assignment">📋 עבודה</option>
+          <option value="project">🏗 פרויקט</option>
+        </select>
+      </div>
+      <div><span class="ds-lbl">מקצוע</span><select class="inp" id="dse-course" style="width:100%;box-sizing:border-box"><option value="">כללי</option></select></div>
+      <div><span class="ds-lbl">תאריך ושעה *</span><input class="inp" type="datetime-local" id="dse-date" style="width:100%;box-sizing:border-box"></div>
+      <div><span class="ds-lbl">מיקום</span><input class="inp" id="dse-loc" placeholder="אולם 301" style="width:100%;box-sizing:border-box"></div>
+      <div><span class="ds-lbl">הערות</span><textarea class="inp" id="dse-notes" rows="2" style="width:100%;box-sizing:border-box"></textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
+      <button class="btn bs" onclick="closeDSModal('exam')">ביטול</button>
+      <button class="btn bp" onclick="saveDSExam()">שמור</button>
+    </div>
   </div>
 </div>
 
@@ -1804,13 +1993,14 @@ function goPage(p,el){
   document.getElementById('page-'+p).classList.add('active');
   document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
   if(el)el.classList.add('active');
-  const T={dashboard:'דשבורד',agenda:'לוז שבועי',tasks:'משימות',reminders:'תזכורות',jobs:'חיפוש עבודה',upselles:'Upselles',health:'כושר ותזונה',apartment:'מציאת דירה',family:'זמן משפחתי',ideas:'רעיונות',journal:'יומן',goals:'מטרות',finance:'פיננסים',notes:'פתקים',inbox:'תיבת כניסה',news:'חדשות'};
+  const T={dashboard:'דשבורד',agenda:'לוז שבועי',tasks:'משימות',reminders:'תזכורות',jobs:'חיפוש עבודה',upselles:'Upselles',health:'כושר ותזונה',apartment:'מציאת דירה',family:'זמן משפחתי',ideas:'רעיונות',journal:'יומן',goals:'מטרות',finance:'פיננסים',notes:'פתקים',inbox:'תיבת כניסה',news:'חדשות','ds-ai':'🧠 דאטה סיינס & AI'};
   document.getElementById('pt').textContent=T[p]||p;
   if(p==='agenda')buildWeekGrid();
   if(p==='jobs'&&typeof renderKanban==='function')setTimeout(renderKanban,50);
   if(p==='finance')renderFinance();
   if(p==='notes')renderNotes();
   if(p==='inbox')renderInbox();
+  if(p==='ds-ai')renderDSPage();
 }
 
 // TASKS
@@ -4705,6 +4895,550 @@ async function refreshAgentResults(){
 }
 
 // Live voice buttons are hardcoded in HTML — no dynamic insertion needed.
+
+// ─── DATA SCIENCE & AI MODULE ─────────────────────────────────────────────────
+const DS_COLORS_PRESET=['#6c63ff','#ff6b6b','#43e97b','#f7971e','#4ecdc4','#a78bfa','#fb923c','#60a5fa'];
+const DS_DAY_NAMES=['ראשון','שני','שלישי','רביעי','חמישי','שישי'];
+const DS_TYPE_ICONS={exam:'📝',quiz:'🧪',assignment:'📋',project:'🏗'};
+const DS_TYPE_LABELS={exam:'מבחן',quiz:'בוחן',assignment:'עבודה',project:'פרויקט'};
+const DS_TYPE_SLOT={lecture:'הרצאה',tutorial:'תרגול',lab:'מעבדה'};
+
+let DS={courses:[],homework:[],exams:[]};
+let _dsCourseColor=DS_COLORS_PRESET[0];
+let _dsEditId=null;
+let _dsFilter='all';
+let _dsSchedOff=0;
+
+const DS_SAMPLE={
+  courses:[
+    {id:'ds1',name:'למידת מכונה',nameEn:'Machine Learning',credits:4,professor:'',color:'#6c63ff',progress:60,grade:null,homeworkIds:['dh1','dh2','dh3'],examIds:['de1'],schedule:[{day:1,startTime:'10:00',endTime:'12:00',type:'lecture',room:''}]},
+    {id:'ds2',name:'למידה עמוקה',nameEn:'Deep Learning',credits:4,professor:'',color:'#ff6b6b',progress:40,grade:null,homeworkIds:['dh4','dh5'],examIds:[],schedule:[{day:3,startTime:'14:00',endTime:'16:00',type:'lecture',room:''}]},
+    {id:'ds3',name:'סטטיסטיקה לדאטה סיינס',nameEn:'Statistics for DS',credits:3,professor:'',color:'#43e97b',progress:75,grade:88,homeworkIds:[],examIds:[],schedule:[{day:0,startTime:'09:00',endTime:'11:00',type:'lecture',room:''}]},
+  ],
+  homework:[
+    {id:'dh1',courseId:'ds1',title:'HW1 – Linear Regression',dueDate:'2026-04-01',status:'done'},
+    {id:'dh2',courseId:'ds1',title:'HW2 – Decision Trees',dueDate:'2026-04-20',status:'done'},
+    {id:'dh3',courseId:'ds1',title:'HW3 – Neural Networks',dueDate:'2026-05-15',status:'in_progress'},
+    {id:'dh4',courseId:'ds2',title:'HW1 – CNN Architecture',dueDate:'2026-04-10',status:'done'},
+    {id:'dh5',courseId:'ds2',title:'HW2 – RNN & LSTM',dueDate:'2026-05-20',status:'not_started'},
+  ],
+  exams:[
+    {id:'de1',courseId:'ds1',title:'מבחן אמצע',type:'exam',date:'2026-05-25T10:00',location:'אולם 301',notes:''},
+  ]
+};
+
+function dsKey(){return`pos_ds_${currentUser?.sub||'anon'}`;}
+function loadDS(){
+  try{const d=localStorage.getItem(dsKey());if(d)DS=JSON.parse(d);else DS=JSON.parse(JSON.stringify(DS_SAMPLE));}
+  catch{DS=JSON.parse(JSON.stringify(DS_SAMPLE));}
+}
+function saveDS(){try{localStorage.setItem(dsKey(),JSON.stringify(DS));}catch{}}
+
+function renderDSPage(){
+  loadDS();updateDSStats();
+  const activeTab=document.querySelector('#page-ds-ai .ds-tab-content.active')?.id?.replace('dstab-','')||'courses';
+  if(activeTab==='courses')renderDSCourses();
+  else if(activeTab==='hw')renderDSHW();
+  else if(activeTab==='schedule')renderDSSchedule();
+  else if(activeTab==='tools')renderDSTools();
+}
+
+function switchDSTab(tab,el){
+  document.querySelectorAll('#page-ds-ai .ds-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#page-ds-ai .ds-tab-content').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById(`dstab-${tab}`)?.classList.add('active');
+  loadDS();
+  if(tab==='courses')renderDSCourses();
+  else if(tab==='hw')renderDSHW();
+  else if(tab==='schedule')renderDSSchedule();
+  else if(tab==='tools')renderDSTools();
+}
+
+function updateDSStats(){
+  const today=new Date().toISOString().split('T')[0];
+  const in14=new Date();in14.setDate(in14.getDate()+14);
+  const in14str=in14.toISOString();
+  document.getElementById('ds-n-courses').textContent=DS.courses.length;
+  document.getElementById('ds-n-hw').textContent=DS.homework.filter(h=>h.status!=='done'&&h.dueDate>=today).length;
+  document.getElementById('ds-n-exams').textContent=DS.exams.filter(e=>e.date>=today&&e.date<=in14str).length;
+  const gs=DS.courses.filter(c=>c.grade!=null).map(c=>c.grade);
+  document.getElementById('ds-gpa').textContent=gs.length?Math.round(gs.reduce((a,b)=>a+b,0)/gs.length):'—';
+}
+
+// ── COURSES ────────────────────────────────────────────────────────────────────
+function renderDSCourses(){
+  const el=document.getElementById('ds-course-grid');if(!el)return;
+  if(!DS.courses.length){el.innerHTML='<div style="color:var(--text3);text-align:center;padding:40px;grid-column:1/-1">אין מקצועות — לחץ "+ מקצוע" להוספה</div>';return;}
+  el.innerHTML=DS.courses.map(c=>dsCourseCardHTML(c)).join('');
+}
+
+function dsGradeClass(g){return g==null?'':g>=85?'grade-hi':g>=70?'grade-mid':'grade-lo';}
+
+function dsCourseCardHTML(c){
+  const today=new Date().toISOString().split('T')[0];
+  const in3=new Date();in3.setDate(in3.getDate()+3);const in3s=in3.toISOString().split('T')[0];
+  const in14=new Date();in14.setDate(in14.getDate()+14);const in14s=in14.toISOString().split('T')[0];
+  const hw=DS.homework.filter(h=>h.courseId===c.id);
+  const hwDone=hw.filter(h=>h.status==='done').length;
+  const hwPend=hw.filter(h=>h.status!=='done'&&h.dueDate>=today).length;
+  const hwOver=hw.filter(h=>h.status!=='done'&&h.dueDate<today).length;
+  const hwSoon=hw.some(h=>h.status!=='done'&&h.dueDate>=today&&h.dueDate<=in3s);
+  const examUp=DS.exams.filter(e=>e.courseId===c.id&&e.date.split('T')[0]>=today&&e.date.split('T')[0]<=in14s);
+  const prog=hw.length?Math.round(hwDone/hw.length*100):c.progress;
+  return`<div class="course-card" style="border-right:4px solid ${c.color}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:700;margin-bottom:1px">${escH(c.name)}</div>
+        <div style="font-size:11px;color:var(--text3)">${c.nameEn?escH(c.nameEn)+' • ':''} ${c.credits} ש"ס${c.professor?' • '+escH(c.professor):''}</div>
+      </div>
+      ${c.grade!=null?`<div class="course-grade ${dsGradeClass(c.grade)}" style="margin-right:10px">${c.grade}</div>`:''}
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:3px"><span>התקדמות</span><span>${prog}%</span></div>
+      <div class="pb"><div class="pf" style="width:${prog}%;background:${c.color}"></div></div>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">
+      ${hwDone?`<span class="bdg bdg-gr" style="font-size:10px">${hwDone} ✓</span>`:''}
+      ${hwPend?`<span class="bdg" style="background:#f7971e22;color:#f7971e;font-size:10px">${hwPend} ⏳</span>`:''}
+      ${hwOver?`<span class="bdg" style="background:var(--red-bg);color:var(--red);font-size:10px">${hwOver} !</span>`:''}
+      ${hwSoon?`<span class="bdg" style="background:#f7971e22;color:#f7971e;font-size:10px">⚠ הגשה קרובה</span>`:''}
+      ${examUp.length?`<span class="bdg" style="background:var(--red-bg);color:var(--red);font-size:10px">📝 ${dsRelLabel(examUp[0].date)}</span>`:''}
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <button class="btn bs bsm" style="font-size:11px" onclick="event.stopPropagation();openDSModal('hw','${c.id}')">+ ש"ב</button>
+      <button class="btn bs bsm" style="font-size:11px" onclick="event.stopPropagation();openDSModal('exam','${c.id}')">+ מבחן</button>
+      <button class="btn bs bsm" style="font-size:11px" onclick="event.stopPropagation();editDSCourse('${c.id}')">ערוך</button>
+      <button class="btn bs bsm" style="font-size:11px;color:var(--red);margin-right:auto" onclick="event.stopPropagation();deleteDSCourse('${c.id}')">✕</button>
+    </div>
+  </div>`;
+}
+
+function dsRelLabel(isoDate){
+  const d=Math.ceil((new Date(isoDate)-new Date())/86400000);
+  return d<=0?'היום!':d===1?'מחר':`בעוד ${d}ד`;
+}
+
+// ── HW + EXAMS TAB ────────────────────────────────────────────────────────────
+function dsDSFilter(el,f){
+  document.querySelectorAll('[data-dsf]').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');_dsFilter=f;renderDSHW();
+}
+
+function renderDSHW(){
+  const el=document.getElementById('ds-hw-list');if(!el)return;
+  const today=new Date().toISOString().split('T')[0];
+  const in7=new Date();in7.setDate(in7.getDate()+7);const in7s=in7.toISOString().split('T')[0];
+
+  let hwList=[...DS.homework];
+  let exList=[...DS.exams];
+
+  if(_dsFilter==='hw')exList=[];
+  else if(_dsFilter==='exams')hwList=[];
+  else if(_dsFilter==='overdue'){
+    hwList=hwList.filter(h=>h.status!=='done'&&h.dueDate<today);
+    exList=exList.filter(e=>e.date.split('T')[0]<today);
+  } else if(_dsFilter==='week'){
+    hwList=hwList.filter(h=>h.dueDate>=today&&h.dueDate<=in7s);
+    exList=exList.filter(e=>{const d=e.date.split('T')[0];return d>=today&&d<=in7s;});
+  }
+
+  const items=[
+    ...hwList.map(h=>({sort:h.dueDate,html:dsHWItemHTML(h)})),
+    ...exList.map(e=>({sort:e.date.split('T')[0],html:dsExamCardHTML(e)})),
+  ];
+  // Overdue first, then by date
+  items.sort((a,b)=>a.sort.localeCompare(b.sort));
+
+  if(!items.length){el.innerHTML='<div style="color:var(--text3);text-align:center;padding:32px">אין פריטים בסינון הנוכחי</div>';return;}
+  el.innerHTML=items.map(i=>i.html).join('');
+}
+
+function dsHWItemHTML(h){
+  const course=DS.courses.find(c=>c.id===h.courseId);
+  const today=new Date().toISOString().split('T')[0];
+  const in3=new Date();in3.setDate(in3.getDate()+3);const in3s=in3.toISOString().split('T')[0];
+  const over=h.status!=='done'&&h.dueDate<today;
+  const isToday=h.dueDate===today;
+  const soon=!over&&!isToday&&h.dueDate<=in3s&&h.status!=='done';
+  const dueClass=over?'due-overdue':isToday?'due-today':soon?'due-soon':'due-ok';
+  const dueLabel=over?'איחור! '+h.dueDate:isToday?'היום':dsRelLabel(h.dueDate)+' ('+h.dueDate+')';
+  const sLabel={not_started:'לא התחלתי',in_progress:'בתהליך',done:'הגשתי'}[h.status]||h.status;
+  const sCls={'not_started':'hw-status-ns','in_progress':'hw-status-ip','done':'hw-status-dn'}[h.status]||'';
+  return`<div class="hw-item" style="${over?'border-color:var(--red);':''};opacity:${h.status==='done'?.65:1}">
+    <div class="hw-check ${h.status==='done'?'done':''}" onclick="toggleDSHW('${h.id}')">${h.status==='done'?'<span style="color:#fff;font-size:10px;font-weight:700">✓</span>':''}</div>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+        <span style="font-size:13px;${h.status==='done'?'text-decoration:line-through;color:var(--text3)':''}">${escH(h.title)}</span>
+        ${course?`<span class="bdg" style="background:${course.color}22;color:${course.color};font-size:10px">${escH(course.name)}</span>`:''}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span class="${dueClass}" style="font-size:11px">${dueLabel}</span>
+        <span class="bdg ${sCls}" style="font-size:10px">${sLabel}</span>
+        ${h.grade!=null?`<span style="font-family:'Space Mono',monospace;font-size:11px;${dsGradeClass(h.grade)?'color:var(--'+h.grade>=85?'green':'warning'+')'||'':''}">${h.grade}</span>`:''}
+      </div>
+    </div>
+    <div style="display:flex;gap:3px;flex-shrink:0">
+      <button class="bi" onclick="editDSHW('${h.id}')" title="ערוך">✏️</button>
+      <button class="bi" onclick="deleteDSHW('${h.id}')">✕</button>
+    </div>
+  </div>`;
+}
+
+function dsExamCardHTML(e){
+  const course=DS.courses.find(c=>c.id===e.courseId);
+  const today=new Date().toISOString().split('T')[0];
+  const eDate=e.date.split('T')[0];
+  const over=eDate<today;
+  const d=Math.ceil((new Date(e.date)-new Date())/86400000);
+  const urgentColor=d<=3?'#ff6b6b':d<=7?'#f7971e':'var(--text3)';
+  return`<div class="exam-card" style="${over?'border-right-color:var(--text3);opacity:.6':''}">
+    <div style="display:flex;align-items:flex-start;gap:8px">
+      <span style="font-size:18px;margin-top:1px">${DS_TYPE_ICONS[e.type]||'📝'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+          <span style="font-size:13px;font-weight:600">${escH(e.title)}</span>
+          <span class="bdg" style="font-size:10px">${DS_TYPE_LABELS[e.type]||e.type}</span>
+          ${course?`<span class="bdg" style="background:${course.color}22;color:${course.color};font-size:10px">${escH(course.name)}</span>`:''}
+        </div>
+        <div style="display:flex;gap:10px;font-size:11px;flex-wrap:wrap">
+          <span style="color:var(--text3)">${e.date.replace('T',' ')}</span>
+          ${!over&&d>=0?`<span style="color:${urgentColor};font-weight:${d<=3?600:400}">${d===0?'היום!':d===1?'מחר':`בעוד ${d} ימים`}</span>`:''}
+          ${e.location?`<span style="color:var(--text3)">📍 ${escH(e.location)}</span>`:''}
+          ${e.grade!=null?`<span class="${dsGradeClass(e.grade)}" style="font-family:'Space Mono',monospace;font-weight:600">${e.grade}</span>`:''}
+        </div>
+        ${e.notes?`<div style="font-size:11px;color:var(--text2);margin-top:4px">${escH(e.notes)}</div>`:''}
+      </div>
+      <div style="display:flex;gap:3px;flex-shrink:0">
+        <button class="bi" onclick="editDSExam('${e.id}')" title="ערוך">✏️</button>
+        <button class="bi" onclick="deleteDSExam('${e.id}')">✕</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── SCHEDULE ──────────────────────────────────────────────────────────────────
+const SCHED_START_H=8,SCHED_END_H=22,SLOT_MIN=30,ROW_PX=22;
+const SCHED_SLOTS=(SCHED_END_H-SCHED_START_H)*60/SLOT_MIN;
+
+function dsSchedShift(d){_dsSchedOff+=d;renderDSSchedule();}
+function dsSchedToday(){_dsSchedOff=0;renderDSSchedule();}
+
+function dsWeekDates(off){
+  const t=new Date();const sun=new Date(t);sun.setDate(t.getDate()-t.getDay()+off*7);
+  return Array.from({length:6},(_,i)=>{const d=new Date(sun);d.setDate(sun.getDate()+i);return d;});
+}
+
+function dsTimeToSlot(t){const[h,m]=t.split(':').map(Number);return(h*60+m-SCHED_START_H*60)/SLOT_MIN;}
+
+function renderDSSchedule(){
+  const el=document.getElementById('ds-sched');if(!el)return;
+  const dates=dsWeekDates(_dsSchedOff);
+  const todayS=new Date().toISOString().split('T')[0];
+  const lbl=document.getElementById('ds-sched-label');
+  if(lbl)lbl.textContent=`${dates[0].getDate()}/${dates[0].getMonth()+1} – ${dates[5].getDate()}/${dates[5].getMonth()+1}`;
+
+  const hdrH=32;
+  const totalH=SCHED_SLOTS*ROW_PX+hdrH;
+
+  // Build base grid
+  let html=`<div style="display:grid;grid-template-columns:40px repeat(6,1fr);min-width:480px;position:relative;height:${totalH}px">`;
+
+  // Header
+  html+='<div class="sched-hdr"></div>';
+  dates.forEach((d,i)=>{
+    const isT=d.toISOString().split('T')[0]===todayS;
+    html+=`<div class="sched-hdr${isT?' today':''}" style="height:${hdrH}px">${DS_DAY_NAMES[i].charAt(0)}'<br><span style="font-size:10px">${d.getDate()}/${d.getMonth()+1}</span></div>`;
+  });
+
+  // Time labels + cells
+  for(let s=0;s<SCHED_SLOTS;s++){
+    const mins=SCHED_START_H*60+s*SLOT_MIN;
+    const h=Math.floor(mins/60),m=mins%60;
+    const top=hdrH+s*ROW_PX;
+    html+=`<div class="sched-time-cell" style="position:absolute;top:${top}px;left:0;width:40px;height:${ROW_PX}px">${m===0?`${String(h).padStart(2,'0')}:00`:''}</div>`;
+    for(let c=0;c<6;c++){
+      html+=`<div class="sched-cell" style="position:absolute;top:${top}px;left:${40+c*(100/6)*(el.offsetWidth?el.offsetWidth-40:440)/100}px;width:calc((100% - 40px)/6);height:${ROW_PX}px"></div>`;
+    }
+  }
+  html+='</div>';
+  el.innerHTML=html;
+
+  // We'll overlay blocks via absolute positioning after layout
+  const grid=el.querySelector('div');
+  if(!grid)return;
+  const colW=(el.clientWidth||540-40)/6;
+
+  // Course blocks (recurring)
+  DS.courses.forEach(c=>{
+    (c.schedule||[]).forEach(slot=>{
+      if(slot.day>5)return;
+      const startSlot=dsTimeToSlot(slot.startTime);
+      const endSlot=dsTimeToSlot(slot.endTime);
+      if(startSlot<0||endSlot<=startSlot)return;
+      const blk=document.createElement('div');
+      blk.className='sched-block';
+      blk.style.cssText=`top:${hdrH+startSlot*ROW_PX+1}px;left:${40+slot.day*colW+2}px;width:${colW-4}px;height:${(endSlot-startSlot)*ROW_PX-2}px;background:${c.color}22;border-right:3px solid ${c.color};color:${c.color}`;
+      blk.innerHTML=`<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escH(c.nameEn||c.name)}</div><div style="opacity:.7;font-size:9px">${DS_TYPE_SLOT[slot.type]||slot.type}${slot.room?' · '+slot.room:''}</div>`;
+      grid.appendChild(blk);
+    });
+  });
+
+  // Deadline markers
+  dates.forEach((date,di)=>{
+    const ds=date.toISOString().split('T')[0];
+    const dhw=DS.homework.filter(h=>h.dueDate===ds&&h.status!=='done');
+    const dex=DS.exams.filter(e=>e.date.split('T')[0]===ds);
+    if(!dhw.length&&!dex.length)return;
+    const mk=document.createElement('div');
+    mk.className='sched-deadline';
+    mk.style.cssText=`bottom:4px;left:${40+di*colW+2}px;width:${colW-4}px;`;
+    mk.innerHTML=[
+      ...dhw.map(h=>`<div style="color:#ff6b6b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escH(h.title)}">● ${escH(h.title)}</div>`),
+      ...dex.map(e=>`<div style="color:#f7971e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${DS_TYPE_ICONS[e.type]||'📝'} ${escH(e.title)}</div>`)
+    ].join('');
+    grid.appendChild(mk);
+  });
+}
+
+// ── AI TOOLS ──────────────────────────────────────────────────────────────────
+const AI_TOOLS_DATA=[
+  {name:'Claude',emoji:'🟠',tag:'ממליץ ⭐',tagBg:'var(--accent-light)',tagC:'var(--accent)',url:'https://claude.ai/new',desc:'הכי טוב להסבר מושגים מורכבים, קוד Python, ניתוח מאמרים ועזרה בשיעורי בית. הקשר הארוך ביותר.',best:['הסבר עמוק','קוד Python','ניתוח נתונים','כתיבה אקדמית']},
+  {name:'ChatGPT',emoji:'💚',tag:'חזק',tagBg:'#43e97b22',tagC:'#43e97b',url:'https://chatgpt.com/',desc:'מצוין לשאלות מהירות, חיפוש web, Code Interpreter ו-DALL-E. GPT-4o חזק בתמונות ודאטה.',best:['שאלות מהירות','חיפוש אינטרנט','Code Interpreter','תמונות']},
+  {name:'Gemini',emoji:'💙',tag:'Google',tagBg:'#f7971e22',tagC:'#f7971e',url:'https://gemini.google.com/app/6c46572354c2adc5',desc:'חזק עם Google Workspace, Drive, Gmail. Gemini 2.5 Pro מצטיין ב-reasoning מורכב וקוד ארוך.',best:['Google Docs','Reasoning מורכב','קוד ארוך','מחקר']},
+  {name:'NotebookLM',emoji:'📓',tag:'ייחודי',tagBg:'#43e97b22',tagC:'#43e97b',url:'https://notebooklm.google/',desc:'מושלם ללמוד מ-PDFs ומאמרים. מעלה חומרי לימוד וה-AI מסכם, עונה שאלות ויוצר podcasts.',best:['קריאת Papers','סיכום קורס','למידה מ-PDF','Podcast']},
+  {name:'Perplexity',emoji:'🔬',tag:'מומלץ',tagBg:'var(--accent-light)',tagC:'var(--accent)',url:'https://www.perplexity.ai/',desc:'מנוע חיפוש AI עם ציטוטים. מצוין לחיפוש SOTA, ספרות מחקרית ומצב עדכני של השוק.',best:['SOTA מחקר','ציטוטים','מצב השוק','שאלות עם מקורות']},
+  {name:'AI Router',emoji:'🤖',tag:'בקרוב',tagBg:'var(--bg3)',tagC:'var(--text3)',url:null,desc:'דשבורד חכם שיבחר את כלי ה-AI המתאים אוטומטית לפי סוג השאלה שלך.',best:['אוטומציה','בחירה חכמה','שלב הבא']},
+];
+const BIU_LINKS_DATA=[
+  {name:'אינבר',nameEn:'Bar-Ilan Student Portal',emoji:'🎓',url:'https://inbar.biu.ac.il/live/Login.aspx',desc:'ניהול הלמידה הראשית • ציונים, הגשות, לוח שנה'},
+  {name:'למידה – Moodle',nameEn:'BIU Moodle',emoji:'📚',url:'https://lemida.biu.ac.il/',desc:'חומרי קורס, מטלות, פורומים, וידאו הרצאות'},
+];
+
+function renderDSTools(){
+  const tEl=document.getElementById('ds-tools-grid');
+  const bEl=document.getElementById('ds-biu-grid');
+  if(tEl)tEl.innerHTML=AI_TOOLS_DATA.map(t=>`
+    <${t.url?`a href="${t.url}" target="_blank" rel="noopener"`:'div'} class="tool-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:20px">${t.emoji}</span>
+        <span style="font-size:14px;font-weight:700">${t.name}</span>
+        <span class="bdg" style="background:${t.tagBg};color:${t.tagC};font-size:10px;margin-right:auto">${t.tag}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:8px">${escH(t.desc)}</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:5px">הכי טוב ל:</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">${t.best.map(b=>`<span class="bdg" style="font-size:10px">${b}</span>`).join('')}</div>
+    </${t.url?'a':'div'}>`).join('');
+  if(bEl)bEl.innerHTML=BIU_LINKS_DATA.map(l=>`
+    <a href="${l.url}" target="_blank" rel="noopener" class="biu-card">
+      <span style="font-size:28px;flex-shrink:0">${l.emoji}</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:1px">${escH(l.name)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">${l.nameEn}</div>
+        <div style="font-size:12px;color:var(--text2)">${escH(l.desc)}</div>
+      </div>
+    </a>`).join('');
+}
+
+// ── MODALS ────────────────────────────────────────────────────────────────────
+function openDSModal(type,prefillCourse){
+  _dsEditId=null;
+  if(type==='course'){
+    _dsCourseColor=DS_COLORS_PRESET[0];
+    document.getElementById('dsc-name').value='';
+    document.getElementById('dsc-name-en').value='';
+    document.getElementById('dsc-credits').value='3';
+    document.getElementById('dsc-prof').value='';
+    document.getElementById('dsc-prog').value='0';
+    document.getElementById('dsc-prog-val').textContent='0%';
+    document.getElementById('dsc-slots').innerHTML='';
+    renderDSColorPicker();
+  } else if(type==='hw'){
+    const sel=document.getElementById('dsh-course');
+    sel.innerHTML='<option value="">כללי</option>'+DS.courses.map(c=>`<option value="${c.id}"${prefillCourse===c.id?' selected':''}>${escH(c.name)}</option>`).join('');
+    document.getElementById('dsh-title').value='';
+    document.getElementById('dsh-due').value=new Date().toISOString().split('T')[0];
+    document.getElementById('dsh-desc').value='';
+    document.getElementById('dsh-status').value='not_started';
+  } else if(type==='exam'){
+    const sel=document.getElementById('dse-course');
+    sel.innerHTML='<option value="">כללי</option>'+DS.courses.map(c=>`<option value="${c.id}"${prefillCourse===c.id?' selected':''}>${escH(c.name)}</option>`).join('');
+    document.getElementById('dse-title').value='';
+    document.getElementById('dse-type').value='exam';
+    document.getElementById('dse-date').value=new Date().toISOString().slice(0,16);
+    document.getElementById('dse-loc').value='';
+    document.getElementById('dse-notes').value='';
+  }
+  const el=document.getElementById(`dsm-${type}`);if(!el)return;
+  el.style.display='flex';setTimeout(()=>el.classList.add('open'),10);
+}
+
+function closeDSModal(type){
+  const el=document.getElementById(`dsm-${type}`);if(!el)return;
+  el.classList.remove('open');setTimeout(()=>{el.style.display='none';},180);
+}
+
+function renderDSColorPicker(){
+  const el=document.getElementById('dsc-colors');if(!el)return;
+  el.innerHTML=DS_COLORS_PRESET.map(c=>`<div class="color-dot${c===_dsCourseColor?' sel':''}" style="background:${c}" onclick="selectDSColor('${c}',this)"></div>`).join('');
+}
+
+function selectDSColor(c,dot){
+  _dsCourseColor=c;
+  document.querySelectorAll('#dsc-colors .color-dot').forEach(d=>d.classList.remove('sel'));
+  dot.classList.add('sel');
+}
+
+function addDSSlot(){
+  const el=document.getElementById('dsc-slots');if(!el)return;
+  const div=document.createElement('div');div.className='slot-row';
+  div.innerHTML=`
+    <select class="inp" data-f="day" style="font-size:12px;padding:5px 6px">${DS_DAY_NAMES.map((n,i)=>`<option value="${i}">${n}</option>`).join('')}</select>
+    <input class="inp" type="time" data-f="start" value="10:00" style="font-size:12px;padding:5px 6px">
+    <input class="inp" type="time" data-f="end" value="12:00" style="font-size:12px;padding:5px 6px">
+    <select class="inp" data-f="type" style="font-size:12px;padding:5px 6px"><option value="lecture">הרצאה</option><option value="tutorial">תרגול</option><option value="lab">מעבדה</option></select>
+    <button class="bi" onclick="this.closest('.slot-row').remove()">✕</button>`;
+  el.appendChild(div);
+}
+
+function collectSlots(){
+  return [...document.querySelectorAll('#dsc-slots .slot-row')].map(r=>({
+    day:parseInt(r.querySelector('[data-f="day"]').value),
+    startTime:r.querySelector('[data-f="start"]').value,
+    endTime:r.querySelector('[data-f="end"]').value,
+    type:r.querySelector('[data-f="type"]').value,room:''
+  }));
+}
+
+// Course CRUD
+function saveDSCourse(){
+  const name=document.getElementById('dsc-name').value.trim();
+  if(!name){showNotif('שם מקצוע נדרש');return;}
+  const obj={
+    id:_dsEditId||crypto.randomUUID(),
+    name,nameEn:document.getElementById('dsc-name-en').value.trim(),
+    credits:parseInt(document.getElementById('dsc-credits').value)||3,
+    professor:document.getElementById('dsc-prof').value.trim(),
+    color:_dsCourseColor,
+    progress:parseInt(document.getElementById('dsc-prog').value)||0,
+    grade:_dsEditId?DS.courses.find(c=>c.id===_dsEditId)?.grade??null:null,
+    homeworkIds:_dsEditId?DS.courses.find(c=>c.id===_dsEditId)?.homeworkIds||[]:[],
+    examIds:_dsEditId?DS.courses.find(c=>c.id===_dsEditId)?.examIds||[]:[],
+    schedule:collectSlots(),
+  };
+  if(_dsEditId)DS.courses=DS.courses.map(c=>c.id===_dsEditId?obj:c);
+  else DS.courses.push(obj);
+  saveDS();closeDSModal('course');renderDSCourses();updateDSStats();showNotif('✓ מקצוע נשמר');
+}
+
+function editDSCourse(id){
+  const c=DS.courses.find(x=>x.id===id);if(!c)return;
+  _dsEditId=id;openDSModal('course');
+  setTimeout(()=>{
+    document.getElementById('dsc-name').value=c.name;
+    document.getElementById('dsc-name-en').value=c.nameEn||'';
+    document.getElementById('dsc-credits').value=c.credits;
+    document.getElementById('dsc-prof').value=c.professor||'';
+    document.getElementById('dsc-prog').value=c.progress;
+    document.getElementById('dsc-prog-val').textContent=c.progress+'%';
+    _dsCourseColor=c.color;renderDSColorPicker();
+    const slots=document.getElementById('dsc-slots');slots.innerHTML='';
+    (c.schedule||[]).forEach(s=>{
+      addDSSlot();
+      const row=slots.lastElementChild;
+      row.querySelector('[data-f="day"]').value=s.day;
+      row.querySelector('[data-f="start"]').value=s.startTime;
+      row.querySelector('[data-f="end"]').value=s.endTime;
+      row.querySelector('[data-f="type"]').value=s.type;
+    });
+  },40);
+}
+
+function deleteDSCourse(id){
+  if(!confirm('למחוק את המקצוע וכל ש"ב / מבחנים שלו?'))return;
+  DS.courses=DS.courses.filter(c=>c.id!==id);
+  DS.homework=DS.homework.filter(h=>h.courseId!==id);
+  DS.exams=DS.exams.filter(e=>e.courseId!==id);
+  saveDS();renderDSCourses();updateDSStats();showNotif('✓ מקצוע נמחק');
+}
+
+// HW CRUD
+function saveDSHW(){
+  const title=document.getElementById('dsh-title').value.trim();
+  const due=document.getElementById('dsh-due').value;
+  if(!title||!due){showNotif('כותרת ותאריך נדרשים');return;}
+  const cId=document.getElementById('dsh-course').value||null;
+  const obj={
+    id:_dsEditId||crypto.randomUUID(),courseId:cId,title,
+    description:document.getElementById('dsh-desc').value.trim(),
+    dueDate:due,status:document.getElementById('dsh-status').value,
+    grade:_dsEditId?DS.homework.find(h=>h.id===_dsEditId)?.grade??null:null,
+  };
+  if(_dsEditId)DS.homework=DS.homework.map(h=>h.id===_dsEditId?obj:h);
+  else{DS.homework.push(obj);if(cId){const c=DS.courses.find(x=>x.id===cId);if(c&&!c.homeworkIds.includes(obj.id))c.homeworkIds.push(obj.id);}}
+  saveDS();closeDSModal('hw');renderDSHW();renderDSCourses();updateDSStats();showNotif('✓ שיעורי בית נשמרו');
+}
+
+function editDSHW(id){
+  const h=DS.homework.find(x=>x.id===id);if(!h)return;
+  _dsEditId=id;openDSModal('hw');
+  setTimeout(()=>{
+    document.getElementById('dsh-title').value=h.title;
+    document.getElementById('dsh-course').value=h.courseId||'';
+    document.getElementById('dsh-due').value=h.dueDate;
+    document.getElementById('dsh-desc').value=h.description||'';
+    document.getElementById('dsh-status').value=h.status;
+  },30);
+}
+
+function deleteDSHW(id){
+  DS.homework=DS.homework.filter(h=>h.id!==id);
+  DS.courses.forEach(c=>{c.homeworkIds=(c.homeworkIds||[]).filter(x=>x!==id);});
+  saveDS();renderDSHW();renderDSCourses();updateDSStats();
+}
+
+function toggleDSHW(id){
+  const h=DS.homework.find(x=>x.id===id);if(!h)return;
+  h.status=h.status==='done'?'not_started':'done';
+  saveDS();renderDSHW();renderDSCourses();updateDSStats();
+}
+
+// Exam CRUD
+function saveDSExam(){
+  const title=document.getElementById('dse-title').value.trim();
+  const date=document.getElementById('dse-date').value;
+  if(!title||!date){showNotif('כותרת ותאריך נדרשים');return;}
+  const cId=document.getElementById('dse-course').value||null;
+  const obj={
+    id:_dsEditId||crypto.randomUUID(),courseId:cId,title,
+    type:document.getElementById('dse-type').value,date,
+    location:document.getElementById('dse-loc').value.trim(),
+    notes:document.getElementById('dse-notes').value.trim(),
+    grade:_dsEditId?DS.exams.find(e=>e.id===_dsEditId)?.grade??null:null,
+  };
+  if(_dsEditId)DS.exams=DS.exams.map(e=>e.id===_dsEditId?obj:e);
+  else{DS.exams.push(obj);if(cId){const c=DS.courses.find(x=>x.id===cId);if(c&&!c.examIds.includes(obj.id))c.examIds.push(obj.id);}}
+  saveDS();closeDSModal('exam');renderDSHW();renderDSCourses();updateDSStats();showNotif('✓ מבחן נשמר');
+}
+
+function editDSExam(id){
+  const e=DS.exams.find(x=>x.id===id);if(!e)return;
+  _dsEditId=id;openDSModal('exam');
+  setTimeout(()=>{
+    document.getElementById('dse-title').value=e.title;
+    document.getElementById('dse-type').value=e.type;
+    document.getElementById('dse-course').value=e.courseId||'';
+    document.getElementById('dse-date').value=e.date.length===16?e.date:e.date.slice(0,16);
+    document.getElementById('dse-loc').value=e.location||'';
+    document.getElementById('dse-notes').value=e.notes||'';
+  },30);
+}
+
+function deleteDSExam(id){
+  DS.exams=DS.exams.filter(e=>e.id!==id);
+  DS.courses.forEach(c=>{c.examIds=(c.examIds||[]).filter(x=>x!==id);});
+  saveDS();renderDSHW();renderDSCourses();updateDSStats();
+}
 </script>
 </body>
 </html>
