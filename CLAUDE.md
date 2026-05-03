@@ -10,40 +10,48 @@ Stack: vanilla JS + Vercel serverless functions. No build step.
 
 When receiving WhatsApp messages, **always respond in Hebrew**, keep replies short (WhatsApp style).
 
-### API endpoint
-`https://personal-os-coral-tau.vercel.app/api/whatsapp-command`
+### API helper (run via bash)
+
+Use this Node.js snippet to call the Personal OS API from bash:
+
+```bash
+node -e "
+fetch('https://personal-os-coral-tau.vercel.app/api/whatsapp-command', {
+  method:'POST',
+  headers:{'Content-Type':'application/json'},
+  body: JSON.stringify(PAYLOAD)
+}).then(r=>r.json()).then(d=>console.log(d.response||'error')).catch(e=>console.error(e));
+"
+```
+
+Replace `PAYLOAD` with the actual object for each command below.
+
+---
 
 ### Command mapping
 
-**הוסף מבחן [שם] בתאריך [תאריך]**
-```bash
-curl -s -X POST https://personal-os-coral-tau.vercel.app/api/whatsapp-command \
-  -H "Content-Type: application/json" \
-  -d "{\"action\":\"ds_add_exam\",\"params\":{\"title\":\"[שם]\",\"date\":\"[YYYY-MM-DD]T09:00\",\"type\":\"exam\"}}"
-```
+**הוסף מבחן [שם] בתאריך [תאריך]**  
+Payload: `{action:"ds_add_exam",params:{title:"[שם]",date:"[YYYY-MM-DD]T09:00",type:"exam"}}`
 
-**הוסף שיעורי בית [שם] עד [תאריך]**
-```bash
-curl -s -X POST https://personal-os-coral-tau.vercel.app/api/whatsapp-command \
-  -H "Content-Type: application/json" \
-  -d "{\"action\":\"ds_add_hw\",\"params\":{\"title\":\"[שם]\",\"dueDate\":\"[YYYY-MM-DD]\"}}"
-```
+**הוסף שיעורי בית [שם] עד [תאריך]**  
+Payload: `{action:"ds_add_hw",params:{title:"[שם]",dueDate:"[YYYY-MM-DD]"}}`
 
-**הוסף הוצאה [סכום] [תיאור]**
-```bash
-curl -s -X POST https://personal-os-coral-tau.vercel.app/api/whatsapp-command \
-  -H "Content-Type: application/json" \
-  -d "{\"action\":\"finance_add_expense\",\"params\":{\"amount\":[סכום],\"description\":\"[תיאור]\"}}"
-```
+**הוסף הוצאה [סכום] [תיאור]**  
+Payload: `{action:"finance_add_expense",params:{amount:[סכום],description:"[תיאור]"}}`
 
 **מה הדדליינים השבוע?**
 ```bash
-curl -s "https://personal-os-coral-tau.vercel.app/api/whatsapp-command?action=get_deadlines"
+node -e "
+fetch('https://personal-os-coral-tau.vercel.app/api/whatsapp-command?action=get_deadlines')
+  .then(r=>r.json()).then(d=>console.log(d.response||'error')).catch(e=>console.error(e));
+"
 ```
 
+---
+
 ### Response handling
-Parse the JSON response and use the `response` field as your WhatsApp reply:
-- `{"ok":true,"response":"✅ מבחן 'X' נוסף ל-2026-05-15"}` → reply: `✅ מבחן 'X' נוסף ל-2026-05-15`
+The API returns `{"ok":true,"response":"Hebrew confirmation text"}`.  
+Log the `response` field and use it as your WhatsApp reply.
 
 ### Date parsing rules
 - "מחר" → tomorrow YYYY-MM-DD
