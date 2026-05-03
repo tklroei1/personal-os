@@ -743,6 +743,15 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 
 <!-- DATA SCIENCE & AI -->
 <div class="page" id="page-ds-ai">
+  <div id="ds-cal-banner" style="display:none;align-items:center;gap:10px;background:var(--accent-light);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:13px">
+    <span style="flex:1">📅 חבר Google Calendar כדי לסנכרן מבחנים ושיעורי בית אוטומטית</span>
+    <button class="gcal-btn" onclick="connectCal()">חבר Calendar</button>
+    <button class="bi" onclick="document.getElementById('ds-cal-banner').style.display='none'">✕</button>
+  </div>
+  <div id="ds-cal-ok" style="display:none;align-items:center;gap:8px;background:#43e97b11;border:1px solid #43e97b44;border-radius:var(--radius-sm);padding:8px 14px;margin-bottom:14px;font-size:12px;color:#43e97b">
+    📅 Google Calendar מחובר — מבחנים ושיעורי בית נוצרים אוטומטית
+    <button class="bi" onclick="document.getElementById('ds-cal-ok').style.display='none'" style="margin-right:auto;color:var(--text3)">✕</button>
+  </div>
   <div class="ds-stats">
     <div class="ds-stat"><div class="ds-stat-val" id="ds-n-courses">0</div><div class="ds-stat-lbl">מקצועות</div></div>
     <div class="ds-stat"><div class="ds-stat-val" id="ds-n-hw">0</div><div class="ds-stat-lbl">ש"ב ממתינים</div></div>
@@ -2295,11 +2304,11 @@ function selDay(iso){
 }
 
 // GOOGLE CALENDAR
-let gat=null;
+let gat=sessionStorage.getItem('pos_gat')||null;
 const CAL_REDIRECT=location.origin; // no trailing slash — must match Google Cloud Console exactly
 function connectCal(){
   const CID='786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com';
-  const SC='https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.send';
+  const SC='https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send';
   location.href=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${CID}&redirect_uri=${encodeURIComponent(CAL_REDIRECT)}&response_type=token&scope=${encodeURIComponent(SC)}&prompt=consent`;
 }
 function showCalHelper(){
@@ -2324,22 +2333,24 @@ function checkCalToken(){
   // Check fragment (#access_token=...) from implicit flow
   const h=new URLSearchParams(location.hash.replace('#',''));
   const t=h.get('access_token');
-  if(t){gat=t;history.replaceState({},document.title,location.pathname);
+  if(t){gat=t;sessionStorage.setItem('pos_gat',t);history.replaceState({},document.title,location.pathname);
     const b=document.getElementById('gcal-btn');
     if(b){b.textContent='📅 ✓';b.classList.add('ok');}
-    loadCalDay(new Date());
+    loadCalDay(new Date());updateDSCalBanner();
     showNotif('✓ Google Calendar מחובר');
     return;
   }
   // Check query string (?cal_token=...) from server-side code flow
   const q=new URLSearchParams(location.search);
   const qt=q.get('cal_token');
-  if(qt){gat=qt;history.replaceState({},document.title,location.pathname);
+  if(qt){gat=qt;sessionStorage.setItem('pos_gat',qt);history.replaceState({},document.title,location.pathname);
     const b=document.getElementById('gcal-btn');
     if(b){b.textContent='📅 ✓';b.classList.add('ok');}
-    loadCalDay(new Date());
+    loadCalDay(new Date());updateDSCalBanner();
     showNotif('✓ Google Calendar מחובר');
   }
+  // Restore from session if already set
+  if(gat){const b=document.getElementById('gcal-btn');if(b){b.textContent='📅 ✓';b.classList.add('ok');}}
   const ae=q.get('auth_error');
   if(ae)showNotif('⚠️ Calendar: '+decodeURIComponent(ae));
 }
@@ -4928,6 +4939,58 @@ const DS_SAMPLE={
 };
 
 function dsKey(){return`pos_ds_${currentUser?.sub||'anon'}`;}
+
+// ── GOOGLE CALENDAR SYNC ──────────────────────────────────────────────────────
+function updateDSCalBanner(){
+  const banner=document.getElementById('ds-cal-banner');
+  const ok=document.getElementById('ds-cal-ok');
+  if(!banner||!ok)return;
+  if(gat){banner.style.display='none';ok.style.display='flex';}
+  else{banner.style.display='flex';ok.style.display='none';}
+}
+
+async function createCalendarEvent(title,dateStr,description,opts={}){
+  if(!gat)return null;
+  const {durationMins=120,allDay=false,reminderMins=[1440,60]}=opts;
+  let start,end;
+  if(allDay){
+    // All-day: use date format
+    start={date:dateStr.split('T')[0]};
+    const endDate=new Date(dateStr.split('T')[0]);endDate.setDate(endDate.getDate()+1);
+    end={date:endDate.toISOString().split('T')[0]};
+  } else {
+    const s=new Date(dateStr);const e=new Date(s.getTime()+durationMins*60000);
+    start={dateTime:s.toISOString(),timeZone:'Asia/Jerusalem'};
+    end={dateTime:e.toISOString(),timeZone:'Asia/Jerusalem'};
+  }
+  try{
+    const r=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${gat}`},
+      body:JSON.stringify({
+        summary:title,description:description||'',start,end,
+        reminders:{useDefault:false,overrides:reminderMins.map(m=>({method:'popup',minutes:m}))}
+      })
+    });
+    if(!r.ok){
+      const err=await r.json().catch(()=>({}));
+      // Token expired — clear it
+      if(r.status===401){gat=null;sessionStorage.removeItem('pos_gat');updateDSCalBanner();}
+      console.warn('Calendar API error:',err);return null;
+    }
+    const ev=await r.json();
+    return ev.id||null;
+  }catch(e){console.warn('createCalendarEvent error:',e);return null;}
+}
+
+async function deleteCalendarEvent(googleEventId){
+  if(!gat||!googleEventId)return;
+  try{
+    await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}`,{
+      method:'DELETE',headers:{Authorization:`Bearer ${gat}`}
+    });
+  }catch{}
+}
 function loadDS(){
   try{const d=localStorage.getItem(dsKey());if(d)DS=JSON.parse(d);else DS=JSON.parse(JSON.stringify(DS_SAMPLE));}
   catch{DS=JSON.parse(JSON.stringify(DS_SAMPLE));}
@@ -4935,7 +4998,7 @@ function loadDS(){
 function saveDS(){try{localStorage.setItem(dsKey(),JSON.stringify(DS));}catch{}}
 
 function renderDSPage(){
-  loadDS();updateDSStats();
+  loadDS();updateDSStats();updateDSCalBanner();
   const activeTab=document.querySelector('#page-ds-ai .ds-tab-content.active')?.id?.replace('dstab-','')||'courses';
   if(activeTab==='courses')renderDSCourses();
   else if(activeTab==='hw')renderDSHW();
@@ -5076,6 +5139,7 @@ function dsHWItemHTML(h){
         <span class="${dueClass}" style="font-size:11px">${dueLabel}</span>
         <span class="bdg ${sCls}" style="font-size:10px">${sLabel}</span>
         ${h.grade!=null?`<span style="font-family:'Space Mono',monospace;font-size:11px;${dsGradeClass(h.grade)?'color:var(--'+h.grade>=85?'green':'warning'+')'||'':''}">${h.grade}</span>`:''}
+        ${h.calendarSynced?'<span title="מסונכרן ל-Google Calendar" style="font-size:11px">📅</span>':''}
       </div>
     </div>
     <div style="display:flex;gap:3px;flex-shrink:0">
@@ -5100,6 +5164,7 @@ function dsExamCardHTML(e){
           <span style="font-size:13px;font-weight:600">${escH(e.title)}</span>
           <span class="bdg" style="font-size:10px">${DS_TYPE_LABELS[e.type]||e.type}</span>
           ${course?`<span class="bdg" style="background:${course.color}22;color:${course.color};font-size:10px">${escH(course.name)}</span>`:''}
+          ${e.calendarSynced?'<span title="מסונכרן ל-Google Calendar" style="font-size:11px">📅</span>':''}
         </div>
         <div style="display:flex;gap:10px;font-size:11px;flex-wrap:wrap">
           <span style="color:var(--text3)">${e.date.replace('T',' ')}</span>
@@ -5363,20 +5428,34 @@ function deleteDSCourse(id){
 }
 
 // HW CRUD
-function saveDSHW(){
+async function saveDSHW(){
   const title=document.getElementById('dsh-title').value.trim();
   const due=document.getElementById('dsh-due').value;
   if(!title||!due){showNotif('כותרת ותאריך נדרשים');return;}
   const cId=document.getElementById('dsh-course').value||null;
+  const prev=_dsEditId?DS.homework.find(h=>h.id===_dsEditId):null;
   const obj={
     id:_dsEditId||crypto.randomUUID(),courseId:cId,title,
     description:document.getElementById('dsh-desc').value.trim(),
     dueDate:due,status:document.getElementById('dsh-status').value,
-    grade:_dsEditId?DS.homework.find(h=>h.id===_dsEditId)?.grade??null:null,
+    grade:prev?.grade??null,
+    googleEventId:prev?.googleEventId||null,
+    calendarSynced:prev?.calendarSynced||false,
   };
   if(_dsEditId)DS.homework=DS.homework.map(h=>h.id===_dsEditId?obj:h);
   else{DS.homework.push(obj);if(cId){const c=DS.courses.find(x=>x.id===cId);if(c&&!c.homeworkIds.includes(obj.id))c.homeworkIds.push(obj.id);}}
   saveDS();closeDSModal('hw');renderDSHW();renderDSCourses();updateDSStats();showNotif('✓ שיעורי בית נשמרו');
+  // Calendar sync (non-blocking)
+  if(gat&&!_dsEditId){
+    const course=DS.courses.find(c=>c.id===cId);
+    const desc=`שיעורי בית${course?' — '+course.name:''}\n${obj.description||''}`.trim();
+    const evId=await createCalendarEvent('📝 '+title,due,desc,{allDay:true,reminderMins:[180]});
+    if(evId){
+      const hw=DS.homework.find(h=>h.id===obj.id);
+      if(hw){hw.googleEventId=evId;hw.calendarSynced=true;saveDS();renderDSHW();}
+      showNotif('📅 נוסף ל-Google Calendar');
+    }
+  }
 }
 
 function editDSHW(id){
@@ -5392,6 +5471,8 @@ function editDSHW(id){
 }
 
 function deleteDSHW(id){
+  const h=DS.homework.find(x=>x.id===id);
+  if(h?.googleEventId)deleteCalendarEvent(h.googleEventId);
   DS.homework=DS.homework.filter(h=>h.id!==id);
   DS.courses.forEach(c=>{c.homeworkIds=(c.homeworkIds||[]).filter(x=>x!==id);});
   saveDS();renderDSHW();renderDSCourses();updateDSStats();
@@ -5404,21 +5485,39 @@ function toggleDSHW(id){
 }
 
 // Exam CRUD
-function saveDSExam(){
+async function saveDSExam(){
   const title=document.getElementById('dse-title').value.trim();
   const date=document.getElementById('dse-date').value;
   if(!title||!date){showNotif('כותרת ותאריך נדרשים');return;}
   const cId=document.getElementById('dse-course').value||null;
+  const type=document.getElementById('dse-type').value;
+  const prev=_dsEditId?DS.exams.find(e=>e.id===_dsEditId):null;
   const obj={
-    id:_dsEditId||crypto.randomUUID(),courseId:cId,title,
-    type:document.getElementById('dse-type').value,date,
+    id:_dsEditId||crypto.randomUUID(),courseId:cId,title,type,date,
     location:document.getElementById('dse-loc').value.trim(),
     notes:document.getElementById('dse-notes').value.trim(),
-    grade:_dsEditId?DS.exams.find(e=>e.id===_dsEditId)?.grade??null:null,
+    grade:prev?.grade??null,
+    googleEventId:prev?.googleEventId||null,
+    calendarSynced:prev?.calendarSynced||false,
   };
   if(_dsEditId)DS.exams=DS.exams.map(e=>e.id===_dsEditId?obj:e);
   else{DS.exams.push(obj);if(cId){const c=DS.courses.find(x=>x.id===cId);if(c&&!c.examIds.includes(obj.id))c.examIds.push(obj.id);}}
   saveDS();closeDSModal('exam');renderDSHW();renderDSCourses();updateDSStats();showNotif('✓ מבחן נשמר');
+  // Calendar sync (non-blocking)
+  if(gat&&!_dsEditId){
+    const course=DS.courses.find(c=>c.id===cId);
+    const typeLabel={exam:'מבחן',quiz:'בוחן',assignment:'עבודה',project:'פרויקט'}[type]||type;
+    const desc=[course?'מקצוע: '+course.name:'',obj.location?'מיקום: '+obj.location:'',obj.notes||''].filter(Boolean).join('\n');
+    const durationMap={exam:120,quiz:60,assignment:0,project:0};
+    const dur=durationMap[type];
+    const opts=dur?{durationMins:dur,reminderMins:type==='exam'?[1440,60]:[1440,30]}:{allDay:true,reminderMins:[1440,120]};
+    const evId=await createCalendarEvent(`${typeLabel}: ${title}`,date,desc,opts);
+    if(evId){
+      const ex=DS.exams.find(e=>e.id===obj.id);
+      if(ex){ex.googleEventId=evId;ex.calendarSynced=true;saveDS();renderDSHW();}
+      showNotif('📅 נוסף ל-Google Calendar');
+    }
+  }
 }
 
 function editDSExam(id){
@@ -5435,6 +5534,8 @@ function editDSExam(id){
 }
 
 function deleteDSExam(id){
+  const ex=DS.exams.find(e=>e.id===id);
+  if(ex?.googleEventId)deleteCalendarEvent(ex.googleEventId);
   DS.exams=DS.exams.filter(e=>e.id!==id);
   DS.courses.forEach(c=>{c.examIds=(c.examIds||[]).filter(x=>x!==id);});
   saveDS();renderDSHW();renderDSCourses();updateDSStats();
