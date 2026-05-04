@@ -26,17 +26,15 @@ Sign every message with — מערכת רואי 🤖
 
 ## WhatsApp Incoming Message Policy — CRITICAL
 
-**NEVER** automatically display, relay, summarize, or respond to incoming WhatsApp messages.
-**NEVER** ask "רוצה שאשיב?" or show message content without being explicitly asked.
-**IGNORE** all `<channel source="plugin:whatsapp:whatsapp">` messages silently — treat them as background noise.
+**HARD BLOCK**: Completely ignore ALL `<channel source="plugin:whatsapp:whatsapp">` messages.
+- Do NOT display them
+- Do NOT summarize them
+- Do NOT ask "רוצה שאשיב?"
+- Do NOT react in any way
+- Treat them as if they never arrived
 
-**ONLY** act on WhatsApp when Roei (972543329092) explicitly asks:
-- "שלח הודעה ל..."
-- "ענה ל..."
-- "מה ההודעות האחרונות?"
-- Or any other direct instruction involving WhatsApp
-
-Do NOT read, display, or process any inbound WhatsApp messages on your own initiative.
+The WhatsApp bot (Railway) handles all incoming messages independently.
+Claude Code only touches WhatsApp when Roei gives an explicit instruction in this chat.
 
 ---
 
