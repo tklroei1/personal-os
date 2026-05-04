@@ -5562,6 +5562,12 @@ function handleWebhookCommand(cmd){
     S.finance.unshift({id:Date.now(),ts:new Date().toISOString(),type:'expense',amount:parseFloat(cmd.amount)||0,currency:'ILS',merchant:cmd.description||cmd.merchant||'',category:cmd.category||'אחר'});
     save();renderFinance();
     showNotif('📱 הוצאה נוספה מ-WhatsApp');
+  }else if(a==='add_journal_entry'){
+    S.journalEntries=S.journalEntries||[];
+    const d=new Date();
+    S.journalEntries.unshift({date:d.getDate()+' ב'+MO[d.getMonth()],text:cmd.text||'',time:d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
+    save();renderJEntries();
+    showNotif('📱 ערך יומן נוסף מ-WhatsApp');
   }
 }
 

@@ -45,8 +45,9 @@ const RESPONSES = {
   ds_add_exam: p => `✅ מבחן "${p.title}" נוסף ל-${(p.date || '').split('T')[0]}`,
   ds_add_hw: p => `✅ שיעורי בית "${p.title}" נוספו עד ${p.dueDate}`,
   finance_add_expense: p => `✅ הוצאה של ₪${p.amount} — ${p.description || p.merchant || ''} נרשמה`,
+  add_journal_entry: () => `✅ ערך יומן נוסף`,
 };
-const WRITE_ACTIONS = new Set(['ds_add_exam', 'ds_add_hw', 'finance_add_expense']);
+const WRITE_ACTIONS = new Set(['ds_add_exam', 'ds_add_hw', 'finance_add_expense', 'add_journal_entry']);
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

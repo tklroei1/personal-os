@@ -6,58 +6,98 @@ Stack: vanilla JS + Vercel serverless functions. No build step.
 
 ---
 
-## WhatsApp Bot (via whatsapp-claude-plugin)
+## WhatsApp Bot — Automatic Hebrew Command Handler
 
-When receiving WhatsApp messages, **always respond in Hebrew**, keep replies short (WhatsApp style).
+**CRITICAL**: When a WhatsApp message matches a command pattern below, you MUST:
+1. Run the bash command immediately (no confirmation, no explanation first)
+2. Capture the script's stdout
+3. Reply to WhatsApp using the `reply` tool with exactly that stdout text
 
-### API helper (run via bash)
-
-Use this Node.js snippet to call the Personal OS API from bash:
-
-```bash
-node -e "
-fetch('https://personal-os-coral-tau.vercel.app/api/whatsapp-command', {
-  method:'POST',
-  headers:{'Content-Type':'application/json'},
-  body: JSON.stringify(PAYLOAD)
-}).then(r=>r.json()).then(d=>console.log(d.response||'error')).catch(e=>console.error(e));
-"
+### Command script path
 ```
-
-Replace `PAYLOAD` with the actual object for each command below.
-
----
-
-### Command mapping
-
-**הוסף מבחן [שם] בתאריך [תאריך]**  
-Payload: `{action:"ds_add_exam",params:{title:"[שם]",date:"[YYYY-MM-DD]T09:00",type:"exam"}}`
-
-**הוסף שיעורי בית [שם] עד [תאריך]**  
-Payload: `{action:"ds_add_hw",params:{title:"[שם]",dueDate:"[YYYY-MM-DD]"}}`
-
-**הוסף הוצאה [סכום] [תיאור]**  
-Payload: `{action:"finance_add_expense",params:{amount:[סכום],description:"[תיאור]"}}`
-
-**מה הדדליינים השבוע?**
-```bash
-node -e "
-fetch('https://personal-os-coral-tau.vercel.app/api/whatsapp-command?action=get_deadlines')
-  .then(r=>r.json()).then(d=>console.log(d.response||'error')).catch(e=>console.error(e));
-"
+C:/Users/user/Documents/New project/personal-os/scripts/wa-cmd.js
 ```
 
 ---
 
-### Response handling
-The API returns `{"ok":true,"response":"Hebrew confirmation text"}`.  
-Log the `response` field and use it as your WhatsApp reply.
+## Command Patterns
 
-### Date parsing rules
-- "מחר" → tomorrow YYYY-MM-DD
-- "ביום שישי" / "בשישי" → next Friday YYYY-MM-DD  
-- "ב-15 למאי" → 2026-05-15
-- Always ISO format (YYYY-MM-DD) in the API call
+### "הוסף הוצאה [סכום] [תיאור]"
+Extract: first number → amount (integer/float), remaining words → description.
 
-### All other messages
-Answer naturally in Hebrew without calling the API.
+```bash
+node "C:/Users/user/Documents/New project/personal-os/scripts/wa-cmd.js" "{\"action\":\"finance_add_expense\",\"params\":{\"amount\":AMOUNT,\"description\":\"DESCRIPTION\"}}"
+```
+
+**Example** — message: "הוסף הוצאה 50 קפה"
+```bash
+node "C:/Users/user/Documents/New project/personal-os/scripts/wa-cmd.js" "{\"action\":\"finance_add_expense\",\"params\":{\"amount\":50,\"description\":\"קפה\"}}"
+```
+
+**Example** — message: "הוסף הוצאה 120 קניות בסופר"
+```bash
+node "C:/Users/user/Documents/New project/personal-os/scripts/wa-cmd.js" "{\"action\":\"finance_add_expense\",\"params\":{\"amount\":120,\"description\":\"קניות בסופר\"}}"
+```
+
+---
+
+### "הוסף מבחן [שם] בתאריך [תאריך]"
+Extract: text between "מבחן" and "בתאריך" → title, date after "בתאריך" → YYYY-MM-DD.
+
+```bash
+node "C:/Users/user/Documents/New project/personal-os/scripts/wa-cmd.js" "{\"action\":\"ds_add_exam\",\"params\":{\"title\":\"TITLE\",\"date\":\"YYYY-MM-DDT09:00\",\"type\":\"exam\"}}"
+```
+
+**Example** — message: "הוסף מבחן אלגוריתמים בתאריך 2026-05-20"
+```bash
+node "C:/Users/user/Documents/New project/personal-os/scripts/wa-cmd.js" "{\"action\":\"ds_add_exam\",\"params\":{\"title\":\"אלגוריתמים\",\"date\":\"2026-05-20T09:00\",\"type\":\"exam\"}}"
+```
+
+---
+
+### "הוסף שיעורי בית [שם] עד [תאריך]"
+Extract: text between "שיעורי בית" and "עד" → title, date after "עד" → YYYY-MM-DD.
+
+```bash
+node "C:/Users/user/Documents/New project/personal-os/scripts/wa-cmd.js" "{\"action\":\"ds_add_hw\",\"params\":{\"title\":\"TITLE\",\"dueDate\":\"YYYY-MM-DD\"}}"
+```
+
+**Example** — message: "הוסף שיעורי בית תרגיל 3 עד 2026-05-18"
+```bash
+node "C:/Users/user/Documents/New project/personal-os/scripts/wa-cmd.js" "{\"action\":\"ds_add_hw\",\"params\":{\"title\":\"תרגיל 3\",\"dueDate\":\"2026-05-18\"}}"
+```
+
+---
+
+### "מה הדדליינים השבוע?"
+```bash
+node "C:/Users/user/Documents/New project/personal-os/scripts/wa-cmd.js" "{\"action\":\"get_deadlines\"}"
+```
+
+---
+
+### "הוסף יומן [טקסט]"
+Extract: everything after "יומן " → text.
+
+```bash
+node "C:/Users/user/Documents/New project/personal-os/scripts/wa-cmd.js" "{\"action\":\"add_journal_entry\",\"params\":{\"text\":\"TEXT\"}}"
+```
+
+**Example** — message: "הוסף יומן היום הצלחתי לסיים את התרגיל"
+```bash
+node "C:/Users/user/Documents/New project/personal-os/scripts/wa-cmd.js" "{\"action\":\"add_journal_entry\",\"params\":{\"text\":\"היום הצלחתי לסיים את התרגיל\"}}"
+```
+
+---
+
+## Date parsing
+- "מחר" → tomorrow as YYYY-MM-DD
+- "ביום שישי" / "בשישי" → next Friday as YYYY-MM-DD
+- "ב-15 למאי" / "15 למאי" → 2026-05-15
+- Always convert to ISO format before substituting into the command
+
+## Reply rule
+Use the `reply` tool with `chat_id` from the inbound message. Reply text = exact stdout of the script.
+
+## All other messages
+Answer naturally in Hebrew. Do not run the script.
