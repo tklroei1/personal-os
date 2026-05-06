@@ -12,7 +12,7 @@ const API_URL           = process.env.PERSONAL_OS_URL || 'https://personal-os-co
 const AUTH_DIR          = process.env.AUTH_DIR || './auth_state';
 const GROUP_NAME        = process.env.GROUP_NAME || 'מערכת ניהול';
 const GROUP_INVITE_CODE = process.env.GROUP_INVITE_CODE || 'DbDFlS8P6SBLRUeuv4W9ap';
-const GROUP_JID_OVERRIDE= process.env.GROUP_JID || ''; // set directly to skip invite lookup
+const GROUP_JID_OVERRIDE= process.env.GROUP_JID || '';
 const SIG               = ' — מערכת רואי 🤖';
 const MAX_HISTORY       = 150;
 
@@ -29,7 +29,7 @@ const noopLog = {
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let allowedGroupJid = GROUP_JID_OVERRIDE || null;
-const msgHistory    = []; // { name, text, ts }
+const msgHistory    = [];
 
 function storeMessage(name, text) {
   msgHistory.push({ name, text, ts: new Date().toISOString() });
@@ -96,15 +96,12 @@ async function callClaude(userText) {
   }
 }
 
-// ── Resolve allowed group JID from invite code ────────────────────────────────
+// ── Resolve allowed group JID ─────────────────────────────────────────────────
 async function resolveGroupJid(sock) {
-  // 1. Already known (env override or previous run)
   if (allowedGroupJid) {
     console.log(`[group] Using configured JID: ${allowedGroupJid}`);
     return;
   }
-
-  // 2. Try to find by name in participating groups
   try {
     const groups = await sock.groupFetchAllParticipating();
     const byName = Object.values(groups).find(g => g.subject === GROUP_NAME);
@@ -115,31 +112,46 @@ async function resolveGroupJid(sock) {
     }
   } catch (e) { console.error('[group] groupFetchAllParticipating error:', e.message); }
 
-  // 3. Resolve from invite code (without joining)
   if (GROUP_INVITE_CODE) {
     try {
       const info = await sock.groupGetInviteInfo(GROUP_INVITE_CODE);
       allowedGroupJid = info.id;
       console.log(`[group] Resolved from invite code: ${allowedGroupJid} ("${info.subject}")`);
       return;
-    } catch (e) {
-      console.error('[group] groupGetInviteInfo error:', e.message);
-    }
+    } catch (e) { console.error('[group] groupGetInviteInfo error:', e.message); }
 
-    // 4. Join the group if bot is not yet a member
     try {
       const joined = await sock.groupAcceptInvite(GROUP_INVITE_CODE);
       allowedGroupJid = joined;
       console.log(`[group] Joined group via invite: ${allowedGroupJid}`);
     } catch (e) {
       console.error('[group] groupAcceptInvite error:', e.message);
-      console.error('[group] ⚠️  Set GROUP_JID env var manually after finding group JID.');
+      console.error('[group] ⚠️  Set GROUP_JID env var manually.');
     }
   }
 }
 
+// ── Pairing code — prints repeatedly until paired ─────────────────────────────
+function startPairingReminder(code) {
+  console.log('\n\n=============================');
+  console.log('PAIRING CODE: ' + code);
+  console.log('=============================');
+  console.log('WhatsApp → Linked Devices → Link a Device');
+  console.log('Tap "Link with phone number instead"\n\n');
+
+  const interval = setInterval(() => {
+    console.log('\n\n=============================');
+    console.log('PAIRING CODE: ' + code);
+    console.log('=============================\n\n');
+  }, 10000);
+
+  // Stop reminding once connected (cleared in connection.update open)
+  return interval;
+}
+
 // ── Bot ───────────────────────────────────────────────────────────────────────
-let retryCount = 0;
+let retryCount     = 0;
+let pairingInterval = null;
 
 async function startBot() {
   mkdirSync(AUTH_DIR, { recursive: true });
@@ -149,20 +161,37 @@ async function startBot() {
     auth: state,
     logger: noopLog,
     printQRInTerminal: false,
-    markOnlineOnConnect: false,         // do NOT appear online on connect
+    markOnlineOnConnect: false,
+    connectTimeoutMs: 60000,
+    retryRequestDelayMs: 5000,
+    maxRetries: 5,
     getMessage: async () => ({ conversation: '' }),
   });
 
   // ── First-time pairing ──────────────────────────────────────────────────────
   if (!state.creds.registered) {
     if (!OWNER_PHONE) { console.error('ERROR: PHONE_NUMBER not set'); process.exit(1); }
-    await new Promise(r => setTimeout(r, 3000));
-    const code = await sock.requestPairingCode(OWNER_PHONE);
-    console.log('\n═══════════════════════════════════════════');
-    console.log(`  PAIRING CODE: ${code}`);
-    console.log('  WhatsApp → Linked Devices → Link a Device');
-    console.log('  Tap "Link with phone number instead"');
-    console.log('═══════════════════════════════════════════\n');
+    console.log('Waiting 5s before requesting pairing code…');
+    await new Promise(r => setTimeout(r, 5000));
+
+    let pairingAttempt = 0;
+    const tryPairing = async () => {
+      pairingAttempt++;
+      console.log(`Requesting pairing code (attempt ${pairingAttempt})…`);
+      try {
+        const code = await sock.requestPairingCode(OWNER_PHONE);
+        if (pairingInterval) clearInterval(pairingInterval);
+        pairingInterval = startPairingReminder(code);
+      } catch (err) {
+        // 428 = Precondition Required — socket not ready yet, retry after 30s
+        const status = err?.output?.statusCode || err?.status || 0;
+        console.error(`Pairing request failed (${status}): ${err.message}`);
+        console.log('Retrying pairing in 30s…');
+        setTimeout(tryPairing, 30000);
+      }
+    };
+
+    await tryPairing();
   }
 
   sock.ev.on('creds.update', saveCreds);
@@ -171,10 +200,20 @@ async function startBot() {
   sock.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
     if (connection === 'close') {
       const code = lastDisconnect?.error?.output?.statusCode;
+
       if (code === DisconnectReason.loggedOut) {
-        console.log('Logged out — delete auth_state/ and restart.');
+        console.log('Logged out — delete auth_state/ and restart to re-pair.');
         process.exit(1);
       }
+
+      // 428 = pairing expired — restart cleanly after 30s
+      if (code === 428) {
+        console.log('Connection closed (428 Precondition Required) — pairing code expired.');
+        console.log('Restarting in 30s…');
+        setTimeout(startBot, 30000);
+        return;
+      }
+
       retryCount++;
       const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
       console.log(`Disconnected (${code}). Reconnecting in ${delay / 1000}s…`);
@@ -183,13 +222,14 @@ async function startBot() {
     }
 
     if (connection === 'open') {
+      // Stop pairing reminders
+      if (pairingInterval) { clearInterval(pairingInterval); pairingInterval = null; }
+
       retryCount = 0;
       console.log('✅ מערכת רואי connected — stealth mode active');
 
-      // Go invisible immediately
       try { await sock.sendPresenceUpdate('unavailable'); } catch {}
 
-      // Resolve group JID
       await resolveGroupJid(sock);
 
       if (allowedGroupJid) {
@@ -217,9 +257,8 @@ async function startBot() {
         msg.message?.extendedTextMessage?.text ||
         msg.message?.imageMessage?.caption || '';
 
-      // ── Strict allow-list ───────────────────────────────────────────────────
-      const allowedDM    = !isGroup && isOwner;                          // owner DM to self
-      const allowedGroup = isGroup && jid === allowedGroupJid;           // only the one group
+      const allowedDM    = !isGroup && isOwner;
+      const allowedGroup = isGroup && jid === allowedGroupJid;
 
       if (!allowedDM && !allowedGroup) {
         console.log(`[ignored] ${isGroup ? 'group' : 'dm'} from ${sender.split('@')[0]}`);
@@ -228,24 +267,19 @@ async function startBot() {
 
       if (!text.trim()) continue;
 
-      // Store group messages for history (all members)
       if (allowedGroup) {
         storeMessage(isOwner ? 'רואי' : sender.split('@')[0], text);
-
-        // In group: only respond to owner OR trigger words
         const hasTrigger = TRIGGER_WORDS.some(w => text.includes(w));
         if (!isOwner && !hasTrigger) continue;
       }
 
       console.log(`[IN]  [${isGroup ? 'GROUP' : 'DM'}] ${text.substring(0, 80)}`);
 
-      // Route: Personal OS vs AI
       const osCmd = parseOsCommand(text);
       const reply = osCmd
         ? await callVercel(osCmd.action, osCmd.params || {})
         : await callClaude(text);
 
-      // Send WITHOUT triggering read receipt or presence update
       await sock.sendMessage(jid, { text: reply });
       console.log(`[OUT] ${reply.substring(0, 80)}`);
     }
