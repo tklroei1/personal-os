@@ -2108,7 +2108,7 @@ section, .row, [class*="row-"], [class*="-row"] {
   function registerUser(u,pw){var a=getAccounts(),k=u.toLowerCase().trim();if(!k)return false;a[k]=hashPass(pw);localStorage.setItem(ACCOUNTS_KEY,JSON.stringify(a));sessionStorage.setItem(SESSION_USER,k);installAccountProxy(k);return true;}
   function logoutUser(){sessionStorage.removeItem(SESSION_USER);sessionStorage.removeItem('jv_locked_this_session');Storage.prototype._jvProxied=false;location.reload();}
 
-  var GOOGLE_CLIENT_ID='REPLACE_WITH_YOUR_GOOGLE_CLIENT_ID';
+  var GOOGLE_CLIENT_ID='786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com';
   function initGoogleAuth(onSuccess){
     if(!GOOGLE_CLIENT_ID||GOOGLE_CLIENT_ID.indexOf('REPLACE')===0)return;
     var s=document.createElement('script');
