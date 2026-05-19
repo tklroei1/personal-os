@@ -22,6 +22,7 @@
     { "src": "/manifest.json", "dest": "/manifest.json" },
     { "src": "/sw.js", "dest": "/sw.js" },
     { "src": "/icon.svg", "dest": "/icon.svg" },
-    { "src": "/(.*)", "dest": "/index.html" }
+{ "src": "/jarvis.js", "dest": "/jarvis.js" },
+            { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
