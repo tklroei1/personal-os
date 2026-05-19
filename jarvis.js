@@ -2108,11 +2108,43 @@ section, .row, [class*="row-"], [class*="-row"] {
   function registerUser(u,pw){var a=getAccounts(),k=u.toLowerCase().trim();if(!k)return false;a[k]=hashPass(pw);localStorage.setItem(ACCOUNTS_KEY,JSON.stringify(a));sessionStorage.setItem(SESSION_USER,k);installAccountProxy(k);return true;}
   function logoutUser(){sessionStorage.removeItem(SESSION_USER);sessionStorage.removeItem('jv_locked_this_session');Storage.prototype._jvProxied=false;location.reload();}
 
+  var GOOGLE_CLIENT_ID='REPLACE_WITH_YOUR_GOOGLE_CLIENT_ID';
+  function initGoogleAuth(onSuccess){
+    if(!GOOGLE_CLIENT_ID||GOOGLE_CLIENT_ID.indexOf('REPLACE')===0)return;
+    var s=document.createElement('script');
+    s.src='https://accounts.google.com/gsi/client';
+    s.onload=function(){
+      if(!window.google||!google.accounts)return;
+      google.accounts.id.initialize({
+        client_id:GOOGLE_CLIENT_ID,
+        callback:function(r){handleGoogleCredential(r,onSuccess);}
+      });
+      var el=document.getElementById('jv-google-btn');
+      if(el)google.accounts.id.renderButton(el,{theme:'filled_black',size:'large',text:'signin_with',shape:'pill',width:280});
+    };
+    document.head.appendChild(s);
+  }
+  function handleGoogleCredential(r,onSuccess){
+    try{
+      var b=r.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+      while(b.length%4)b+='=';
+      var p=JSON.parse(atob(b));
+      var k=p.email.toLowerCase().trim();
+      var a=getAccounts();
+      if(!a[k]){a[k]='google:'+p.sub;localStorage.setItem(ACCOUNTS_KEY,JSON.stringify(a));}
+      sessionStorage.setItem(SESSION_USER,k);
+      sessionStorage.setItem('jv_google_user','1');
+      installAccountProxy(k);
+      var el=document.getElementById('jv-login');if(el)el.remove();
+      if(onSuccess)onSuccess();
+    }catch(e){console.warn('JARVIS Google auth:',e);}
+  }
   function openLoginScreen(onSuccess){
     var o=document.createElement('div');o.id='jv-login';
     o.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,10,20,0.97);display:flex;align-items:center;justify-content:center;z-index:99999;font-family:-apple-system,sans-serif;';
-    o.innerHTML='<div style="background:#0a1628;border:1px solid #00d4ff44;border-radius:16px;padding:40px;width:340px;color:#e0f0ff;"><div style="text-align:center;margin-bottom:24px;"><div style="font-size:36px;color:#00d4ff;font-weight:700;letter-spacing:3px;">JARVIS</div><div style="font-size:12px;color:#7fb3d0;margin-top:4px;">Personal OS Access</div></div><div id="jv-lmsg" style="color:#ff6b6b;font-size:12px;text-align:center;min-height:16px;margin-bottom:8px;"></div><input id="jv-luser" placeholder="Username" style="width:100%;padding:10px 12px;margin-bottom:12px;background:#0d1f35;border:1px solid #00d4ff44;border-radius:8px;color:#e0f0ff;font-size:14px;box-sizing:border-box;outline:none;" /><input id="jv-lpass" type="password" placeholder="Password" style="width:100%;padding:10px 12px;margin-bottom:20px;background:#0d1f35;border:1px solid #00d4ff44;border-radius:8px;color:#e0f0ff;font-size:14px;box-sizing:border-box;outline:none;" /><button id="jv-lbtn" style="width:100%;padding:11px;background:linear-gradient(135deg,#00d4ff,#0066cc);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px;">Sign In</button><button id="jv-rbtn" style="width:100%;padding:11px;background:transparent;border:1px solid #00d4ff44;border-radius:8px;color:#7fb3d0;font-size:13px;cursor:pointer;">Create Account</button></div>';
+    o.innerHTML='<div style="background:#0a1628;border:1px solid #00d4ff44;border-radius:16px;padding:40px;width:340px;color:#e0f0ff;"><div style="text-align:center;margin-bottom:24px;"><div style="font-size:36px;color:#00d4ff;font-weight:700;letter-spacing:3px;">JARVIS</div><div style="font-size:12px;color:#7fb3d0;margin-top:4px;">Personal OS Access</div></div><div id="jv-lmsg" style="color:#ff6b6b;font-size:12px;text-align:center;min-height:16px;margin-bottom:8px;"></div><input id="jv-luser" placeholder="Username" style="width:100%;padding:10px 12px;margin-bottom:12px;background:#0d1f35;border:1px solid #00d4ff44;border-radius:8px;color:#e0f0ff;font-size:14px;box-sizing:border-box;outline:none;" /><input id="jv-lpass" type="password" placeholder="Password" style="width:100%;padding:10px 12px;margin-bottom:20px;background:#0d1f35;border:1px solid #00d4ff44;border-radius:8px;color:#e0f0ff;font-size:14px;box-sizing:border-box;outline:none;" /><button id="jv-lbtn" style="width:100%;padding:11px;background:linear-gradient(135deg,#00d4ff,#0066cc);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px;">Sign In</button><button id="jv-rbtn" style="width:100%;padding:11px;background:transparent;border:1px solid #00d4ff44;border-radius:8px;color:#7fb3d0;font-size:13px;cursor:pointer;">Create Account</button><div style="margin:20px 0 8px;text-align:center;color:#4a6070;font-size:12px">── or ──</div><div id="jv-google-btn" style="display:flex;justify-content:center;min-height:48px"></div></div>';
     document.body.appendChild(o);
+    initGoogleAuth(onSuccess);
     var msg=document.getElementById('jv-lmsg');
     var uIn=document.getElementById('jv-luser');
     var pIn=document.getElementById('jv-lpass');
