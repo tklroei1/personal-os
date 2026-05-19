@@ -233,15 +233,26 @@
     try { return JSON.parse(localStorage.getItem(STATE_KEY) || '{}'); }
     catch (e) { return {}; }
   }
+  function getCurrentPage() {
+    if (typeof window.currentPage === "string") return window.currentPage;
+    var hash = location.hash.replace("#","");
+    if (hash) return hash;
+    var active = document.querySelector(".nav-link.active, [data-page][class*=active]");
+    if (active) return active.dataset && active.dataset.page ? active.dataset.page : (active.textContent||"").trim();
+    return "dashboard";
+  }
   function writeState(s) {
     try {
       localStorage.setItem(STATE_KEY, JSON.stringify(s));
-      // trigger UI re-render if app exposes it
-      if (typeof window.renderAll === 'function') {
-        try { window.renderAll(); } catch (e) {}
+      var renders = ["renderAll","render","refreshApp","update","rerender","updateUI"];
+      for (var ri=0; ri<renders.length; ri++) {
+        if (typeof window[renders[ri]] === "function") {
+          try { window[renders[ri]](); } catch(e) {} break;
+        }
       }
+      try { window.dispatchEvent(new StorageEvent("storage",{key:STATE_KEY,storageArea:localStorage})); } catch(e) {}
       return true;
-    } catch (e) { return false; }
+    } catch(e) { return false; }
   }
   function readLocal(key, dflt) {
     try { return JSON.parse(localStorage.getItem(key)) ?? dflt; }
@@ -735,6 +746,16 @@
     openWhatNow()   { openWhatNowPanel();  return ''; },
 
     speakOnly(args) { return args.text || ''; },
+    closeJarvis() {
+      _recogStarted = false;
+      if (recog) try { recog.stop(); } catch(e) {}
+      var panel = document.getElementById("jv-panel");
+      var dock  = document.getElementById("jv-dock");
+      if (panel) panel.classList.remove("show");
+      if (dock)  dock.classList.remove("show");
+      hud.setState("idle");
+      return "";
+    },
   };
 
   // ────────────────────────────────────────────────────────────────────────
@@ -939,6 +960,9 @@
       return { action:'weeklyReview', args:{} };
 
     // fallback: ask the LLM (if available)
+    var lwr = lower || "";
+    if (/^(\u05e1\u05d2\u05d5\u05e8|\u05ea\u05e1\u05d2\u05e8|bye|goodbye|close|thanks|\u05ea\u05d5\u05d3\u05d4|\u05e2\u05d6\u05d5\u05d1|\u05ea\u05e4\u05e1\u05d9\u05e7)/.test(lwr))
+      return { action: "closeJarvis", args: {} };
     return { action:'llmFallback', args:{ text: t } };
   }
 
@@ -982,6 +1006,7 @@ User context: ${JSON.stringify(quickContext()).slice(0,800)}`;
   //  7. VOICE — recognition + synthesis
   // ────────────────────────────────────────────────────────────────────────
   let recog = null, recogActive = false, listeningHard = false;
+  var _recogStarted = false;
 
   function makeRecognizer() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -994,28 +1019,25 @@ User context: ${JSON.stringify(quickContext()).slice(0,800)}`;
     return r;
   }
 
-  function startListening(hard=false) {
+  function startListening(hard) {
+    hard = !!hard;
     if (!settings().voiceOn) return;
     if (!recog) recog = makeRecognizer();
-    if (!recog) { speak('Speech recognition is not available in this browser.'); return; }
+    if (!recog) { speak("Speech recognition not available."); return; }
     listeningHard = hard;
+    _recogStarted = true;
     if (recogActive) return;
-    try { recog.start(); } catch (e) {}
+    try { recog.start(); } catch(e) {}
   }
   function stopListening() {
     listeningHard = false;
-    if (recog) try { recog.stop(); } catch (e) {}
+    _recogStarted = false;
+    if (recog) try { recog.stop(); } catch(e) {}
   }
-  function bindRecog() {
-    if (!recog) return;
-    recog.onstart = () => { recogActive = true; hud.setState('listening'); };
-    recog.onend   = () => {
-      recogActive = false;
-      hud.setState('idle');
-      // auto-restart if wake-word mode is on
-      if (settings().wakeWordOn && !listeningHard) {
-        setTimeout(() => startListening(false), 700);
-      }
+    recog.onend   = function() {
+      recogActive = false; hud.setState("idle");
+      if (_recogStarted && settings().wakeWordOn && !listeningHard)
+        setTimeout(function() { if (_recogStarted) startListening(false); }, 1000);
     };
     recog.onerror = (e) => {
       hud.setState('idle');
@@ -1065,31 +1087,39 @@ User context: ${JSON.stringify(quickContext()).slice(0,800)}`;
 
   let voicesCache = null;
   function pickVoice() {
-    const v = window.speechSynthesis?.getVoices() || [];
-    voicesCache = v;
-    // prefer he-IL female if available
-    return v.find(x => x.lang === 'he-IL' && /female|carmit/i.test(x.name))
-        || v.find(x => x.lang === 'he-IL')
-        || v.find(x => x.lang?.startsWith('he'))
-        || v[0];
+    var v = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+    var prefer = [
+      v.find(function(x){return x.lang==="en-US" && /samantha|zira|google us english|ava|aria/i.test(x.name);}),
+      v.find(function(x){return x.lang==="en-US" && !x.localService;}),
+      v.find(function(x){return x.lang==="en-US";}),
+      v.find(function(x){return x.lang==="en-GB";}),
+      v.find(function(x){return x.lang && x.lang.startsWith("en");}),
+      v.find(function(x){return x.lang==="he-IL";}),
+      v[0],
+    ];
+    return prefer.find(Boolean) || null;
   }
   function speak(text) {
     if (!settings().voiceOn) return;
     if (!window.speechSynthesis) return;
-    const u = new SpeechSynthesisUtterance(text);
-    const v = pickVoice();
-    if (v) u.voice = v;
-    u.lang = v?.lang || LANG;
-    u.rate = settings().rate || 1.05;
-    u.volume = settings().volume || 1.0;
-    u.pitch = 1.0;
-    hud.setState('speaking');
-    u.onend = () => hud.setState('idle');
-    try { window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch (e) {}
+    window.speechSynthesis.cancel();
+    var doSpeak = function() {
+      var u = new SpeechSynthesisUtterance(text);
+      var v = pickVoice();
+      if (v) u.voice = v;
+      u.lang   = v ? v.lang : "en-US";
+      u.rate   = Math.min(1.1, Math.max(0.85, (settings().rate || 0.95)));
+      u.volume = settings().volume != null ? settings().volume : 1.0;
+      u.pitch  = 1.0;
+      hud.setState("speaking");
+      u.onend  = function() { hud.setState("idle"); };
+      u.onerror = function() { hud.setState("idle"); };
+      try { window.speechSynthesis.speak(u); } catch(e) { hud.setState("idle"); }
+    };
+    if (window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.onvoiceschanged = function() { window.speechSynthesis.onvoiceschanged = null; doSpeak(); };
+    } else { doSpeak(); }
   }
-
-  // ────────────────────────────────────────────────────────────────────────
-  //  7-A. APPLE / FUTURISTIC THEME INJECTION
   // ────────────────────────────────────────────────────────────────────────
   function injectAppleTheme() {
     if (document.getElementById('jv-apple-theme')) return;
@@ -1284,6 +1314,22 @@ section, .row, [class*="row-"], [class*="-row"] {
 .jv-dock {
   background: rgba(10,10,12,.95) !important;
   border-color: rgba(0,212,255,.20) !important;
+/* ── Global text visibility fix ── */
+body, body * {
+  color: var(--jv-text) !important;
+}
+input, textarea, select, button {
+  color: var(--jv-text) !important;
+  background-color: var(--jv-card) !important;
+  border-color: var(--jv-border) !important;
+}
+input::placeholder, textarea::placeholder {
+  color: rgba(245,245,247,0.4) !important;
+}
+a { color: #0071e3 !important; }
+a:hover { opacity: 0.8; }
+#jv-login input, #jv-login button { color: #f5f5f7 !important; }
+#jv-lock { color: #f5f5f7 !important; }
 }
 `;
     document.head.appendChild(s);
@@ -1594,46 +1640,31 @@ section, .row, [class*="row-"], [class*="-row"] {
   // 10. PROJECT DEBT WIDGET (injects into dashboard if there's a spot)
   // ────────────────────────────────────────────────────────────────────────
   function renderDebtWidget() {
+    const page = (window.currentPage || location.hash.replace("#","") || (document.querySelector(".nav-link.active, [data-page][class*=active]") || {}).dataset && document.querySelector(".nav-link.active, [data-page][class*=active]").dataset.page || "dashboard").toLowerCase();
+    if (page && page !== 'dashboard' && page !== 'home' && page !== '' && page !== 'ראשי' && page !== 'בית') return;
     const existing = document.getElementById('jv-debt-widget');
     if (existing) existing.remove();
     const debt = projectDebt();
     const entries = Object.entries(debt);
     if (!entries.length) return;
-
-    const widget = document.createElement('div');
-    widget.id = 'jv-debt-widget';
-    widget.style.cssText = `border:1px solid ${ACCENT}55;border-radius:12px;padding:12px 14px;
-      margin:10px 0;background:rgba(8,14,28,.6);color:#e6f3ff;direction:rtl;
-      font-family:inherit;font-size:13px`;
-    widget.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <strong style="color:${ACCENT}">⚠️ חוב פרויקטים — השבוע</strong>
-        <button id="jv-debt-close" style="background:transparent;color:#cfe8ff;border:none;cursor:pointer">✕</button>
-      </div>
-      ${entries.map(([p,o]) => {
-        const ratio = o.planned ? Math.min(100, Math.round((o.actual/o.planned)*100)) : 0;
-        return `<div style="margin:6px 0">
-          <div style="display:flex;justify-content:space-between">
-            <span>${p}</span>
-            <span style="opacity:.7">${Math.round(o.actual/60)}/${Math.round(o.planned/60)} ש׳ — ${ratio}%</span>
-          </div>
-          <div style="background:#0f1e36;height:6px;border-radius:3px;margin-top:2px;overflow:hidden">
-            <div style="background:${ratio<50?ACCENT_BAD:ratio<80?ACCENT_WARM:ACCENT_OK};
-              height:100%;width:${ratio}%;transition:.4s"></div>
-          </div>
-        </div>`;
-      }).join('')}`;
-    widget.querySelector('#jv-debt-close').onclick = () => widget.remove();
-
-    // Try to find dashboard container
-    const target = document.querySelector('[data-page="dashboard"], #dashboard, .dashboard, main') || document.body;
-    if (target === document.body) {
-      widget.style.position = 'fixed';
-      widget.style.left = '24px';
-      widget.style.bottom = '24px';
-      widget.style.maxWidth = '300px';
-    }
-    target.prepend(widget);
+    const w = document.createElement('div');
+    w.id = 'jv-debt-widget';
+    w.style.cssText = 'position:fixed;bottom:90px;right:18px;background:rgba(0,0,0,0.85);border:1px solid rgba(255,180,0,0.4);border-radius:14px;padding:14px 18px;max-width:260px;z-index:9990;font-family:Inter,sans-serif;backdrop-filter:blur(12px);';
+    var rows = entries.slice(0,5).map(function(entry) {
+      var k = entry[0], v = entry[1];
+      var pct = v.planned > 0 ? Math.round((v.actual/v.planned)*100) : 100;
+      var color = pct >= 90 ? "#34c759" : pct >= 50 ? "#ff9500" : "#ff3b30";
+      return "<div style='display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;'><span style='color:#f5f5f7;'>" + k + "</span><span style='color:" + color + ";'>" + v.actual + "/" + v.planned + "m</span></div>";
+    }).join("");
+    w.innerHTML = '<p style="color:#ff9500;font-size:11px;font-weight:600;margin:0 0 8px;text-transform:uppercase;">&#9888; Project Debt</p>' + rows;
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = '\u00d7';
+    closeBtn.style.cssText = 'position:absolute;top:6px;right:8px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:16px;cursor:pointer;';
+    closeBtn.addEventListener('click', function() { w.remove(); });
+    w.style.position = "relative";
+    w.appendChild(closeBtn);
+    var target = document.querySelector('.dashboard, #dashboard, main') || document.body;
+    target.appendChild(w);
   }
 
   // ────────────────────────────────────────────────────────────────────────
@@ -1662,77 +1693,25 @@ section, .row, [class*="row-"], [class*="-row"] {
   // 12-A. LOCK / DAILY GREETING SCREEN
   // ────────────────────────────────────────────────────────────────────────
   function openLockScreen() {
-    const today  = new Date();
-    const dKey   = dateKey(today);
-    // Show once per session (every fresh page load), not once per day
     if (sessionStorage.getItem('jv_locked_this_session')) return;
     sessionStorage.setItem('jv_locked_this_session', '1');
-
-    const dayName = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][today.getDay()];
-    const greet   = today.getHours() < 12 ? 'בוקר טוב' : today.getHours() < 17 ? 'אחה"צ טוב' : 'ערב טוב';
-    const blocks  = blocksForDay(today).slice(0, 6);
-    const debt    = projectDebt();
-    const behind  = Object.entries(debt).filter(([,o]) => o.debt > 0);
-
-    const wrap = document.createElement('div');
-    wrap.id = 'jv-lock-screen';
-    wrap.style.cssText = `position:fixed;inset:0;background:rgba(4,9,20,.97);z-index:999999;
-      display:flex;align-items:center;justify-content:center;direction:rtl;
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
-      opacity:0;transition:opacity .4s`;
-
-    wrap.innerHTML = `
-      <div style="max-width:460px;width:92vw;text-align:center;color:#e6f3ff;padding:28px 20px">
-        <div style="font-size:52px;font-weight:100;color:${ACCENT};letter-spacing:3px;margin-bottom:4px">JARVIS</div>
-        <div style="font-size:15px;opacity:.65;margin-bottom:24px">${greet}, רואי &nbsp;•&nbsp; יום ${dayName}, ${today.toLocaleDateString('he-IL')}</div>
-
-        <div style="background:#0a1828;border:1px solid ${ACCENT}44;border-radius:12px;padding:14px 16px;margin-bottom:14px;text-align:right">
-          <div style="font-size:11px;color:${ACCENT};margin-bottom:8px;letter-spacing:.5px;text-transform:uppercase">📋 הלוז שלך היום</div>
-          ${blocks.length ? blocks.map(b => `
-            <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;
-              border-bottom:1px solid ${ACCENT}11">
-              <span>${b.title}</span>
-              <span style="opacity:.55">${b.start}–${b.end}</span>
-            </div>`).join('') : '<div style="opacity:.5;font-size:13px;padding:4px 0">אין בלוקים מוגדרים להיום.</div>'}
-        </div>
-
-        ${behind.length ? `
-        <div style="background:rgba(255,77,109,.06);border:1px solid ${ACCENT_BAD}44;border-radius:10px;
-          padding:12px 14px;margin-bottom:14px;text-align:right">
-          <div style="color:${ACCENT_BAD};font-size:11px;margin-bottom:6px">⚠️ חוב פרויקטים</div>
-          ${behind.map(([p,o]) => `<div style="font-size:12px;opacity:.85">${p}: ${Math.round(o.debt/60*10)/10} שעות</div>`).join('')}
-        </div>` : `
-        <div style="background:rgba(66,230,149,.05);border:1px solid ${ACCENT_OK}44;border-radius:10px;
-          padding:10px 14px;margin-bottom:14px;font-size:13px;color:${ACCENT_OK}">
-          ✅ אין חוב פרויקטים — כל הכבוד!
-        </div>`}
-
-        <button id="jv-lock-enter" style="background:${ACCENT};color:#001828;border:none;border-radius:24px;
-          padding:13px 44px;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.5px;
-          box-shadow:0 0 32px ${ACCENT}66;transition:transform .15s">
-          Let's go 🚀
-        </button>
-        <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-          <button id="jv-lock-checkin" style="background:transparent;color:${ACCENT};border:1px solid ${ACCENT}55;
-            border-radius:18px;padding:8px 18px;font-size:12px;cursor:pointer">☀️ Daily Check-In</button>
-          <button id="jv-lock-skip" style="background:transparent;color:#8b9bb4;border:1px solid #8b9bb444;
-            border-radius:18px;padding:8px 18px;font-size:12px;cursor:pointer">Skip →</button>
-        </div>
-      </div>`;
-
-    document.body.appendChild(wrap);
-    requestAnimationFrame(() => { wrap.style.opacity = '1'; });
-
-    const dismiss = () => {
-      wrap.style.opacity = '0';
-      setTimeout(() => wrap.remove(), 400);
-    };
-
-    wrap.querySelector('#jv-lock-enter').onmouseenter = function() { this.style.transform = 'scale(1.04)'; };
-    wrap.querySelector('#jv-lock-enter').onmouseleave = function() { this.style.transform = 'scale(1)'; };
-    wrap.querySelector('#jv-lock-enter').onclick = () => { dismiss(); speak(`${greet}, Roei. Let's get to work.`); };
-    wrap.querySelector('#jv-lock-checkin').onclick = () => { dismiss(); setTimeout(openDailyCheckIn, 350); };
-    wrap.querySelector('#jv-lock-skip').onclick    = dismiss;
+    const overlay = document.createElement('div');
+    overlay.id = 'jv-lock';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.96);z-index:99998;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Inter,-apple-system,sans-serif;';
+    const name = getCurrentUserDisplay();
+    const now = new Date(), hour = now.getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    overlay.innerHTML = '<div style="text-align:center;">'
+      + '<div style="font-size:52px;margin-bottom:16px;">&#128274;</div>'
+      + '<h2 style="color:#f5f5f7;font-size:24px;font-weight:600;margin:0 0 8px;">' + greeting + ', ' + name + '</h2>'
+      + '<p style="color:rgba(255,255,255,0.45);font-size:15px;margin:0 0 36px;">' + now.toLocaleDateString('he-IL',{weekday:'long',month:'long',day:'numeric'}) + '</p>'
+      + '<button id="jv-unlock-btn" style="padding:14px 40px;border-radius:12px;border:none;background:#0071e3;color:#fff;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:14px;">Unlock</button><br>'
+      + '<button id="jv-switch-btn" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:13px;cursor:pointer;text-decoration:underline;">Switch Account</button>'
+      + '</div>';
+    overlay.querySelector('#jv-unlock-btn').addEventListener('click', function() { overlay.remove(); });
+    overlay.querySelector('#jv-switch-btn').addEventListener('click', function() { overlay.remove(); logoutUser(); });
+    document.body.appendChild(overlay);
+    overlay.querySelector('#jv-unlock-btn').focus();
   }
 
   // ────────────────────────────────────────────────────────────────────────
@@ -2070,49 +2049,110 @@ section, .row, [class*="row-"], [class*="-row"] {
   // ────────────────────────────────────────────────────────────────────────
   // 12. BOOT
   // ────────────────────────────────────────────────────────────────────────
+
+  // ─── Multi-Account System ────────────────────────────────────────
+  const ACCOUNTS_KEY = 'jv_accounts';
+  const SESSION_USER = 'jv_session_user';
+  function hashPass(p) {
+    let h = 5381;
+    for (let i = 0; i < p.length; i++) h = ((h << 5) + h) ^ p.charCodeAt(i);
+    return (h >>> 0).toString(36);
+  }
+  function getAccounts() { return readLocal(ACCOUNTS_KEY, {}); }
+  function getCurrentUser() { return sessionStorage.getItem(SESSION_USER) || null; }
+  function getCurrentUserDisplay() {
+    const u = getCurrentUser(); if (!u) return "Guest";
+    return getAccounts()[u]?.displayName || u;
+  }
+  function installAccountProxy(username) {
+    if (Storage.prototype._jvProxied) return;
+    const UK = 'pos3_u_' + username;
+    const g = Storage.prototype.getItem, s = Storage.prototype.setItem, r = Storage.prototype.removeItem;
+    Storage.prototype._jvProxied = true;
+    Storage.prototype.getItem    = function(k) { return g.call(this, k === 'pos3' ? UK : k); };
+    Storage.prototype.setItem    = function(k,v) { return s.call(this, k === 'pos3' ? UK : k, v); };
+    Storage.prototype.removeItem = function(k) { return r.call(this, k === 'pos3' ? UK : k); };
+  }
+  function loginUser(username, password) {
+    const key = username.toLowerCase().trim(), accounts = getAccounts(), acc = accounts[key];
+    if (!acc) return { ok:false, error:'Account not found.' };
+    if (acc.passwordHash !== hashPass(password)) return { ok:false, error:'Wrong password.' };
+    sessionStorage.setItem(SESSION_USER, key); installAccountProxy(key);
+    return { ok:true, displayName: acc.displayName };
+  }
+  function registerUser(username, password) {
+    const key = username.toLowerCase().trim(), accounts = getAccounts();
+    if (key.length < 2) return { ok:false, error:'Username too short (min 2).' };
+    if (password.length < 4) return { ok:false, error:'Password too short (min 4).' };
+    if (accounts[key]) return { ok:false, error:'Username taken.' };
+    accounts[key] = { displayName: username.trim(), passwordHash: hashPass(password), createdAt: Date.now() };
+    writeLocal(ACCOUNTS_KEY, accounts); sessionStorage.setItem(SESSION_USER, key); installAccountProxy(key);
+    return { ok:true, displayName: username.trim() };
+  }
+  function logoutUser() {
+    sessionStorage.removeItem(SESSION_USER);
+    sessionStorage.removeItem('jv_locked_this_session');
+    location.reload();
+  }
+  function openLoginScreen(onSuccess) {
+    const ex = document.getElementById('jv-login'); if (ex) ex.remove();
+    const sc = document.createElement('div');
+    sc.id = 'jv-login';
+    sc.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,-apple-system,sans-serif;';
+    sc.innerHTML = '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:40px;width:340px;max-width:90vw;box-sizing:border-box;">'
+      + '<div style="text-align:center;font-size:40px;margin-bottom:10px;">&#129302;</div>'
+      + '<h2 id="jv-ltit" style="color:#f5f5f7;text-align:center;margin:0 0 6px;font-size:20px;font-weight:700;"></h2>'
+      + '<p id="jv-lerr" style="color:#ff6b6b;font-size:13px;text-align:center;min-height:18px;margin:0 0 12px;"></p>'
+      + '<input id="jv-luser" type="text" placeholder="Username" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:12px;color:#f5f5f7;font-size:15px;margin-bottom:10px;outline:none;">'
+      + '<input id="jv-lpass" type="password" placeholder="Password" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:12px;color:#f5f5f7;font-size:15px;margin-bottom:16px;outline:none;">'
+      + '<button id="jv-lbtn" style="width:100%;padding:13px;border-radius:10px;border:none;background:#0071e3;color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:14px;"></button>'
+      + '<p style="text-align:center;font-size:13px;color:rgba(255,255,255,0.45);"><span id="jv-ltogm"></span> <a id="jv-ltog" href="#" style="color:#0071e3;text-decoration:none;"></a></p>'
+      + '</div>';
+    let mode = 'login';
+    const upd = () => {
+      const il = mode === 'login';
+      sc.querySelector('#jv-ltit').textContent = il ? 'JARVIS — Sign In' : 'JARVIS — Sign Up';
+      sc.querySelector('#jv-lbtn').textContent = il ? 'Sign In' : 'Create Account';
+      sc.querySelector('#jv-ltogm').textContent = il ? 'No account?' : 'Have account?';
+      sc.querySelector('#jv-ltog').textContent  = il ? 'Create one' : 'Sign in';
+    }; upd();
+    sc.querySelector('#jv-lbtn').addEventListener('click', () => {
+      const u = sc.querySelector('#jv-luser').value.trim(), p = sc.querySelector('#jv-lpass').value;
+      const e = sc.querySelector('#jv-lerr');
+      if (!u || !p) { e.textContent = 'Fill in all fields.'; return; }
+      const r = mode === 'login' ? loginUser(u, p) : registerUser(u, p);
+      r.ok ? (sc.remove(), onSuccess && onSuccess()) : (e.textContent = r.error);
+    });
+    sc.querySelector('#jv-lpass').addEventListener('keydown', ev => ev.key === 'Enter' && sc.querySelector('#jv-lbtn').click());
+    sc.querySelector('#jv-ltog').addEventListener('click', ev => { ev.preventDefault(); mode = mode === 'login' ? 'register' : 'login'; upd(); sc.querySelector('#jv-lerr').textContent = ''; });
+    document.body.appendChild(sc);
+    setTimeout(() => sc.querySelector('#jv-luser').focus(), 100);
+  }
+
   function boot() {
-    // Apple / futuristic theme — injected first so the app looks right on load
     injectAppleTheme();
-    hud.mount();
-    bindRecog = (function(orig){return function(){ recog = recog || makeRecognizer(); return orig(); }})(bindRecogActual);
-    bindRecogActual();
-    if (settings().wakeWordOn) startListening(false);
-    setupBriefings();
-    // Render debt widget once dashboard is ready
-    setTimeout(renderDebtWidget, 1500);
-    // Ask for notification permission lazily (non-intrusive)
-    if ('Notification' in window && Notification.permission === 'default') {
-      setTimeout(() => Notification.requestPermission().catch(()=>{}), 8000);
-    }
-    // expose API
-    window.JARVIS = {
-      version: VERSION,
-      handle, route, speak, listen: startListening, stop: stopListening,
-      readState, writeState, writeScheduleBlock,
-      projectDebt, blockStatus, setBlockStatus, replaceBlock,
-      suggestReschedule, getLog, settings, updateSettings,
-      requestNotifPermission,
-      // modals
-      openSchedule:     openScheduleModal,
-      openLog:          openLogModal,
-      openSettings:     openSettingsModal,
-      openCheckIn:      openDailyCheckIn,
-      openWeeklyReview: openWeeklyReview,
-      openWhatNow:      openWhatNowPanel,
-      openLock:         openLockScreen,
-      // shorthand commands
-      brief:    () => ACTIONS.morningBrief(),
-      debt:     () => ACTIONS.showDebt(),
-      whatNow:  (e)    => ACTIONS.whatNow({ energy: e || 'medium' }),
-      whatSkip: ()     => ACTIONS.whatToSkip(),
-      planDay:  ()     => ACTIONS.planByMissed(),
-      logTime:  (args) => ACTIONS.logActualTime(args),
-      activity: (args) => ACTIONS.activityReport(args),
-      addBlock: (args) => ACTIONS.addScheduleBlock(args),
+    const doInit = () => {
+      const user = getCurrentUser();
+      if (user) installAccountProxy(user);
+      hud.mount();
+      bindRecogHandlers();
+      setupBriefings();
+      setTimeout(renderDebtWidget, 1500);
+      if ('Notification' in window && Notification.permission === 'default') {
+        setTimeout(() => Notification.requestPermission().catch(() => {}), 8000);
+      }
+      window.JARVIS = {
+        version: VERSION, handle, route, speak, listen: startListening,
+        stopListen: stopListening, log: addLog, state: readState, writeState,
+        schedule: SCHEDULE, projects: PROJECTS, debt: projectDebt,
+        setBlock: setBlockStatus, writeScheduleBlock, requestNotifPermission,
+        addBlock: args => ACTIONS.addScheduleBlock(args), logoutUser,
+      };
+      setTimeout(openLockScreen, 900);
+      console.log('%cJARVIS v2.1 online', 'color:#00d4ff;font-weight:bold;font-size:13px');
     };
-    // Show lock/greeting screen on every fresh session
-    setTimeout(openLockScreen, 900);
-    console.log('%cJARVIS v2.0 online — Apple theme, bilingual, schedule writes, push notifications.', 'color:#00d4ff;font-weight:bold;font-size:13px');
+    if (getCurrentUser()) { doInit(); }
+    else { openLoginScreen(() => doInit()); }
   }
   function bindRecogActual() {
     recog = makeRecognizer();
