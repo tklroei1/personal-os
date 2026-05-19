@@ -27,7 +27,7 @@
   // ────────────────────────────────────────────────────────────────────────
   //  0. CONFIG
   // ────────────────────────────────────────────────────────────────────────
-  const VERSION       = '1.0.0';
+  const VERSION       = '2.0.0';
   const STATE_KEY     = 'pos3';
   const LOG_KEY       = 'pos3_jarvis_log';
   const SCHED_KEY     = 'pos3_jarvis_schedule';
@@ -490,7 +490,7 @@
     },
     addTask(args) {
       const text = args.text || args.title;
-      if (!text) return 'אני צריך שתגיד מה המשימה.';
+      if (!text) return 'What task should I add?';
       const state = readState();
       state.tasks = state.tasks || [];
       const id = (state.tasks.reduce((m,t)=>Math.max(m,t.id||0),0) || 0) + 1;
@@ -503,69 +503,82 @@
       });
       writeState(state);
       logEvent('task.add', { text, cat:args.cat, proj:args.proj }, id);
-      return `נוסף: ${text}.`;
+      celebrate();
+      return `Added: "${text}"${args.proj ? ' → ' + args.proj : ''}.`;
     },
     completeTask(args) {
       const q = (args.match || args.text || '').toLowerCase();
-      if (!q) return 'תגיד איזו משימה לסיים.';
+      if (!q) return 'Which task should I mark done?';
       const state = readState();
       const t = (state.tasks||[]).find(t => !t.done && t.text.toLowerCase().includes(q));
-      if (!t) return `לא מצאתי משימה שמתאימה ל"${q}".`;
+      if (!t) return `I couldn't find a task matching "${q}".`;
       t.done = true; t.progress = 100; t.status = 'done';
       writeState(state);
       logEvent('task.complete', { id:t.id, text:t.text });
       celebrate();
-      return `סומן כהושלם: ${t.text}.`;
+      return `Done ✓ "${t.text}". Good work.`;
     },
     addReminder(args) {
       const text = args.text;
-      if (!text) return 'מה תזכורת אתה רוצה?';
+      if (!text) return 'What should I remind you about?';
       const when = parseRelativeTime(args.when || args.in);
       const state = readState();
       state.reminders = state.reminders || [];
       const id = (state.reminders.reduce((m,r)=>Math.max(m,r.id||0),0) || 0) + 1;
+      const timeStr = String(when.getHours()).padStart(2,'0')+':'+String(when.getMinutes()).padStart(2,'0');
       state.reminders.push({
         id, text,
         date: dateKey(when),
-        time: String(when.getHours()).padStart(2,'0')+':'+String(when.getMinutes()).padStart(2,'0'),
+        time: timeStr,
         done:false, repeat: args.repeat || 'none'
       });
       writeState(state);
       logEvent('reminder.add', { text, when: when.toISOString() }, id);
-      // Schedule local notification (Notification API)
       scheduleNotif(text, when);
-      return `אזכיר לך: ${text} ב-${state.reminders[state.reminders.length-1].time}.`;
+      return `🔔 Reminder set: "${text}" at ${timeStr}.`;
+    },
+    addScheduleBlock(args) {
+      // "תכנסי X מ-Y עד Z" / "schedule X from Y to Z"
+      const today = new Date();
+      const dayNum = typeof args.day === 'number' ? args.day : today.getDay();
+      const block = writeScheduleBlock(dayNum, args.start, args.end, args.title, args.type || 'medium', args.proj || null);
+      hud.toast(`Schedule updated: ${block.title}`, 'ok');
+      return `📅 Scheduled "${block.title}" from ${block.start} to ${block.end}. Check your weekly view.`;
     },
     queryDue(args) {
       const scope = args.scope || 'week';
       if (scope === 'today') {
         const tasks = dueToday();
         const evts = todayEvents();
+        const blks = blocksForDay(new Date()).slice(0,4);
         const lines = [];
-        if (tasks.length) lines.push(`היום יש לך ${tasks.length} משימות: ${tasks.slice(0,3).map(t=>t.text).join('; ')}${tasks.length>3?'...':''}.`);
-        if (evts.length)  lines.push(`אירועים: ${evts.map(e=>`${e.time} ${e.title}`).join('; ')}.`);
-        if (!lines.length) lines.push('היום נקי. הזדמנות לסגור חוב פתוח.');
+        if (tasks.length) lines.push(`${tasks.length} task${tasks.length>1?'s':''} due today: ${tasks.slice(0,3).map(t=>t.text).join(', ')}${tasks.length>3?' ...':''}.`);
+        if (evts.length)  lines.push(`Events: ${evts.map(e=>`${e.time} ${e.title}`).join(', ')}.`);
+        if (blks.length)  lines.push(`Schedule: ${blks.map(b=>`${b.start} ${b.title}`).join(' → ')}.`);
+        if (!lines.length) lines.push('Your day looks clear. Good opportunity to chip away at project debt.');
         return lines.join(' ');
       }
       const tasks = dueThisWeek();
       const debt  = projectDebt();
       const debts = Object.entries(debt).filter(([,o])=>o.debt>0)
-        .map(([p,o])=>`${p}: חוב ${Math.round(o.debt/60)} שעות`).join(', ');
-      return `השבוע: ${tasks.length} משימות פתוחות. ${debts ? 'חוב פרויקטים: '+debts+'.' : 'אין חוב פרויקטים פתוח.'}`;
+        .map(([p,o])=>`${p}: ${Math.round(o.debt/60)}h debt`).join(', ');
+      return `This week: ${tasks.length} open task${tasks.length!==1?'s':''}. ${debts ? 'Project debt — '+debts+'.' : 'No project debt. On track!'}`;
     },
     morningBrief() {
       const tasks = dueToday();
       const evts  = todayEvents();
+      const blks  = blocksForDay(new Date()).slice(0,5);
       const debt  = projectDebt();
       const debts = Object.entries(debt).filter(([,o])=>o.debt>0);
       const dt    = new Date();
-      const greet = dt.getHours() < 12 ? 'בוקר טוב' : dt.getHours() < 17 ? 'אחר צהריים טובים' : 'ערב טוב';
+      const greet = dt.getHours() < 12 ? 'Good morning' : dt.getHours() < 17 ? 'Good afternoon' : 'Good evening';
       const lines = [
-        `${greet}, רואי.`,
-        tasks.length ? `יש לך ${tasks.length} משימות היום.` : 'אין משימות דחופות היום.',
-        evts.length  ? `אירועים: ${evts.map(e=>`${e.time} ${e.title}`).join(', ')}.` : '',
-        debts.length ? `שים לב לחוב פרויקטים: ${debts.map(([p])=>p).join(', ')}.` : '',
-        'אני כאן. רק תקרא לי.'
+        `${greet}, Roei.`,
+        tasks.length ? `You have ${tasks.length} task${tasks.length>1?'s':''} today.` : 'No urgent tasks today.',
+        blks.length  ? `Today\'s schedule: ${blks.map(b=>`${b.start} ${b.title}`).join(', ')}.` : '',
+        evts.length  ? `Events: ${evts.map(e=>`${e.time} ${e.title}`).join(', ')}.` : '',
+        debts.length ? `Watch out — project debt on: ${debts.map(([p])=>p).join(', ')}.` : '',
+        `I'm here when you need me.`
       ].filter(Boolean);
       return lines.join(' ');
     },
@@ -574,13 +587,13 @@
       const completed = log.filter(e => e.kind === 'task.complete').length;
       const added     = log.filter(e => e.kind === 'task.add').length;
       const debt = projectDebt();
+      const behind = Object.entries(debt).filter(([,o])=>o.debt>0);
       const lines = [
-        `סיכום היום: סיימת ${completed} משימות, הוספת ${added}.`,
-        Object.entries(debt).filter(([,o])=>o.debt>0).length
-          ? 'מחר כדאי להשלים חוב מפרויקטים: ' + Object.entries(debt)
-              .filter(([,o])=>o.debt>0).map(([p])=>p).join(', ') + '.'
-          : 'כל הפרויקטים בקצב טוב. כל הכבוד.',
-        'לילה טוב.'
+        `Day summary: ${completed} task${completed!==1?'s':''} completed, ${added} added.`,
+        behind.length
+          ? `Tomorrow, prioritize debt on: ${behind.map(([p])=>p).join(', ')}.`
+          : 'All projects are on track. Well done.',
+        'Good night.'
       ];
       return lines.join(' ');
     },
@@ -591,20 +604,20 @@
         actualMinutes: args.actualMinutes,
         note: args.note
       });
-      return `עדכנתי את הבלוק ${args.blockId} לסטטוס ${args.status}.`;
+      return `Block "${args.blockId}" updated → ${args.status}.`;
     },
     rescheduleBlock(args) {
       const date = args.date ? new Date(args.date) : new Date();
       const sug  = suggestReschedule(args.blockId, date);
-      if (!sug) return 'לא מצאתי חלון פנוי השבוע.';
-      return `ההצעה שלי: ${sug.day.toLocaleDateString('he-IL')} ב-${sug.start}–${sug.end}.`;
+      if (!sug) return 'No free slot found this week. Consider Saturday.';
+      return `Suggested slot: ${sug.day.toLocaleDateString('en-IL')} at ${sug.start}–${sug.end}.`;
     },
     showDebt() {
       const debt = projectDebt();
       const lines = Object.entries(debt).map(([p,o]) =>
-        `${p}: מתוכנן ${Math.round(o.planned/60)}ש׳, בוצע ${Math.round(o.actual/60)}ש׳, חוב ${Math.round(o.debt/60)}ש׳`
+        `${p}: planned ${Math.round(o.planned/60)}h, done ${Math.round(o.actual/60)}h, debt ${Math.round(o.debt/60)}h`
       );
-      return lines.length ? lines.join('; ') : 'אין נתונים עדיין השבוע.';
+      return lines.length ? lines.join(' | ') : 'No project data yet this week.';
     },
     // ── Advanced agent commands ────────────────────────────────────────────
     activityReport(args) {
@@ -621,12 +634,12 @@
       replaceable.forEach(b => setBlockStatus(b.id, today, { status:'replaced', note: args.activity || 'פעילות אחרת', actualMinutes:0 }));
       fixed.forEach(b       => setBlockStatus(b.id, today, { status:'missed',   note: args.activity || 'פעילות אחרת' }));
       const lines = [];
-      if (args.activity) lines.push(`רשמתי: ${args.activity} בין ${from}:00–${to}:00.`);
-      if (replaceable.length) lines.push(`"${replaceable.map(b=>b.title).join(', ')}" — עודכן כ"הוחלף".`);
-      if (fixed.length)       lines.push(`"${fixed.map(b=>b.title).join(', ')}" — עודכן כ"הוחמץ".`);
+      if (args.activity) lines.push(`Logged: ${args.activity} between ${from}:00–${to}:00.`);
+      if (replaceable.length) lines.push(`"${replaceable.map(b=>b.title).join(', ')}" → marked as replaced.`);
+      if (fixed.length)       lines.push(`"${fixed.map(b=>b.title).join(', ')}" → marked as missed.`);
       const sug = replaceable[0] ? suggestReschedule(replaceable[0].id, today) : null;
-      if (sug) lines.push(`הצעה לפיצוי: ${sug.day.toLocaleDateString('he-IL')} ב-${sug.start}–${sug.end}.`);
-      return lines.join(' ') || 'עדכנתי את הלוז.';
+      if (sug) lines.push(`Recovery slot: ${sug.day.toLocaleDateString('en-IL')} at ${sug.start}–${sug.end}.`);
+      return lines.join(' ') || 'Schedule updated.';
     },
 
     logActualTime(args) {
@@ -644,8 +657,8 @@
       }
       const pName = PROJECTS[projKey]?.name || projKey;
       const diff  = planned - actual;
-      if (diff > 0) return `${pName}: עשית ${actual} מתוך ${planned} דק׳. חוב של ${diff} דק׳. מומלץ להשלים מחר.`;
-      return `${pName}: עשית ${actual} דק׳ — מעולה!${planned ? ` (מתוכנן: ${planned} דק׳)` : ''}`;
+      if (diff > 0) return `${pName}: you did ${actual} of ${planned} min. ${diff} min debt — suggest making it up tomorrow.`;
+      return `${pName}: ${actual} min done — excellent!${planned ? ` (target was ${planned} min)` : ''}`;
     },
 
     planByMissed() {
@@ -659,13 +672,13 @@
         const st = yData[k]?.status;
         return st === 'missed' || st === 'partial';
       });
-      if (!missed.length) return 'לא מצאתי בלוקים שפספסת אתמול — היום נקי! 🎉';
+      if (!missed.length) return 'Nothing missed yesterday — clean slate today! 🎉';
       const today = new Date();
       const suggestions = missed.slice(0, 3).map(b => {
         const sug = suggestReschedule(b.id, today);
-        return sug ? `• ${b.title}: ${sug.start}–${sug.end}` : `• ${b.title}: אין חלון פנוי (שקול שבת)`;
+        return sug ? `• ${b.title}: ${sug.start}–${sug.end}` : `• ${b.title}: no free slot (consider Saturday)`;
       });
-      return `פספסת אתמול:\n${suggestions.join('\n')}`;
+      return `Missed yesterday:\n${suggestions.join('\n')}`;
     },
 
     whatToSkip() {
@@ -678,8 +691,8 @@
         const d = debt[PROJECTS[b.proj]?.name];
         return !d || d.debt < 60;
       });
-      if (!skippable.length) return 'אין בלוקים שאפשר לדלג היום בבטחה — כולם חשובים.';
-      return `ניתן לדלג היום (בלי נזק לשבוע):\n${skippable.map(b=>`• ${b.title} (${b.start}–${b.end})`).join('\n')}`;
+      if (!skippable.length) return 'Nothing safe to skip today — every block matters.';
+      return `Safe to skip today (no weekly damage):\n${skippable.map(b=>`• ${b.title} (${b.start}–${b.end})`).join('\n')}`;
     },
 
     whatNow(args) {
@@ -698,31 +711,75 @@
       const suitable = typeMap[energy] || typeMap['medium'];
       const debt     = projectDebt();
       const behind   = Object.entries(debt).filter(([,o])=>o.debt>30).sort((a,b)=>b[1].debt-a[1].debt);
-      const eLabel   = energy==='high' ? 'גבוהה' : energy==='low' ? 'נמוכה' : 'בינונית';
+      const eLabel   = energy==='high' ? 'high' : energy==='low' ? 'low' : 'medium';
       if (current) {
-        const tip = energy==='low' ? 'גמור את מה שיש ונח.' : 'תכנס לזה עכשיו.';
-        return `עכשיו אמור להיות: "${current.title}" עד ${current.end}. אנרגיה ${eLabel} — ${tip}`;
+        const tip = energy==='low' ? 'Wrap it up and rest.' : 'Lock in and execute.';
+        return `You should be on: "${current.title}" until ${current.end}. Energy ${eLabel} — ${tip}`;
       }
       const best = upcoming.find(b => suitable.includes(b.type));
       if (best) {
-        const debtNote = behind.length ? ` שים לב: חוב ב-${behind[0][0]}.` : '';
-        return `אנרגיה ${eLabel} — ממליץ: "${best.title}" ב-${best.start}.${debtNote}`;
+        const debtNote = behind.length ? ` Note: you have debt on ${behind[0][0]}.` : '';
+        return `Energy ${eLabel} — best move: "${best.title}" at ${best.start}.${debtNote}`;
       }
       if (behind.length) {
-        const action = energy==='high' ? 'פתח deep-work session' : energy==='low' ? 'עשה משהו קל לפרויקט' : 'קדם כמה שיותר';
-        return `אין בלוק ספציפי — יש חוב ב-${behind[0][0]}. אנרגיה ${eLabel}: ${action}.`;
+        const action = energy==='high' ? 'open a deep-work session' : energy==='low' ? 'do a light task on the project' : 'push as far as you can';
+        return `No scheduled block right now — but you have debt on ${behind[0][0]}. Energy ${eLabel}: ${action}.`;
       }
-      const freeAct = energy==='low' ? 'קח הפסקה.' : energy==='high' ? 'קפוץ קדימה בלוז.' : 'עבור על המשימות.';
-      return `אתה בין בלוקים. אנרגיה ${eLabel}: ${freeAct}`;
+      const freeAct = energy==='low' ? 'Take a break.' : energy==='high' ? 'Jump ahead on your schedule.' : 'Review your open tasks.';
+      return `You\'re between blocks. Energy ${eLabel}: ${freeAct}`;
     },
 
     // ── Modal-opening shorthands ───────────────────────────────────────────
-    dailyCheckIn()  { openDailyCheckIn();  return 'פותח צ׳ק-אין יומי...'; },
-    weeklyReview()  { openWeeklyReview();  return 'פותח סיכום שבועי...'; },
+    dailyCheckIn()  { openDailyCheckIn();  return 'Opening daily check-in...'; },
+    weeklyReview()  { openWeeklyReview();  return 'Opening weekly review...'; },
     openWhatNow()   { openWhatNowPanel();  return ''; },
 
     speakOnly(args) { return args.text || ''; },
   };
+
+  // ────────────────────────────────────────────────────────────────────────
+  //  5-A. SYSTEM WRITE HELPERS — direct state mutations by JARVIS
+  // ────────────────────────────────────────────────────────────────────────
+  function writeScheduleBlock(day, start, end, title, type, proj) {
+    const sched = loadSchedule();
+    const id = 'jv_custom_' + Date.now();
+    const block = {
+      id, day: typeof day === 'number' ? day : new Date().getDay(),
+      start: start || '09:00', end: end || '10:00',
+      title: title || 'Custom Block', type: type || 'medium',
+      proj: proj || null, dedicated: title || 'Custom',
+      action: title || 'Custom', replaceable: true, fixed: false
+    };
+    sched.blocks.push(block);
+    writeLocal(SCHED_KEY, sched);
+    logEvent('schedule.add', block, 'ok');
+    return block;
+  }
+
+  function requestNotifPermission() {
+    if (!('Notification' in window)) {
+      hud.toast('Push notifications not supported in this browser.', 'error');
+      return;
+    }
+    if (Notification.permission === 'granted') {
+      hud.toast('Notifications already enabled ✓', 'ok');
+      speak('Push notifications are already active.');
+      return;
+    }
+    Notification.requestPermission().then(perm => {
+      if (perm === 'granted') {
+        hud.toast('🔔 Notifications enabled!', 'ok');
+        speak('Great. I\'ll now send you push notifications for reminders and briefings.');
+        new Notification('JARVIS is connected 🔔', {
+          body: 'You\'ll get reminders and briefing alerts from here.',
+          icon: '/favicon.ico'
+        });
+      } else {
+        hud.toast('Notifications blocked. Enable in your browser settings.', 'error');
+        speak('Notifications are blocked. You can enable them in your browser settings.');
+      }
+    }).catch(() => hud.toast('Could not request notifications.', 'error'));
+  }
 
   function parseRelativeTime(spec) {
     // accepts: "בעוד 10 דקות", "מחר 09:00", "ב-14:30", or Date/ISO
@@ -751,7 +808,7 @@
       if (Notification && Notification.permission === 'granted') {
         new Notification('JARVIS — תזכורת', { body: text, icon: '/favicon.ico' });
       }
-      speak(`תזכורת: ${text}.`);
+      speak(`Reminder: ${text}.`);
     }, delay);
   }
 
@@ -769,21 +826,26 @@
     if (!t) return null;
     const lower = t.toLowerCase();
 
-    // — Navigation —
-    let m = t.match(/(?:פתח|תפתח|לך ל|נווט ל|תעבור ל|תראה לי)\s+(.+)/);
+    // — Navigation (Hebrew + English) —
+    let m = t.match(/(?:פתח|תפתח|לך ל|נווט ל|תעבור ל|תראה לי|open|go to|navigate to|show me)\s+(.+)/i);
     if (m) return { action:'navigate', args:{ where: m[1] } };
 
-    // — Add task —
+    // — Add task (Hebrew) —
     m = t.match(/(?:הוסף|תוסיף)\s+משימה\s+(.+?)(?:\s+לפרויקט\s+(\S+))?$/);
     if (m) return { action:'addTask', args:{ text: m[1], proj: PAGE_ALIASES[m[2]] || m[2] || null } };
     m = t.match(/^(?:הוסף|תוסיף)\s+(.+?)\s+(?:ל|אל)\s*(?:משימות|טודו)$/);
     if (m) return { action:'addTask', args:{ text: m[1] } };
+    // — Add task (English) —
+    m = t.match(/^(?:add task|create task|new task)\s+(.+?)(?:\s+(?:to|for)\s+(\w+))?$/i);
+    if (m) return { action:'addTask', args:{ text: m[1], proj: m[2] || null } };
 
-    // — Complete task —
+    // — Complete task (Hebrew + English) —
     m = t.match(/(?:סמן|תסמן|סיימתי|גמרתי|הושלם)(?:\s+את)?\s+(.+?)(?:\s+כהושלם|\s+כסיימתי)?$/);
     if (m) return { action:'completeTask', args:{ match: m[1] } };
+    m = t.match(/^(?:done|complete|finish|mark done|mark as done)\s+(.+)/i);
+    if (m) return { action:'completeTask', args:{ match: m[1] } };
 
-    // — Add reminder —
+    // — Add reminder (Hebrew) —
     m = t.match(/(?:תזכר|תזכור|תזכיר|הזכר)\s+(?:לי\s+)?(?:על\s+)?(.+?)\s+(?:בעוד\s+(.+)|ב-?(\d{1,2}:\d{2})|מחר\s+(\d{1,2}:\d{2}))/);
     if (m) {
       const when = m[2] || m[3] || (m[4] ? 'מחר ' + m[4] : null);
@@ -791,21 +853,46 @@
     }
     m = t.match(/(?:תזכר|תזכיר)\s+(?:לי\s+)?(.+)/);
     if (m) return { action:'addReminder', args:{ text: m[1], when: 'בעוד שעה' } };
+    // — Add reminder (English) —
+    m = t.match(/^remind me (?:to |about )?(.+?) (?:at|in)\s+(.+)/i);
+    if (m) return { action:'addReminder', args:{ text: m[1], when: m[2] } };
+    m = t.match(/^remind me (?:to |about )?(.+)/i);
+    if (m) return { action:'addReminder', args:{ text: m[1], when: 'in 1 hour' } };
 
-    // — Queries —
-    if (/מה (אני )?(חייב|צריך|עליי)\s+(היום|לעשות היום)/.test(t) || /מה (יש לי )?היום/.test(t))
+    // — Schedule a block: "תכניסי X מ-Y עד Z" / "schedule X from Y to Z" —
+    m = t.match(/(?:תכנסי|תכניסי|תוסיפי|הכנסי|תזמני)\s+(.+?)\s+(?:מ-?|מ–?)(\d{1,2}:\d{2}|\d{1,2})\s+(?:עד|–|-)\s*(\d{1,2}:\d{2}|\d{1,2})/);
+    if (m) {
+      const title = m[1].trim();
+      const start = m[2].includes(':') ? m[2] : m[2]+':00';
+      const end   = m[3].includes(':') ? m[3] : m[3]+':00';
+      return { action:'addScheduleBlock', args:{ title, start, end, day: new Date().getDay() } };
+    }
+    m = t.match(/^(?:schedule|add (?:to )?schedule|block off|block out)\s+(.+?)\s+from\s+(\d{1,2}(?::\d{2})?(?:am|pm)?)\s+to\s+(\d{1,2}(?::\d{2})?(?:am|pm)?)/i);
+    if (m) {
+      const toH = (hStr) => { const p=hStr.match(/(\d+)(?::(\d+))?(am|pm)?/i); if(!p) return hStr+':00'; let h=parseInt(p[1]); if(/pm/i.test(p[3]||'')&&h<12) h+=12; if(/am/i.test(p[3]||'')&&h===12) h=0; return String(h).padStart(2,'0')+':'+(p[2]||'00'); };
+      return { action:'addScheduleBlock', args:{ title: m[1].trim(), start: toH(m[2]), end: toH(m[3]), day: new Date().getDay() } };
+    }
+
+    // — Queries (Hebrew + English) —
+    if (/מה (אני )?(חייב|צריך|עליי)\s+(היום|לעשות היום)/.test(t) || /מה (יש לי )?היום/.test(t)
+        || /^(?:what(?:'s| is) (?:on )?(?:my )?(?:today|today's|schedule today)|what do i have today)/i.test(lower))
       return { action:'queryDue', args:{ scope:'today' } };
-    if (/מה (אני )?חייב\s+השבוע/.test(t) || /מה (יש לי )?השבוע/.test(t))
+    if (/מה (אני )?חייב\s+השבוע/.test(t) || /מה (יש לי )?השבוע/.test(t)
+        || /^(?:what(?:'s| is) (?:on )?(?:my )?(?:week|this week|weekly))/i.test(lower))
       return { action:'queryDue', args:{ scope:'week' } };
 
-    // — Briefings —
-    if (/(תיאור|תקציר|סיכום) (?:של )?(?:ה)?(?:בוקר|יום)/.test(t) || /בוקר טוב/.test(t))
+    // — Briefings (Hebrew + English) —
+    if (/(תיאור|תקציר|סיכום) (?:של )?(?:ה)?(?:בוקר|יום)/.test(t) || /בוקר טוב/.test(t)
+        || /^(?:morning brief|good morning|morning update|start my day)/i.test(lower))
       return { action:'morningBrief', args:{} };
-    if (/(סיכום|תקציר)\s+(ה?ערב|ה?יום)/.test(t) || /לילה טוב/.test(t))
+    if (/(סיכום|תקציר)\s+(ה?ערב|ה?יום)/.test(t) || /לילה טוב/.test(t)
+        || /^(?:evening brief|good night|end of day|daily summary)/i.test(lower))
       return { action:'eveningBrief', args:{} };
 
-    // — Schedule —
-    if (/(חוב|דיווח)\s+(פרויקטים?|זמן)/.test(t)) return { action:'showDebt', args:{} };
+    // — Schedule / Debt (Hebrew + English) —
+    if (/(חוב|דיווח)\s+(פרויקטים?|זמן)/.test(t)
+        || /^(?:project debt|show debt|time debt)/i.test(lower))
+      return { action:'showDebt', args:{} };
     m = t.match(/(תזמן|הצע|הצעה ל)?\s*(?:לדחות|להעביר)\s+(.+?)\s+(?:למחר|לעוד|ל-?\d+)/);
     if (m) return { action:'rescheduleBlock', args:{ blockId: m[2] } };
 
@@ -859,13 +946,13 @@
     // Try the host app's callClaude if available, else fall back to a friendly nudge.
     if (typeof window.callClaude === 'function') {
       try {
-        const sys = `אתה JARVIS, עוזר אישי בעברית של רואי קליין. ענה קצר וענייני (1–2 משפטים). אל תמציא.
-מידע על המשתמש: ${JSON.stringify(quickContext()).slice(0,800)}`;
+        const sys = `You are JARVIS, Roei Klein's AI personal assistant. Reply concisely (1–2 sentences). Be direct. Do not make things up.
+User context: ${JSON.stringify(quickContext()).slice(0,800)}`;
         const reply = await window.callClaude(prompt, sys);
-        return typeof reply === 'string' ? reply : (reply?.text || 'קיבלתי. נטפל.');
-      } catch (e) { return 'אני מבין אבל אין לי תשובה מדויקת כרגע.'; }
+        return typeof reply === 'string' ? reply : (reply?.text || 'Got it. On it.');
+      } catch (e) { return 'Understood, but I don\'t have a precise answer right now.'; }
     }
-    return `שמעתי "${prompt}". עוד לא יודע לבצע את הפעולה הזו לבד — נסה: "מה היום", "הוסף משימה...", "תזכר אותי על...".`;
+    return `I heard "${prompt}". I can't handle that command yet — try: "what's today", "add task...", "remind me about...", or "schedule X from Y to Z".`;
   }
 
   function quickContext() {
@@ -910,7 +997,7 @@
   function startListening(hard=false) {
     if (!settings().voiceOn) return;
     if (!recog) recog = makeRecognizer();
-    if (!recog) { speak('אין זיהוי קולי בדפדפן הזה.'); return; }
+    if (!recog) { speak('Speech recognition is not available in this browser.'); return; }
     listeningHard = hard;
     if (recogActive) return;
     try { recog.start(); } catch (e) {}
@@ -934,7 +1021,7 @@
       hud.setState('idle');
       // common: 'not-allowed', 'no-speech', 'audio-capture'
       if (e.error === 'not-allowed') {
-        hud.toast('אין הרשאת מיקרופון. הרשה בהגדרות הדפדפן.', 'error');
+        hud.toast('Microphone access denied. Enable it in browser settings.', 'error');
       }
     };
     recog.onresult = async (ev) => {
@@ -954,7 +1041,7 @@
           if (!wake) return;
           let cmd = text;
           for (const w of WAKE_WORDS) cmd = cmd.replace(new RegExp(w, 'gi'), '').trim();
-          if (!cmd) { speak('כן, רואי?'); listeningHard = true; return; }
+          if (!cmd) { speak('Yes, Roei? I\'m listening.'); listeningHard = true; return; }
           await processSpoken(cmd);
         } else {
           await processSpoken(text);
@@ -999,6 +1086,207 @@
     hud.setState('speaking');
     u.onend = () => hud.setState('idle');
     try { window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch (e) {}
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  //  7-A. APPLE / FUTURISTIC THEME INJECTION
+  // ────────────────────────────────────────────────────────────────────────
+  function injectAppleTheme() {
+    if (document.getElementById('jv-apple-theme')) return;
+    const s = document.createElement('style');
+    s.id = 'jv-apple-theme';
+    s.textContent = `
+/* ═══ JARVIS APPLE THEME — injected by jarvis.js ═══ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --jv-bg:        #000000;
+  --jv-bg2:       #0a0a0a;
+  --jv-bg3:       #111111;
+  --jv-surface:   rgba(28,28,30,.85);
+  --jv-surface2:  rgba(44,44,46,.80);
+  --jv-border:    rgba(255,255,255,.10);
+  --jv-accent:    #00d4ff;
+  --jv-accent2:   #0071e3;
+  --jv-text:      #f5f5f7;
+  --jv-text2:     rgba(245,245,247,.60);
+  --jv-text3:     rgba(245,245,247,.35);
+  --jv-red:       #ff375f;
+  --jv-green:     #34c759;
+  --jv-yellow:    #ffd60a;
+  --jv-radius:    14px;
+  --jv-font:      'Inter','SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --jv-blur:      blur(24px) saturate(180%);
+}
+
+/* ── Reset & body ── */
+html, body {
+  background: var(--jv-bg) !important;
+  color: var(--jv-text) !important;
+  font-family: var(--jv-font) !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,.15); border-radius:10px; }
+::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,.28); }
+
+/* ── All card-like containers ── */
+.card, .widget, .panel, .box, .block, .module, .section-card,
+[class*="card"], [class*="widget"], [class*="panel"],
+[class*="-box"], [class*="-block"], [class*="-module"],
+[class*="container"]:not(#root):not(.jv-root),
+.task-item, .habit-item, .event-item, .reminder-item, .project-item,
+[class*="item"]:not(.jv-chip):not(.jv-dock button) {
+  background: var(--jv-surface) !important;
+  backdrop-filter: var(--jv-blur) !important;
+  -webkit-backdrop-filter: var(--jv-blur) !important;
+  border: 1px solid var(--jv-border) !important;
+  border-radius: var(--jv-radius) !important;
+  box-shadow: 0 2px 20px rgba(0,0,0,.4) !important;
+  color: var(--jv-text) !important;
+}
+
+/* ── Sidebar / nav ── */
+nav, sidebar, .sidebar, .nav, .side-nav, .left-panel, .right-panel,
+[class*="sidebar"], [class*="nav-"]:not(.jv-chip) {
+  background: rgba(10,10,10,.92) !important;
+  backdrop-filter: var(--jv-blur) !important;
+  border-color: var(--jv-border) !important;
+}
+
+/* ── Buttons ── */
+button:not(.jv-chip):not(.jv-dock button):not(#jv-lock-enter):not(#jv-lock-checkin):not(#jv-lock-skip):not(#jv-panel-close) {
+  border-radius: 10px !important;
+  font-family: var(--jv-font) !important;
+  transition: all .18s ease !important;
+}
+button:not(.jv-chip):not(.jv-dock button):not(#jv-lock-enter):not(#jv-lock-checkin):not(#jv-lock-skip):not(#jv-panel-close):hover {
+  filter: brightness(1.12) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ── Primary action buttons ── */
+[class*="btn-primary"], [class*="primary-btn"],
+[class*="add-btn"], [class*="save-btn"],
+button[class*="primary"] {
+  background: var(--jv-accent2) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(0,113,227,.35) !important;
+}
+
+/* ── Inputs ── */
+input, textarea, select {
+  background: rgba(255,255,255,.06) !important;
+  border: 1px solid var(--jv-border) !important;
+  border-radius: 10px !important;
+  color: var(--jv-text) !important;
+  font-family: var(--jv-font) !important;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none !important;
+  border-color: var(--jv-accent) !important;
+  box-shadow: 0 0 0 3px rgba(0,212,255,.15) !important;
+}
+input::placeholder, textarea::placeholder {
+  color: var(--jv-text3) !important;
+}
+
+/* ── Headers / titles ── */
+h1,h2,h3,h4,h5,h6 { font-family: var(--jv-font) !important; font-weight:600 !important; }
+
+/* ── KPI / stat numbers ── */
+[class*="kpi"], [class*="stat"], [class*="metric"],
+[class*="number"], [class*="count"] {
+  font-weight: 700 !important;
+  letter-spacing: -.5px !important;
+  color: var(--jv-accent) !important;
+}
+
+/* ── Tags / badges ── */
+[class*="tag"], [class*="badge"], [class*="chip"],
+[class*="label"], [class*="pill"] {
+  background: rgba(0,212,255,.12) !important;
+  color: var(--jv-accent) !important;
+  border: 1px solid rgba(0,212,255,.25) !important;
+  border-radius: 20px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+/* ── Checkboxes (task done state) ── */
+input[type="checkbox"] {
+  accent-color: var(--jv-accent) !important;
+}
+
+/* ── Tables ── */
+table { border-collapse: collapse !important; }
+th { color: var(--jv-text2) !important; font-weight:500 !important; font-size:11px !important; letter-spacing:.5px !important; text-transform:uppercase !important; }
+tr:hover td { background: rgba(255,255,255,.03) !important; }
+td, th { border-color: var(--jv-border) !important; }
+
+/* ── Progress bars ── */
+progress, [class*="progress"] {
+  background: rgba(255,255,255,.08) !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+}
+progress::-webkit-progress-bar { background: rgba(255,255,255,.08) !important; }
+progress::-webkit-progress-value { background: var(--jv-accent) !important; border-radius:4px !important; }
+
+/* ── Glowing accent dividers ── */
+hr { border-color: var(--jv-border) !important; }
+
+/* ── Subtle background shimmer on main content area ── */
+main, .main, .content, .main-content, [class*="main-"], [class*="-content"] {
+  background: var(--jv-bg2) !important;
+}
+
+/* ── Page sections / rows ── */
+section, .row, [class*="row-"], [class*="-row"] {
+  border-color: var(--jv-border) !important;
+}
+
+/* ── Dropdown menus ── */
+[class*="dropdown"], [class*="menu"], [class*="popover"] {
+  background: rgba(28,28,30,.96) !important;
+  backdrop-filter: var(--jv-blur) !important;
+  border: 1px solid var(--jv-border) !important;
+  border-radius: var(--jv-radius) !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6) !important;
+}
+
+/* ── Modal overlays ── */
+[class*="modal"], [class*="dialog"], [class*="overlay"] {
+  background: rgba(0,0,0,.75) !important;
+  backdrop-filter: blur(8px) !important;
+}
+[class*="modal-content"], [class*="dialog-content"] {
+  background: rgba(28,28,30,.97) !important;
+  border: 1px solid var(--jv-border) !important;
+  border-radius: 18px !important;
+}
+
+/* ── Selection highlight ── */
+::selection {
+  background: rgba(0,212,255,.25) !important;
+  color: #fff !important;
+}
+
+/* ═══ JARVIS HUD itself — update to match ═══ */
+.jv-panel {
+  background: rgba(10,10,12,.95) !important;
+  border-color: rgba(0,212,255,.25) !important;
+}
+.jv-dock {
+  background: rgba(10,10,12,.95) !important;
+  border-color: rgba(0,212,255,.20) !important;
+}
+`;
+    document.head.appendChild(s);
   }
 
   // ────────────────────────────────────────────────────────────────────────
@@ -1075,26 +1363,30 @@
       root = document.createElement('div'); root.className = 'jv-root';
       root.innerHTML = `
         <div class="jv-panel" id="jv-panel">
-          <div class="jv-status" id="jv-status">JARVIS</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div class="jv-status" id="jv-status">JARVIS</div>
+            <button id="jv-panel-close" title="Close" style="background:none;border:none;color:#8b9bb4;cursor:pointer;font-size:16px;padding:0 0 0 8px;line-height:1;transition:color .15s" onmouseenter="this.style.color='#fff'" onmouseleave="this.style.color='#8b9bb4'">✕</button>
+          </div>
           <div class="jv-heard" id="jv-heard"></div>
-          <div class="jv-reply" id="jv-reply">היי רואי. אני כאן. תקרא לי "ג'רוויס" או לחץ על הספירה.</div>
+          <div class="jv-reply" id="jv-reply">Hey Roei. I'm online. Say "Jarvis" or tap the orb to start.</div>
           <div class="jv-actions" id="jv-actions">
-            <button class="jv-chip" data-cmd="מה יש לי היום">מה היום</button>
-            <button class="jv-chip" data-cmd="מה לעשות עכשיו">⚡ מה עכשיו</button>
-            <button class="jv-chip" data-cmd="מה אני חייב השבוע">מה חייב השבוע</button>
-            <button class="jv-chip" data-cmd="חוב פרויקטים">חוב פרויקטים</button>
-            <button class="jv-chip" data-cmd="סיכום הבוקר">תיאור בוקר</button>
+            <button class="jv-chip" data-cmd="מה יש לי היום">📋 Today</button>
+            <button class="jv-chip" data-cmd="מה לעשות עכשיו">⚡ What now</button>
+            <button class="jv-chip" data-cmd="מה אני חייב השבוע">📅 This week</button>
+            <button class="jv-chip" data-cmd="חוב פרויקטים">⚠️ Debt</button>
+            <button class="jv-chip" data-cmd="סיכום הבוקר">🌅 Morning brief</button>
           </div>
         </div>
         <div class="jv-dock" id="jv-dock">
-          <button data-act="checkin">☀️ צ׳ק-אין יומי</button>
-          <button data-act="whatnow">⚡ מה לעשות עכשיו</button>
-          <button data-act="brief">📋 תקציר בוקר</button>
-          <button data-act="schedule">📅 לוז שבועי</button>
-          <button data-act="debt">⚠️ חוב פרויקטים</button>
-          <button data-act="review">📊 סיכום שבועי</button>
-          <button data-act="settings">⚙️ הגדרות</button>
-          <button data-act="log">📜 יומן ביצוע</button>
+          <button data-act="checkin">☀️ Daily Check-In</button>
+          <button data-act="whatnow">⚡ What to do now</button>
+          <button data-act="brief">📋 Morning Brief</button>
+          <button data-act="schedule">📅 Weekly Schedule</button>
+          <button data-act="debt">⚠️ Project Debt</button>
+          <button data-act="review">📊 Weekly Review</button>
+          <button data-act="notif">🔔 Notifications</button>
+          <button data-act="settings">⚙️ Settings</button>
+          <button data-act="log">📜 Execution Log</button>
         </div>
         <div class="jv-orb" id="jv-orb" title="לחיצה אחת — דבר • לחיצה ארוכה — תפריט"></div>
       `;
@@ -1126,6 +1418,10 @@
         b.addEventListener('click', () => processSpoken(b.dataset.cmd));
       });
 
+      // Close panel button
+      const closeBtn = root.querySelector('#jv-panel-close');
+      if (closeBtn) closeBtn.addEventListener('click', () => panel.classList.remove('show'));
+
       // Dock buttons
       dock.querySelectorAll('button').forEach(b => {
         b.addEventListener('click', () => {
@@ -1139,6 +1435,7 @@
           if (a === 'review')   return openWeeklyReview();
           if (a === 'log')      return openLogModal();
           if (a === 'settings') return openSettingsModal();
+          if (a === 'notif')    return requestNotifPermission();
         });
       });
 
@@ -1367,9 +1664,9 @@
   function openLockScreen() {
     const today  = new Date();
     const dKey   = dateKey(today);
-    // Show once per day; skip on re-loads within the same day
-    if (readLocal('jv_last_lock', '') === dKey) return;
-    writeLocal('jv_last_lock', dKey);
+    // Show once per session (every fresh page load), not once per day
+    if (sessionStorage.getItem('jv_locked_this_session')) return;
+    sessionStorage.setItem('jv_locked_this_session', '1');
 
     const dayName = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][today.getDay()];
     const greet   = today.getHours() < 12 ? 'בוקר טוב' : today.getHours() < 17 ? 'אחה"צ טוב' : 'ערב טוב';
@@ -1413,13 +1710,13 @@
         <button id="jv-lock-enter" style="background:${ACCENT};color:#001828;border:none;border-radius:24px;
           padding:13px 44px;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.5px;
           box-shadow:0 0 32px ${ACCENT}66;transition:transform .15s">
-          בוא נתחיל 🚀
+          Let's go 🚀
         </button>
         <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
           <button id="jv-lock-checkin" style="background:transparent;color:${ACCENT};border:1px solid ${ACCENT}55;
-            border-radius:18px;padding:8px 18px;font-size:12px;cursor:pointer">☀️ צ׳ק-אין יומי</button>
+            border-radius:18px;padding:8px 18px;font-size:12px;cursor:pointer">☀️ Daily Check-In</button>
           <button id="jv-lock-skip" style="background:transparent;color:#8b9bb4;border:1px solid #8b9bb444;
-            border-radius:18px;padding:8px 18px;font-size:12px;cursor:pointer">דלג →</button>
+            border-radius:18px;padding:8px 18px;font-size:12px;cursor:pointer">Skip →</button>
         </div>
       </div>`;
 
@@ -1433,7 +1730,7 @@
 
     wrap.querySelector('#jv-lock-enter').onmouseenter = function() { this.style.transform = 'scale(1.04)'; };
     wrap.querySelector('#jv-lock-enter').onmouseleave = function() { this.style.transform = 'scale(1)'; };
-    wrap.querySelector('#jv-lock-enter').onclick = () => { dismiss(); speak(`${greet}, רואי. בוא נתחיל.`); };
+    wrap.querySelector('#jv-lock-enter').onclick = () => { dismiss(); speak(`${greet}, Roei. Let's get to work.`); };
     wrap.querySelector('#jv-lock-checkin').onclick = () => { dismiss(); setTimeout(openDailyCheckIn, 350); };
     wrap.querySelector('#jv-lock-skip').onclick    = dismiss;
   }
@@ -1774,6 +2071,8 @@
   // 12. BOOT
   // ────────────────────────────────────────────────────────────────────────
   function boot() {
+    // Apple / futuristic theme — injected first so the app looks right on load
+    injectAppleTheme();
     hud.mount();
     bindRecog = (function(orig){return function(){ recog = recog || makeRecognizer(); return orig(); }})(bindRecogActual);
     bindRecogActual();
@@ -1781,16 +2080,18 @@
     setupBriefings();
     // Render debt widget once dashboard is ready
     setTimeout(renderDebtWidget, 1500);
-    // Ask for notification permission lazily
+    // Ask for notification permission lazily (non-intrusive)
     if ('Notification' in window && Notification.permission === 'default') {
-      setTimeout(() => Notification.requestPermission().catch(()=>{}), 6000);
+      setTimeout(() => Notification.requestPermission().catch(()=>{}), 8000);
     }
     // expose API
     window.JARVIS = {
       version: VERSION,
       handle, route, speak, listen: startListening, stop: stopListening,
-      readState, projectDebt, blockStatus, setBlockStatus, replaceBlock,
+      readState, writeState, writeScheduleBlock,
+      projectDebt, blockStatus, setBlockStatus, replaceBlock,
       suggestReschedule, getLog, settings, updateSettings,
+      requestNotifPermission,
       // modals
       openSchedule:     openScheduleModal,
       openLog:          openLogModal,
@@ -1807,10 +2108,11 @@
       planDay:  ()     => ACTIONS.planByMissed(),
       logTime:  (args) => ACTIONS.logActualTime(args),
       activity: (args) => ACTIONS.activityReport(args),
+      addBlock: (args) => ACTIONS.addScheduleBlock(args),
     };
-    // Show daily lock/greeting screen once per day
+    // Show lock/greeting screen on every fresh session
     setTimeout(openLockScreen, 900);
-    console.log('%cJARVIS v' + VERSION + ' online. New: Lock screen, Check-In, Weekly Review, Energy planner.', 'color:#00d4ff;font-weight:bold');
+    console.log('%cJARVIS v2.0 online — Apple theme, bilingual, schedule writes, push notifications.', 'color:#00d4ff;font-weight:bold;font-size:13px');
   }
   function bindRecogActual() {
     recog = makeRecognizer();
@@ -1825,7 +2127,7 @@
     };
     recog.onerror = (e) => {
       hud.setState('idle');
-      if (e.error === 'not-allowed') hud.toast('אין הרשאת מיקרופון.', 'error');
+      if (e.error === 'not-allowed') hud.toast('Microphone access denied. Enable in browser settings.', 'error');
     };
     recog.onresult = async (ev) => {
       let interim = '', final = '';
@@ -1841,7 +2143,7 @@
           if (!wake) return;
           let cmd = text;
           for (const w of WAKE_WORDS) cmd = cmd.replace(new RegExp(w,'gi'),'').trim();
-          if (!cmd) { speak('כן, רואי?'); listeningHard = true; return; }
+          if (!cmd) { speak('Yes, Roei? I\'m listening.'); listeningHard = true; return; }
           await processSpoken(cmd);
         } else {
           await processSpoken(text);
