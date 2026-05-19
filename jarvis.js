@@ -1,39 +1,39 @@
 /* ============================================================================
- * JARVIS — Personal OS AI Companion (Iron Man inspired)
+ * JARVIS â Personal OS AI Companion (Iron Man inspired)
  * Drop-in module for https://personal-os-coral-tau.vercel.app/
  * Usage: add <script src="/jarvis.js" defer></script> before </body>
- * Author: built for Roei Klein — May 2026
- * Version: 1.0.0
+ * Author: built for Roei Klein â May 2026
+ * Version: 3.0.0
  * --------------------------------------------------------------------------
  * Features
- *   • Floating HUD orb (Iron Man arc-reactor look)
- *   • Wake-word + push-to-talk voice (he-IL)
- *   • Natural-language command router (Hebrew + English)
- *   • Schedule system: planned/completed/partial/missed/replaced
- *   • Block replacement + reschedule suggestions
- *   • Project debt tracker + next-action surfacing
- *   • Execution log (every action persisted)
- *   • Proactive briefings (morning / end-of-day / weekly)
- *   • Quick-update modal
+ *   â¢ Floating HUD orb (Iron Man arc-reactor look)
+ *   â¢ Wake-word + push-to-talk voice (he-IL)
+ *   â¢ Natural-language command router (Hebrew + English)
+ *   â¢ Schedule system: planned/completed/partial/missed/replaced
+ *   â¢ Block replacement + reschedule suggestions
+ *   â¢ Project debt tracker + next-action surfacing
+ *   â¢ Execution log (every action persisted)
+ *   â¢ Proactive briefings (morning / end-of-day / weekly)
+ *   â¢ Quick-update modal
  * --------------------------------------------------------------------------
  * Zero dependencies. Uses Web Speech API (built into Chrome).
  * Talks to existing window.* functions: addTask, toggleTask, addReminder,
- * goPage, showNotif, callClaude, etc. — does NOT replace them.
+ * goPage, showNotif, callClaude, etc. â does NOT replace them.
  * ============================================================================ */
 
 (function () {
   'use strict';
 
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  0. CONFIG
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const VERSION       = '2.0.0';
   const STATE_KEY     = 'pos3';
   const LOG_KEY       = 'pos3_jarvis_log';
   const SCHED_KEY     = 'pos3_jarvis_schedule';
   const PERSONA_KEY   = 'pos3_jarvis_persona';
   const SETTINGS_KEY  = 'pos3_jarvis_settings';
-  const WAKE_WORDS    = ['ג׳רוויס', 'גרוויס', "ג'רוויס", 'גארביס', 'jarvis', 'הג׳רוויס', 'הי גרוויס'];
+  const WAKE_WORDS    = ['××³×¨××××¡', '××¨××××¡', "×'×¨××××¡", '×××¨×××¡', 'jarvis', '×××³×¨××××¡', '×× ××¨××××¡'];
   const LANG          = 'he-IL';
   const ACCENT        = '#00d4ff';   // arc-reactor cyan
   const ACCENT_WARM   = '#ff8a3d';   // warning amber
@@ -42,217 +42,206 @@
 
   // Block types (Part 3 of the brief)
   const BLOCK_TYPES = {
-    fixed:      { label:'קבוע',      color:'#8b9bb4' },
-    deep_work:  { label:'עבודה עמוקה', color:'#00d4ff' },
-    medium:     { label:'עבודה בינונית', color:'#42a5ff' },
-    light:      { label:'עבודה קלה',  color:'#7ec8ff' },
-    food:       { label:'אוכל',       color:'#ffb84d' },
-    training:   { label:'אימון',      color:'#ff5577' },
-    walk:       { label:'הליכה',      color:'#42e695' },
-    recovery:   { label:'התאוששות',   color:'#a78bfa' },
-    buffer:     { label:'בופר',       color:'#6b7d99' },
-    reminder:   { label:'תזכורת',     color:'#ffd84d' },
-    family:     { label:'משפחה',      color:'#ff8a3d' },
-    university: { label:'אוניברסיטה', color:'#5773ff' },
-    meeting:    { label:'פגישה',      color:'#ff6b6b' },
-    planning:   { label:'תכנון',      color:'#00bcd4' },
+    fixed:      { label:'×§×××¢',      color:'#8b9bb4' },
+    deep_work:  { label:'×¢×××× ×¢×××§×', color:'#00d4ff' },
+    medium:     { label:'×¢×××× ××× ×× ××ª', color:'#42a5ff' },
+    light:      { label:'×¢×××× ×§××',  color:'#7ec8ff' },
+    food:       { label:'××××',       color:'#ffb84d' },
+    training:   { label:'×××××',      color:'#ff5577' },
+    walk:       { label:'×××××',      color:'#42e695' },
+    recovery:   { label:'××ª×××©×©××ª',   color:'#a78bfa' },
+    buffer:     { label:'×××¤×¨',       color:'#6b7d99' },
+    reminder:   { label:'×ª××××¨×ª',     color:'#ffd84d' },
+    family:     { label:'××©×¤××',      color:'#ff8a3d' },
+    university: { label:'××× ×××¨×¡×××', color:'#5773ff' },
+    meeting:    { label:'×¤×××©×',      color:'#ff6b6b' },
+    planning:   { label:'×ª×× ××',      color:'#00bcd4' },
   };
 
   // Project registry (Part 6 of the brief)
   const PROJECTS = {
-    upselles:   { name:'Upselles',          weeklyBudget: 6*60+8*60, priority:1, status:'active', emoji:'🚀' },
-    university: { name:'אוניברסיטה (M.Sc)', weeklyBudget: 7*60+10*60, priority:1, status:'active', emoji:'🎓' },
-    jobs:       { name:'חיפוש עבודה',       weeklyBudget: 3*60+4*60,  priority:2, status:'active', emoji:'💼' },
-    apartment:  { name:'חיפוש דירה',        weeklyBudget: 2*60+3*60,  priority:2, status:'active', emoji:'🏡' },
-    anthropic:  { name:'קורס Anthropic',    weeklyBudget: 1.5*60+3*60, priority:3, status:'active', emoji:'🧠' },
-    fitness:    { name:'כושר ותזונה',       weeklyBudget: 3*90,        priority:2, status:'active', emoji:'💪' },
-    family:     { name:'משפחה / אישי',      weeklyBudget: 5*60,        priority:1, status:'active', emoji:'👨‍👩‍👧' },
-    recovery:   { name:'מנוחה / חופש',      weeklyBudget: 8*60,        priority:3, status:'active', emoji:'🌊' },
+    upselles:   { name:'Upselles',          weeklyBudget: 6*60+8*60, priority:1, status:'active', emoji:'ð' },
+    university: { name:'××× ×××¨×¡××× (M.Sc)', weeklyBudget: 7*60+10*60, priority:1, status:'active', emoji:'ð' },
+    jobs:       { name:'×××¤××© ×¢××××',       weeklyBudget: 3*60+4*60,  priority:2, status:'active', emoji:'ð¼' },
+    apartment:  { name:'×××¤××© ×××¨×',        weeklyBudget: 2*60+3*60,  priority:2, status:'active', emoji:'ð¡' },
+    anthropic:  { name:'×§××¨×¡ Anthropic',    weeklyBudget: 1.5*60+3*60, priority:3, status:'active', emoji:'ð§ ' },
+    fitness:    { name:'×××©×¨ ××ª××× ×',       weeklyBudget: 3*90,        priority:2, status:'active', emoji:'ðª' },
+    family:     { name:'××©×¤×× / ×××©×',      weeklyBudget: 5*60,        priority:1, status:'active', emoji:'ð¨âð©âð§' },
+    recovery:   { name:'×× ××× / ×××¤×©',      weeklyBudget: 8*60,        priority:3, status:'active', emoji:'ð' },
   };
 
   // EXACT weekly schedule from the brief.
   // Each block: id, day (0=Sun..6=Sat), start, end, title, type, proj,
   //             dedicated (purpose), action, replaceable, fixed.
   const DEFAULT_BLOCKS = [
-    // ───── SUNDAY (day 0) ─────
-    { id:'sun-plan',     day:0, start:'10:30', end:'11:00', title:'תכנון שבועי', type:'planning',
-      proj:null, dedicated:'תכנון השבוע', action:'בחר 3 משימות מרכזיות לשבוע', replaceable:false, fixed:true },
-    { id:'sun-upselles', day:0, start:'11:00', end:'13:00', title:'Upselles — Deep Work', type:'deep_work',
-      proj:'upselles', dedicated:'עבודה עמוקה על הפלטפורמה', action:'Roadmap / Prompt / Audit / Implementation review', replaceable:true, fixed:false },
-    { id:'sun-buf1',     day:0, start:'13:00', end:'13:30', title:'בופר / התאוששות קצרה', type:'buffer',
-      proj:null, dedicated:'מעבר בין משימות', action:'מנוחה קצרה', replaceable:true, fixed:false },
-    { id:'sun-bela',     day:0, start:'13:30', end:'14:30', title:'פגישה עם בלה', type:'meeting',
-      proj:null, dedicated:'פגישה קבועה', action:'נוכחות בפגישה', replaceable:false, fixed:true },
-    { id:'sun-lunch',    day:0, start:'14:30', end:'15:20', title:'הכנת צהריים + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילת ארוחת צהריים', replaceable:false, fixed:true },
-    { id:'sun-uni',      day:0, start:'15:30', end:'16:45', title:'אוניברסיטה — לימוד עצמי', type:'university',
-      proj:'university', dedicated:'שיעורי בית + תרגול', action:'פירוק וביצוע מטלה', replaceable:true, fixed:false },
-    { id:'sun-buf2',     day:0, start:'16:45', end:'17:45', title:'בופר / סידורים קלים', type:'buffer',
-      proj:null, dedicated:'התאוששות / סידורים', action:'התאוששות או סידורים קלים', replaceable:true, fixed:false },
-    { id:'sun-ronit',    day:0, start:'18:00', end:'18:45', title:'פגישה עם רונית', type:'meeting',
-      proj:null, dedicated:'פגישה קבועה', action:'נוכחות בפגישה', replaceable:false, fixed:true },
-    { id:'sun-train',    day:0, start:'19:15', end:'20:45', title:'אימון כוח', type:'training',
-      proj:'fitness', dedicated:'אימון כוח', action:'אימון לפי תוכנית', replaceable:false, fixed:true },
-    { id:'sun-dinner',   day:0, start:'21:00', end:'21:35', title:'הכנת ערב + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילת ארוחת ערב', replaceable:false, fixed:true },
-    { id:'sun-meat',     day:0, start:'22:00', end:'22:05', title:'תזכורת: להפשיר עוף/בשר למחר', type:'reminder',
-      proj:'fitness', dedicated:'הכנה לעוף ובשר', action:'הוצא מהמקפיא', replaceable:false, fixed:true },
+    // âââââ SUNDAY (day 0) âââââ
+    { id:'sun-plan',     day:0, start:'10:30', end:'11:00', title:'×ª×× ×× ×©×××¢×', type:'planning',
+      proj:null, dedicated:'×ª×× ×× ××©×××¢', action:'×××¨ 3 ××©××××ª ××¨×××××ª ××©×××¢', replaceable:false, fixed:true },
+    { id:'sun-upselles', day:0, start:'11:00', end:'13:00', title:'Upselles â Deep Work', type:'deep_work',
+      proj:'upselles', dedicated:'×¢×××× ×¢×××§× ×¢× ××¤×××¤××¨××', action:'Roadmap / Prompt / Audit / Implementation review', replaceable:true, fixed:false },
+    { id:'sun-buf1',     day:0, start:'13:00', end:'13:30', title:'×××¤×¨ / ××ª×××©×©××ª ×§×¦×¨×', type:'buffer',
+      proj:null, dedicated:'××¢××¨ ××× ××©××××ª', action:'×× ××× ×§×¦×¨×', replaceable:true, fixed:false },
+    { id:'sun-bela',     day:0, start:'13:30', end:'14:30', title:'×¤×××©× ×¢× ×××', type:'meeting',
+      proj:null, dedicated:'×¤×××©× ×§×××¢×', action:'× ×××××ª ××¤×××©×', replaceable:false, fixed:true },
+    { id:'sun-lunch',    day:0, start:'14:30', end:'15:20', title:'××× ×ª ×¦××¨××× + ×××××', type:'food',
+      proj:'fitness', dedicated:'×ª××× ×', action:'×××©×× ××××××ª ××¨×××ª ×¦××¨×××', replaceable:false, fixed:true },
+    { id:'sun-uni',      day:0, start:'15:30', end:'16:45', title:'××× ×××¨×¡××× â ××××× ×¢×¦××', type:'university',
+      proj:'university', dedicated:'×©××¢××¨× ×××ª + ×ª×¨×××', action:'×¤××¨××§ ××××¦××¢ ××××', replaceable:true, fixed:false },
+    { id:'sun-buf2',     day:0, start:'16:45', end:'17:45', title:'×××¤×¨ / ×¡××××¨×× ×§×××', type:'buffer',
+      proj:null, dedicated:'××ª×××©×©××ª / ×¡××××¨××', action:'××ª×××©×©××ª ×× ×¡××××¨×× ×§×××', replaceable:true, fixed:false },
+    { id:'sun-ronit',    day:0, start:'18:00', end:'18:45', title:'×¤×××©× ×¢× ×¨×× ××ª', type:'meeting',
+      proj:null, dedicated:'×¤×××©× ×§×××¢×', action:'× ×××××ª ××¤×××©×', replaceable:false, fixed:true },
+    { id:'sun-train',    day:0, start:'19:15', end:'20:45', title:'××××× ×××', type:'training',
+      proj:'fitness', dedicated:'××××× ×××', action:'××××× ××¤× ×ª××× ××ª', replaceable:false, fixed:true },
+    { id:'sun-dinner',   day:0, start:'21:00', end:'21:35', title:'××× ×ª ×¢×¨× + ×××××', type:'food',
+      proj:'fitness', dedicated:'×ª××× ×', action:'×××©×× ××××××ª ××¨×××ª ×¢×¨×', replaceable:false, fixed:true },
+    { id:'sun-meat',     day:0, start:'22:00', end:'22:05', title:'×ª××××¨×ª: ×××¤×©××¨ ×¢××£/××©×¨ ××××¨', type:'reminder',
+      proj:'fitness', dedicated:'××× × ××¢××£ ×××©×¨', action:'×××¦× ××××§×¤××', replaceable:false, fixed:true },
 
-    // ───── MONDAY (day 1) — LOW CAPACITY DAY ─────
-    { id:'mon-commute',  day:1, start:'07:00', end:'08:00', title:'נסיעה לאוניברסיטה', type:'buffer',
-      proj:'university', dedicated:'נסיעה', action:'תחבורה', replaceable:false, fixed:true },
-    { id:'mon-uni',      day:1, start:'08:00', end:'19:30', title:'אוניברסיטה — יום מלא', type:'university',
-      proj:'university', dedicated:'יום אוניברסיטה מלא', action:'הרצאות, תרגולים, מטלות בקמפוס', replaceable:false, fixed:true },
-    { id:'mon-return',   day:1, start:'19:30', end:'20:15', title:'חזרה הביתה', type:'buffer',
-      proj:null, dedicated:'נסיעה הביתה', action:'תחבורה', replaceable:false, fixed:true },
-    { id:'mon-recover',  day:1, start:'20:15', end:'21:00', title:'אוכל / מקלחת / התאוששות', type:'recovery',
-      proj:'fitness', dedicated:'התאוששות יום ארוך', action:'אכילה, מקלחת, מנוחה', replaceable:false, fixed:true },
-    { id:'mon-uni-rev',  day:1, start:'21:00', end:'21:20', title:'סקירת אוניברסיטה קצרה', type:'planning',
-      proj:'university', dedicated:'סיכום יום הלימודים', action:'כתוב 3 משימות המשך', replaceable:true, fixed:false },
-    { id:'mon-meat',     day:1, start:'22:00', end:'22:05', title:'תזכורת: להפשיר עוף/בשר למחר', type:'reminder',
-      proj:'fitness', dedicated:'הכנה', action:'הוצא מהמקפיא', replaceable:false, fixed:true },
+    // âââââ MONDAY (day 1) â LOW CAPACITY DAY âââââ
+    { id:'mon-commute',  day:1, start:'07:00', end:'08:00', title:'× ×¡××¢× ×××× ×××¨×¡×××', type:'buffer',
+      proj:'university', dedicated:'× ×¡××¢×', action:'×ª××××¨×', replaceable:false, fixed:true },
+    { id:'mon-uni',      day:1, start:'08:00', end:'19:30', title:'××× ×××¨×¡××× â ××× ×××', type:'university',
+      proj:'university', dedicated:'××× ××× ×××¨×¡××× ×××', action:'××¨×¦×××ª, ×ª×¨×××××, ×××××ª ××§××¤××¡', replaceable:false, fixed:true },
+    { id:'mon-return',   day:1, start:'19:30', end:'20:15', title:'×××¨× ××××ª×', type:'buffer',
+      proj:null, dedicated:'× ×¡××¢× ××××ª×', action:'×ª××××¨×', replaceable:false, fixed:true },
+    { id:'mon-recover',  day:1, start:'20:15', end:'21:00', title:'×××× / ××§×××ª / ××ª×××©×©××ª', type:'recovery',
+      proj:'fitness', dedicated:'××ª×××©×©××ª ××× ××¨××', action:'×××××, ××§×××ª, ×× ×××', replaceable:false, fixed:true },
+    { id:'mon-uni-rev',  day:1, start:'21:00', end:'21:20', title:'×¡×§××¨×ª ××× ×××¨×¡××× ×§×¦×¨×', type:'planning',
+      proj:'university', dedicated:'×¡×××× ××× ××××××××', action:'××ª×× 3 ××©××××ª ×××©×', replaceable:true, fixed:false },
+    { id:'mon-meat',     day:1, start:'22:00', end:'22:05', title:'×ª××××¨×ª: ×××¤×©××¨ ×¢××£/××©×¨ ××××¨', type:'reminder',
+      proj:'fitness', dedicated:'××× ×', action:'×××¦× ××××§×¤××', replaceable:false, fixed:true },
 
-    // ───── TUESDAY (day 2) ─────
-    { id:'tue-plan',     day:2, start:'10:30', end:'11:00', title:'תכנון יומי', type:'planning',
-      proj:null, dedicated:'תכנון היום', action:'בחר משימות היום', replaceable:false, fixed:true },
-    { id:'tue-uni',      day:2, start:'11:00', end:'13:00', title:'אוניברסיטה — Deep Study', type:'deep_work',
-      proj:'university', dedicated:'לימוד עצמי עמוק', action:'מטלה / תרגול', replaceable:true, fixed:false },
-    { id:'tue-lunch',    day:2, start:'13:00', end:'13:50', title:'הכנת צהריים + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
-    { id:'tue-upselles', day:2, start:'14:00', end:'15:30', title:'Upselles — Deep Work', type:'deep_work',
-      proj:'upselles', dedicated:'עבודה עמוקה', action:'דוח / פרומפט / פלטפורמה', replaceable:true, fixed:false },
-    { id:'tue-walk',     day:2, start:'16:00', end:'16:45', title:'הליכה / סידורים', type:'walk',
-      proj:'fitness', dedicated:'תנועה ואוויר', action:'הליכה 30-45 דק׳', replaceable:true, fixed:false },
-    { id:'tue-train',    day:2, start:'18:30', end:'20:00', title:'אימון כוח', type:'training',
-      proj:'fitness', dedicated:'אימון כוח', action:'אימון לפי תוכנית', replaceable:false, fixed:true },
-    { id:'tue-dinner',   day:2, start:'20:15', end:'20:50', title:'הכנת ערב + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
-    { id:'tue-anthropic',day:2, start:'21:15', end:'22:00', title:'קורס Anthropic / למידה קלה', type:'light',
-      proj:'anthropic', dedicated:'למידת AI', action:'מודול קורס / קריאה', replaceable:true, fixed:false },
-    { id:'tue-meat',     day:2, start:'22:00', end:'22:05', title:'תזכורת: להפשיר עוף/בשר למחר', type:'reminder',
-      proj:'fitness', dedicated:'הכנה', action:'הוצא מהמקפיא', replaceable:false, fixed:true },
+    // âââââ TUESDAY (day 2) âââââ
+    { id:'tue-plan',     day:2, start:'10:30', end:'11:00', title:'×ª×× ×× ××××', type:'planning',
+      proj:null, dedicated:'×ª×× ×× ××××', action:'×××¨ ××©××××ª ××××', replaceable:false, fixed:true },
+    { id:'tue-uni',      day:2, start:'11:00', end:'13:00', title:'××× ×××¨×¡××× â Deep Study', type:'deep_work',
+      proj:'university', dedicated:'××××× ×¢×¦×× ×¢×××§', action:'×××× / ×ª×¨×××', replaceable:true, fixed:false },
+    { id:'tue-lunch',    day:2, start:'13:00', end:'13:50', title:'××× ×ª ×¦××¨××× + ×××××', type:'food',
+      proj:'fitness', dedicated:'×ª××× ×', action:'×××©×× ××××××', replaceable:false, fixed:true },
+    { id:'tue-upselles', day:2, start:'14:00', end:'15:30', title:'Upselles â Deep Work', type:'deep_work',
+      proj:'upselles', dedicated:'×¢×××× ×¢×××§×', action:'××× / ×¤×¨×××¤× / ×¤×××¤××¨××', replaceable:true, fixed:false },
+    { id:'tue-walk',     day:2, start:'16:00', end:'16:45', title:'××××× / ×¡××××¨××', type:'walk',
+      proj:'fitness', dedicated:'×ª× ××¢× ××××××¨', action:'××××× 30-45 ××§×³', replaceable:true, fixed:false },
+    { id:'tue-train',    day:2, start:'18:30', end:'20:00', title:'××××× ×××', type:'training',
+      proj:'fitness', dedicated:'××××× ×××', action:'××××× ××¤× ×ª××× ××ª', replaceable:false, fixed:true },
+    { id:'tue-dinner',   day:2, start:'20:15', end:'20:50', title:'××× ×ª ×¢×¨× + ×××××', type:'food',
+      proj:'fitness', dedicated:'×ª××× ×', action:'×××©×× ××××××', replaceable:false, fixed:true },
+    { id:'tue-anthropic',day:2, start:'21:15', end:'22:00', title:'×§××¨×¡ Anthropic / ××××× ×§××', type:'light',
+      proj:'anthropic', dedicated:'×××××ª AI', action:'××××× ×§××¨×¡ / ×§×¨×××', replaceable:true, fixed:false },
+    { id:'tue-meat',     day:2, start:'22:00', end:'22:05', title:'×ª××××¨×ª: ×××¤×©××¨ ×¢××£/××©×¨ ××××¨', type:'reminder',
+      proj:'fitness', dedicated:'××× ×', action:'×××¦× ××××§×¤××', replaceable:false, fixed:true },
 
-    // ───── WEDNESDAY (day 3) ─────
-    { id:'wed-plan',     day:3, start:'10:30', end:'11:00', title:'תכנון יומי', type:'planning',
-      proj:null, dedicated:'תכנון היום', action:'בחר משימות', replaceable:false, fixed:true },
-    { id:'wed-uni',      day:3, start:'11:00', end:'13:00', title:'אוניברסיטה — Deep Study', type:'deep_work',
-      proj:'university', dedicated:'לימוד עצמי עמוק', action:'מטלות ותרגול', replaceable:true, fixed:false },
-    { id:'wed-lunch',    day:3, start:'13:00', end:'13:50', title:'הכנת צהריים + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
-    { id:'wed-apt',      day:3, start:'14:00', end:'15:00', title:'חיפוש דירה', type:'medium',
-      proj:'apartment', dedicated:'איתור דירה', action:'מודעות, הודעות, סיורים', replaceable:true, fixed:false },
-    { id:'wed-tamar',    day:3, start:'15:30', end:'17:00', title:'פגישה עם תמר', type:'meeting',
-      proj:null, dedicated:'פגישה קבועה', action:'נוכחות בפגישה', replaceable:false, fixed:true },
-    { id:'wed-walk',     day:3, start:'17:30', end:'18:15', title:'הליכה', type:'walk',
-      proj:'fitness', dedicated:'תנועה ואוויר', action:'הליכה 45 דק׳', replaceable:true, fixed:false },
-    { id:'wed-dinner',   day:3, start:'19:00', end:'19:35', title:'הכנת ערב + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
-    { id:'wed-jobs',     day:3, start:'20:00', end:'21:00', title:'חיפוש עבודה', type:'light',
-      proj:'jobs', dedicated:'חיפוש משרות', action:'איתור ושמירה ל-tracker', replaceable:true, fixed:false },
-    { id:'wed-meat',     day:3, start:'22:00', end:'22:05', title:'תזכורת: להפשיר עוף/בשר למחר', type:'reminder',
-      proj:'fitness', dedicated:'הכנה', action:'הוצא מהמקפיא', replaceable:false, fixed:true },
+    // âââââ WEDNESDAY (day 3) âââââ
+    { id:'wed-plan',     day:3, start:'10:30', end:'11:00', title:'×ª×× ×× ××××', type:'planning',
+      proj:null, dedicated:'×ª×× ×× ××××', action:'×××¨ ××©××××ª', replaceable:false, fixed:true },
+    { id:'wed-uni',      day:3, start:'11:00', end:'13:00', title:'××× ×××¨×¡××× â Deep Study', type:'deep_work',
+      proj:'university', dedicated:'××××× ×¢×¦×× ×¢×××§', action:'×××××ª ××ª×¨×××', replaceable:true, fixed:false },
+    { id:'wed-lunch',    day:3, start:'13:00', end:'13:50', title:'××× ×ª ×¦××¨××× + ×××××', type:'food',
+      proj:'fitness', dedicated:'×ª××× ×', action:'×××©×× ××××××', replaceable:false, fixed:true },
+    { id:'wed-apt',      day:3, start:'14:00', end:'15:00', title:'×××¤××© ×××¨×', type:'medium',
+      proj:'apartment', dedicated:'×××ª××¨ ×××¨×', action:'××××¢××ª, ××××¢××ª, ×¡×××¨××', replaceable:true, fixed:false },
+    { id:'wed-tamar',    day:3, start:'15:30', end:'17:00', title:'×¤×××©× ×¢× ×ª××¨', type:'meeting',
+      proj:null, dedicated:'×¤×××©× ×§×××¢×', action:'× ×××××ª ××¤×××©×', replaceable:false, fixed:true },
+    { id:'wed-walk',     day:3, start:'17:30', end:'18:15', title:'×××××', type:'walk',
+      proj:'fitness', dedicated:'×ª× ××¢× ××××××¨', action:'××××× 45 ××§×³', replaceable:true, fixed:false },
+    { id:'wed-dinner',   day:3, start:'19:00', end:'19:35', title:'××× ×ª ×¢×¨× + ×××××', type:'food',
+      proj:'fitness', dedicated:'×ª××× ×', action:'×××©×× ××××××', replaceable:false, fixed:true },
+    { id:'wed-jobs',     day:3, start:'20:00', end:'21:00', title:'×××¤××© ×¢××××', type:'light',
+      proj:'jobs', dedicated:'×××¤××© ××©×¨××ª', action:'×××ª××¨ ××©×××¨× ×-tracker', replaceable:true, fixed:false },
+    { id:'wed-meat',     day:3, start:'22:00', end:'22:05', title:'×ª××××¨×ª: ×××¤×©××¨ ×¢××£/××©×¨ ××××¨', type:'reminder',
+      proj:'fitness', dedicated:'××× ×', action:'×××¦× ××××§×¤××', replaceable:false, fixed:true },
 
-    // ───── THURSDAY (day 4) ─────
-    { id:'thu-plan',     day:4, start:'10:30', end:'11:00', title:'תכנון יומי', type:'planning',
-      proj:null, dedicated:'תכנון היום', action:'בחר משימות', replaceable:false, fixed:true },
-    { id:'thu-upselles', day:4, start:'11:00', end:'13:00', title:'Upselles — Deep Work', type:'deep_work',
-      proj:'upselles', dedicated:'עבודה עמוקה', action:'פיתוח / לידים / שיווק', replaceable:true, fixed:false },
-    { id:'thu-lunch',    day:4, start:'13:00', end:'13:50', title:'הכנת צהריים + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
-    { id:'thu-uni',      day:4, start:'14:00', end:'15:30', title:'אוניברסיטה — מטלה', type:'medium',
-      proj:'university', dedicated:'מטלת אוניברסיטה', action:'מטלה / תרגול / כתיבה', replaceable:true, fixed:false },
-    { id:'thu-walk',     day:4, start:'16:00', end:'16:45', title:'הליכה / סידורים', type:'walk',
-      proj:'fitness', dedicated:'תנועה ואוויר', action:'הליכה 30-45 דק׳', replaceable:true, fixed:false },
-    { id:'thu-train',    day:4, start:'18:30', end:'20:00', title:'אימון כוח', type:'training',
-      proj:'fitness', dedicated:'אימון כוח', action:'אימון לפי תוכנית', replaceable:false, fixed:true },
-    { id:'thu-dinner',   day:4, start:'20:15', end:'20:50', title:'הכנת ערב + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
-    { id:'thu-review',   day:4, start:'21:15', end:'21:45', title:'עדכון התקדמות שבועית', type:'planning',
-      proj:null, dedicated:'תכנון', action:'מה התקדם השבוע, מה חסר', replaceable:false, fixed:true },
-    { id:'thu-meat',     day:4, start:'22:00', end:'22:05', title:'תזכורת: להפשיר עוף/בשר למחר', type:'reminder',
-      proj:'fitness', dedicated:'הכנה', action:'הוצא מהמקפיא', replaceable:false, fixed:true },
+    // âââââ THURSDAY (day 4) âââââ
+    { id:'thu-plan',     day:4, start:'10:30', end:'11:00', title:'×ª×× ×× ××××', type:'planning',
+      proj:null, dedicated:'×ª×× ×× ××××', action:'×××¨ ××©××××ª', replaceable:false, fixed:true },
+    { id:'thu-upselles', day:4, start:'11:00', end:'13:00', title:'Upselles â Deep Work', type:'deep_work',
+      proj:'upselles', dedicated:'×¢×××× ×¢×××§×', action:'×¤××ª×× / ××××× / ×©××××§', replaceable:true, fixed:false },
+    { id:'thu-lunch',    day:4, start:'13:00', end:'13:50', title:'××× ×ª ×¦××¨××× + ×××××', type:'food',
+      proj:'fitness', dedicated:'×ª××× ×', action:'×××©×× ××××××', replaceable:false, fixed:true },
+    { id:'thu-uni',      day:4, start:'14:00', end:'15:30', title:'××× ×××¨×¡××× â ××××', type:'medium',
+      proj:'university', dedicated:'××××ª ××× ×××¨×¡×××', action:'×××× / ×ª×¨××× / ××ª×××', replaceable:true, fixed:false },
+    { id:'thu-walk',     day:4, start:'16:00', end:'16:45', title:'××××× / ×¡××××¨××', type:'walk',
+      proj:'fitness', dedicated:'×ª× ××¢× ××××××¨', action:'××××× 30-45 ××§×³', replaceable:true, fixed:false },
+    { id:'thu-train',    day:4, start:'18:30', end:'20:00', title:'××××× ×××', type:'training',
+      proj:'fitness', dedicated:'××××× ×××', action:'××××× ××¤× ×ª××× ××ª', replaceable:false, fixed:true },
+    { id:'thu-dinner',   day:4, start:'20:15', end:'20:50', title:'××× ×ª ×¢×¨× + ×××××', type:'food',
+      proj:'fitness', dedicated:'×ª××× ×', action:'×××©×× ××××××', replaceable:false, fixed:true },
+    { id:'thu-review',   day:4, start:'21:15', end:'21:45', title:'×¢×××× ××ª×§××××ª ×©×××¢××ª', type:'planning',
+      proj:null, dedicated:'×ª×× ××', action:'×× ××ª×§×× ××©×××¢, ×× ××¡×¨', replaceable:false, fixed:true },
+    { id:'thu-meat',     day:4, start:'22:00', end:'22:05', title:'×ª××××¨×ª: ×××¤×©××¨ ×¢××£/××©×¨ ××××¨', type:'reminder',
+      proj:'fitness', dedicated:'××× ×', action:'×××¦× ××××§×¤××', replaceable:false, fixed:true },
 
-    // ───── FRIDAY (day 5) ─────
-    { id:'fri-plan',     day:5, start:'10:30', end:'11:00', title:'תכנון יום (קל)', type:'planning',
-      proj:null, dedicated:'תכנון יום שישי', action:'בחר משימות יום', replaceable:false, fixed:true },
-    { id:'fri-jobs',     day:5, start:'11:00', end:'12:15', title:'חיפוש עבודה איכותי', type:'medium',
-      proj:'jobs', dedicated:'הגשת מועמדויות', action:'2 הגשות איכותיות', replaceable:true, fixed:false },
-    { id:'fri-errands',  day:5, start:'12:15', end:'13:00', title:'סידורים / בית', type:'light',
-      proj:null, dedicated:'סידורים', action:'משימות בית', replaceable:true, fixed:false },
-    { id:'fri-lunch',    day:5, start:'13:00', end:'13:50', title:'הכנת צהריים + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
-    { id:'fri-apt',      day:5, start:'14:00', end:'15:15', title:'חיפוש דירה', type:'medium',
-      proj:'apartment', dedicated:'איתור דירה', action:'הודעות וסיורים', replaceable:true, fixed:false },
-    { id:'fri-rest',     day:5, start:'15:15', end:'17:30', title:'מנוחה / הכנה / משפחה', type:'recovery',
-      proj:'family', dedicated:'התאוששות והכנה לשבת', action:'מנוחה והכנות', replaceable:false, fixed:true },
-    { id:'fri-dinner',   day:5, start:'18:00', end:'21:00', title:'ארוחת ערב משפחתית — שישי', type:'family',
-      proj:'family', dedicated:'זמן משפחתי', action:'ארוחה משפחתית', replaceable:false, fixed:true },
+    // âââââ FRIDAY (day 5) âââââ
+    { id:'fri-plan',     day:5, start:'10:30', end:'11:00', title:'×ª×× ×× ××× (×§×)', type:'planning',
+      proj:null, dedicated:'×ª×× ×× ××× ×©××©×', action:'×××¨ ××©××××ª ×××', replaceable:false, fixed:true },
+    { id:'fri-jobs',     day:5, start:'11:00', end:'12:15', title:'×××¤××© ×¢×××× ×××××ª×', type:'medium',
+      proj:'jobs', dedicated:'×××©×ª ×××¢××××××ª', action:'2 ×××©××ª ×××××ª×××ª', replaceable:true, fixed:false },
+    { id:'fri-errands',  day:5, start:'12:15', end:'13:00', title:'×¡××××¨×× / ×××ª', type:'light',
+      proj:null, dedicated:'×¡××××¨××', action:'××©××××ª ×××ª', replaceable:true, fixed:false },
+    { id:'fri-lunch',    day:5, start:'13:00', end:'13:50', title:'××× ×ª ×¦××¨××× + ×××××', type:'food',
+      proj:'fitness', dedicated:'×ª××× ×', action:'×××©×× ××××××', replaceable:false, fixed:true },
+    { id:'fri-apt',      day:5, start:'14:00', end:'15:15', title:'×××¤××© ×××¨×', type:'medium',
+      proj:'apartment', dedicated:'×××ª××¨ ×××¨×', action:'××××¢××ª ××¡×××¨××', replaceable:true, fixed:false },
+    { id:'fri-rest',     day:5, start:'15:15', end:'17:30', title:'×× ××× / ××× × / ××©×¤××', type:'recovery',
+      proj:'family', dedicated:'××ª×××©×©××ª ×××× × ××©××ª', action:'×× ××× ×××× ××ª', replaceable:false, fixed:true },
+    { id:'fri-dinner',   day:5, start:'18:00', end:'21:00', title:'××¨×××ª ×¢×¨× ××©×¤××ª××ª â ×©××©×', type:'family',
+      proj:'family', dedicated:'××× ××©×¤××ª×', action:'××¨××× ××©×¤××ª××ª', replaceable:false, fixed:true },
 
-    // ───── SATURDAY (day 6) ─────
-    { id:'sat-am',       day:6, start:'08:00', end:'14:00', title:'מנוחה / ים / זמן חופשי', type:'recovery',
-      proj:'recovery', dedicated:'התאוששות', action:'בחירה חופשית', replaceable:true, fixed:false },
-    { id:'sat-buffer',   day:6, start:'14:00', end:'16:00', title:'בופר משימות שהוחמצו (אופציונלי)', type:'buffer',
-      proj:null, dedicated:'השלמת חוב', action:'אוניברסיטה / Upselles / חשוב', replaceable:true, fixed:false },
-    { id:'sat-walk',     day:6, start:'16:30', end:'17:15', title:'הליכה (אופציונלי)', type:'walk',
-      proj:'fitness', dedicated:'תנועה', action:'הליכה', replaceable:true, fixed:false },
-    { id:'sat-review',   day:6, start:'18:00', end:'18:45', title:'סיכום שבועי + תכנון שבוע הבא', type:'planning',
-      proj:null, dedicated:'Weekly Review', action:'מה התבצע / מה חסר / יעדים', replaceable:false, fixed:true },
-    { id:'sat-evening',  day:6, start:'19:00', end:'23:00', title:'זמן חופשי', type:'recovery',
-      proj:'recovery', dedicated:'מנוחה', action:'חופשי', replaceable:true, fixed:false },
+    // âââââ SATURDAY (day 6) âââââ
+    { id:'sat-am',       day:6, start:'08:00', end:'14:00', title:'×× ××× / ×× / ××× ×××¤×©×', type:'recovery',
+      proj:'recovery', dedicated:'××ª×××©×©××ª', action:'××××¨× ×××¤×©××ª', replaceable:true, fixed:false },
+    { id:'sat-buffer',   day:6, start:'14:00', end:'16:00', title:'×××¤×¨ ××©××××ª ×©×××××¦× (×××¤×¦××× ××)', type:'buffer',
+      proj:null, dedicated:'××©×××ª ×××', action:'××× ×××¨×¡××× / Upselles / ××©××', replaceable:true, fixed:false },
+    { id:'sat-walk',     day:6, start:'16:30', end:'17:15', title:'××××× (×××¤×¦××× ××)', type:'walk',
+      proj:'fitness', dedicated:'×ª× ××¢×', action:'×××××', replaceable:true, fixed:false },
+    { id:'sat-review',   day:6, start:'18:00', end:'18:45', title:'×¡×××× ×©×××¢× + ×ª×× ×× ×©×××¢ ×××', type:'planning',
+      proj:null, dedicated:'Weekly Review', action:'×× ××ª××¦×¢ / ×× ××¡×¨ / ××¢×××', replaceable:false, fixed:true },
+    { id:'sat-evening',  day:6, start:'19:00', end:'23:00', title:'××× ×××¤×©×', type:'recovery',
+      proj:'recovery', dedicated:'×× ×××', action:'×××¤×©×', replaceable:true, fixed:false },
   ];
 
   const PAGE_ALIASES = {
-    'דשבורד':'dashboard','דשבר':'dashboard','בית':'dashboard','ראשי':'dashboard',
-    'לוז':'week','לוח':'week','שבועי':'week','לוז שבועי':'week',
-    'משימות':'tasks','משימה':'tasks','טודו':'tasks',
-    'תזכורת':'reminders','תזכורות':'reminders',
-    'עבודה':'jobs','חיפוש עבודה':'jobs','jobs':'jobs',
-    'אפסלס':'upselles','upselles':'upselles','סטארטאפ':'upselles',
-    'כושר':'fitness','אימון':'fitness','דיאטה':'fitness','אוכל':'fitness','תזונה':'fitness',
-    'דירה':'apartment','דירות':'apartment','apt':'apartment',
-    'משפחה':'family',
-    'אוניברסיטה':'university','יוניברסיטה':'university','בר-אילן':'university',
-    'דאטה':'university','מדע נתונים':'university','ds':'university','ai':'university','m.sc':'university',
-    'אנתרופיק':'anthropic','קורס':'anthropic','anthropic':'anthropic',
-    'מנוחה':'recovery','ים':'recovery','חופש':'recovery','beach':'recovery',
-    'פיננסים':'finance','כסף':'finance','הוצאות':'finance',
-    'פתקים':'notes',
-    'תיבה':'inbox','אינבוקס':'inbox',
-    'רעיונות':'ideas',
-    'יומן':'journal',
-    'מטרות':'goals',
-    'חדשות':'news',
+    '××©×××¨×':'dashboard','××©××¨':'dashboard','×××ª':'dashboard','×¨××©×':'dashboard',
+    '×××':'week','×××':'week','×©×××¢×':'week','××× ×©×××¢×':'week',
+    '××©××××ª':'tasks','××©×××':'tasks','××××':'tasks',
+    '×ª××××¨×ª':'reminders','×ª××××¨××ª':'reminders',
+    '×¢××××':'jobs','×××¤××© ×¢××××':'jobs','jobs':'jobs',
+    '××¤×¡××¡':'upselles','upselles':'upselles','×¡×××¨×××¤':'upselles',
+    '×××©×¨':'fitness','×××××':'fitness','×××××':'fitness','××××':'fitness','×ª××× ×':'fitness',
+    '×××¨×':'apartment','×××¨××ª':'apartment','apt':'apartment',
+    '××©×¤××':'family',
+    '××× ×××¨×¡×××':'university','××× ×××¨×¡×××':'university','××¨-××××':'university',
+    '××××':'university','×××¢ × ×ª×× ××':'university','ds':'university','ai':'university','m.sc':'university',
+    '×× ×ª×¨××¤××§':'anthropic','×§××¨×¡':'anthropic','anthropic':'anthropic',
+    '×× ×××':'recovery','××':'recovery','×××¤×©':'recovery','beach':'recovery',
+    '×¤×× × ×¡××':'finance','××¡×£':'finance','×××¦×××ª':'finance',
+    '×¤×ª×§××':'notes',
+    '×ª×××':'inbox','××× ×××§×¡':'inbox',
+    '×¨×¢××× ××ª':'ideas',
+    '××××':'journal',
+    '×××¨××ª':'goals',
+    '×××©××ª':'news',
   };
 
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  1. STATE HELPERS
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const J = {};               // public namespace exposed on window.JARVIS
 
   function readState() {
     try { return JSON.parse(localStorage.getItem(STATE_KEY) || '{}'); }
     catch (e) { return {}; }
   }
-  function getCurrentPage() {
-    if (typeof window.currentPage === "string") return window.currentPage;
-    var hash = location.hash.replace("#","");
-    if (hash) return hash;
-    var active = document.querySelector(".nav-link.active, [data-page][class*=active]");
-    if (active) return active.dataset && active.dataset.page ? active.dataset.page : (active.textContent||"").trim();
-    return "dashboard";
-  }
   function writeState(s) {
     try {
       localStorage.setItem(STATE_KEY, JSON.stringify(s));
-      var renders = ["renderAll","render","refreshApp","update","rerender","updateUI"];
-      for (var ri=0; ri<renders.length; ri++) {
-        if (typeof window[renders[ri]] === "function") {
-          try { window[renders[ri]](); } catch(e) {} break;
-        }
+      // trigger UI re-render if app exposes it
+      if (typeof window.renderAll === 'function') {
+        try { window.renderAll(); } catch (e) {}
       }
-      try { window.dispatchEvent(new StorageEvent("storage",{key:STATE_KEY,storageArea:localStorage})); } catch(e) {}
       return true;
-    } catch(e) { return false; }
+    } catch (e) { return false; }
   }
   function readLocal(key, dflt) {
     try { return JSON.parse(localStorage.getItem(key)) ?? dflt; }
@@ -277,9 +266,9 @@
     return s;
   }
 
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  2. EXECUTION LOG
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function logEvent(kind, payload, result) {
     const log = readLocal(LOG_KEY, []);
     log.push({
@@ -297,9 +286,9 @@
     return filterFn ? log.filter(filterFn) : log;
   }
 
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  3. SCHEDULE SYSTEM
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   /*
    * Schedule store shape (SCHED_KEY):
    * {
@@ -373,7 +362,7 @@
     return true;
   }
 
-  // ─── Project debt: for each project, compute time deficit this week
+  // âââ Project debt: for each project, compute time deficit this week
   function projectDebt() {
     const sched = loadSchedule();
     const today = new Date();
@@ -421,7 +410,7 @@
     return x;
   }
 
-  // ─── Reschedule: find next free slot for a missed block
+  // âââ Reschedule: find next free slot for a missed block
   function suggestReschedule(blockId, fromDate) {
     const sched = loadSchedule();
     const block = sched.blocks.find(b => b.id === blockId);
@@ -454,9 +443,9 @@
     return String(Math.floor(min/60)).padStart(2,'0') + ':' + String(min%60).padStart(2,'0');
   }
 
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  4. WHAT-DO-I-OWE / OVERVIEW QUERIES
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function dueThisWeek() {
     const state = readState();
     const tasks = state.tasks || [];
@@ -486,18 +475,18 @@
     return (state.reminders||[]).filter(r => !r.done && (r.date === today || r.repeat === 'daily'));
   }
 
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  5. ACTIONS (the verbs JARVIS can do)
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const ACTIONS = {
     navigate(args) {
       const where = (args.where || args.page || '').toLowerCase().trim();
       const target = PAGE_ALIASES[where] || where;
       if (typeof window.goPage === 'function') {
-        try { window.goPage(target); logEvent('nav', { target }, 'ok'); return `מנווט ל${args.where}.`; }
-        catch (e) { return `לא הצלחתי לעבור ל-${args.where}.`; }
+        try { window.goPage(target); logEvent('nav', { target }, 'ok'); return `×× ××× ×${args.where}.`; }
+        catch (e) { return `×× ××¦×××ª× ××¢×××¨ ×-${args.where}.`; }
       }
-      return 'הניווט לא זמין כרגע.';
+      return '×× ×××× ×× ×××× ××¨××¢.';
     },
     addTask(args) {
       const text = args.text || args.title;
@@ -515,7 +504,7 @@
       writeState(state);
       logEvent('task.add', { text, cat:args.cat, proj:args.proj }, id);
       celebrate();
-      return `Added: "${text}"${args.proj ? ' → ' + args.proj : ''}.`;
+      return `Added: "${text}"${args.proj ? ' â ' + args.proj : ''}.`;
     },
     completeTask(args) {
       const q = (args.match || args.text || '').toLowerCase();
@@ -527,7 +516,7 @@
       writeState(state);
       logEvent('task.complete', { id:t.id, text:t.text });
       celebrate();
-      return `Done ✓ "${t.text}". Good work.`;
+      return `Done â "${t.text}". Good work.`;
     },
     addReminder(args) {
       const text = args.text;
@@ -546,15 +535,15 @@
       writeState(state);
       logEvent('reminder.add', { text, when: when.toISOString() }, id);
       scheduleNotif(text, when);
-      return `🔔 Reminder set: "${text}" at ${timeStr}.`;
+      return `ð Reminder set: "${text}" at ${timeStr}.`;
     },
     addScheduleBlock(args) {
-      // "תכנסי X מ-Y עד Z" / "schedule X from Y to Z"
+      // "×ª×× ×¡× X ×-Y ×¢× Z" / "schedule X from Y to Z"
       const today = new Date();
       const dayNum = typeof args.day === 'number' ? args.day : today.getDay();
       const block = writeScheduleBlock(dayNum, args.start, args.end, args.title, args.type || 'medium', args.proj || null);
       hud.toast(`Schedule updated: ${block.title}`, 'ok');
-      return `📅 Scheduled "${block.title}" from ${block.start} to ${block.end}. Check your weekly view.`;
+      return `ð Scheduled "${block.title}" from ${block.start} to ${block.end}. Check your weekly view.`;
     },
     queryDue(args) {
       const scope = args.scope || 'week';
@@ -565,7 +554,7 @@
         const lines = [];
         if (tasks.length) lines.push(`${tasks.length} task${tasks.length>1?'s':''} due today: ${tasks.slice(0,3).map(t=>t.text).join(', ')}${tasks.length>3?' ...':''}.`);
         if (evts.length)  lines.push(`Events: ${evts.map(e=>`${e.time} ${e.title}`).join(', ')}.`);
-        if (blks.length)  lines.push(`Schedule: ${blks.map(b=>`${b.start} ${b.title}`).join(' → ')}.`);
+        if (blks.length)  lines.push(`Schedule: ${blks.map(b=>`${b.start} ${b.title}`).join(' â ')}.`);
         if (!lines.length) lines.push('Your day looks clear. Good opportunity to chip away at project debt.');
         return lines.join(' ');
       }
@@ -573,7 +562,7 @@
       const debt  = projectDebt();
       const debts = Object.entries(debt).filter(([,o])=>o.debt>0)
         .map(([p,o])=>`${p}: ${Math.round(o.debt/60)}h debt`).join(', ');
-      return `This week: ${tasks.length} open task${tasks.length!==1?'s':''}. ${debts ? 'Project debt — '+debts+'.' : 'No project debt. On track!'}`;
+      return `This week: ${tasks.length} open task${tasks.length!==1?'s':''}. ${debts ? 'Project debt â '+debts+'.' : 'No project debt. On track!'}`;
     },
     morningBrief() {
       const tasks = dueToday();
@@ -588,7 +577,7 @@
         tasks.length ? `You have ${tasks.length} task${tasks.length>1?'s':''} today.` : 'No urgent tasks today.',
         blks.length  ? `Today\'s schedule: ${blks.map(b=>`${b.start} ${b.title}`).join(', ')}.` : '',
         evts.length  ? `Events: ${evts.map(e=>`${e.time} ${e.title}`).join(', ')}.` : '',
-        debts.length ? `Watch out — project debt on: ${debts.map(([p])=>p).join(', ')}.` : '',
+        debts.length ? `Watch out â project debt on: ${debts.map(([p])=>p).join(', ')}.` : '',
         `I'm here when you need me.`
       ].filter(Boolean);
       return lines.join(' ');
@@ -615,13 +604,13 @@
         actualMinutes: args.actualMinutes,
         note: args.note
       });
-      return `Block "${args.blockId}" updated → ${args.status}.`;
+      return `Block "${args.blockId}" updated â ${args.status}.`;
     },
     rescheduleBlock(args) {
       const date = args.date ? new Date(args.date) : new Date();
       const sug  = suggestReschedule(args.blockId, date);
       if (!sug) return 'No free slot found this week. Consider Saturday.';
-      return `Suggested slot: ${sug.day.toLocaleDateString('en-IL')} at ${sug.start}–${sug.end}.`;
+      return `Suggested slot: ${sug.day.toLocaleDateString('en-IL')} at ${sug.start}â${sug.end}.`;
     },
     showDebt() {
       const debt = projectDebt();
@@ -630,9 +619,9 @@
       );
       return lines.length ? lines.join(' | ') : 'No project data yet this week.';
     },
-    // ── Advanced agent commands ────────────────────────────────────────────
+    // ââ Advanced agent commands ââââââââââââââââââââââââââââââââââââââââââââ
     activityReport(args) {
-      // "הייתי בים מ-14 עד 17 במקום ללמוד"
+      // "××××ª× ××× ×-14 ×¢× 17 ×××§×× ×××××"
       const today = new Date();
       const from  = parseInt(args.fromHour || 14);
       const to    = parseInt(args.toHour   || 17);
@@ -642,19 +631,19 @@
       });
       const replaceable = blocks.filter(b =>  b.replaceable);
       const fixed       = blocks.filter(b => !b.replaceable);
-      replaceable.forEach(b => setBlockStatus(b.id, today, { status:'replaced', note: args.activity || 'פעילות אחרת', actualMinutes:0 }));
-      fixed.forEach(b       => setBlockStatus(b.id, today, { status:'missed',   note: args.activity || 'פעילות אחרת' }));
+      replaceable.forEach(b => setBlockStatus(b.id, today, { status:'replaced', note: args.activity || '×¤×¢××××ª ×××¨×ª', actualMinutes:0 }));
+      fixed.forEach(b       => setBlockStatus(b.id, today, { status:'missed',   note: args.activity || '×¤×¢××××ª ×××¨×ª' }));
       const lines = [];
-      if (args.activity) lines.push(`Logged: ${args.activity} between ${from}:00–${to}:00.`);
-      if (replaceable.length) lines.push(`"${replaceable.map(b=>b.title).join(', ')}" → marked as replaced.`);
-      if (fixed.length)       lines.push(`"${fixed.map(b=>b.title).join(', ')}" → marked as missed.`);
+      if (args.activity) lines.push(`Logged: ${args.activity} between ${from}:00â${to}:00.`);
+      if (replaceable.length) lines.push(`"${replaceable.map(b=>b.title).join(', ')}" â marked as replaced.`);
+      if (fixed.length)       lines.push(`"${fixed.map(b=>b.title).join(', ')}" â marked as missed.`);
       const sug = replaceable[0] ? suggestReschedule(replaceable[0].id, today) : null;
-      if (sug) lines.push(`Recovery slot: ${sug.day.toLocaleDateString('en-IL')} at ${sug.start}–${sug.end}.`);
+      if (sug) lines.push(`Recovery slot: ${sug.day.toLocaleDateString('en-IL')} at ${sug.start}â${sug.end}.`);
       return lines.join(' ') || 'Schedule updated.';
     },
 
     logActualTime(args) {
-      // "עשיתי 70 דק׳ Upselles במקום 120"
+      // "×¢×©××ª× 70 ××§×³ Upselles ×××§×× 120"
       const today   = new Date();
       const actual  = parseInt(args.actualMinutes || 0);
       const planned = parseInt(args.plannedMinutes || 0);
@@ -664,16 +653,16 @@
         const threshold = planned || actual;
         const st = actual >= threshold * 0.8 ? 'completed' : actual > 0 ? 'partial' : 'missed';
         setBlockStatus(blocks[0].id, today, { status: st, actualMinutes: actual,
-          note: `מתוכנן: ${planned} דק׳, בוצע: ${actual} דק׳` });
+          note: `××ª××× ×: ${planned} ××§×³, ×××¦×¢: ${actual} ××§×³` });
       }
       const pName = PROJECTS[projKey]?.name || projKey;
       const diff  = planned - actual;
-      if (diff > 0) return `${pName}: you did ${actual} of ${planned} min. ${diff} min debt — suggest making it up tomorrow.`;
-      return `${pName}: ${actual} min done — excellent!${planned ? ` (target was ${planned} min)` : ''}`;
+      if (diff > 0) return `${pName}: you did ${actual} of ${planned} min. ${diff} min debt â suggest making it up tomorrow.`;
+      return `${pName}: ${actual} min done â excellent!${planned ? ` (target was ${planned} min)` : ''}`;
     },
 
     planByMissed() {
-      // "תכנן לי את היום לפי מה שפספסתי אתמול"
+      // "×ª×× × ×× ××ª ×××× ××¤× ×× ×©×¤×¡×¤×¡×ª× ××ª×××"
       const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
       const yKey  = isoWeekKey(yesterday);
       const sched = loadSchedule();
@@ -683,17 +672,17 @@
         const st = yData[k]?.status;
         return st === 'missed' || st === 'partial';
       });
-      if (!missed.length) return 'Nothing missed yesterday — clean slate today! 🎉';
+      if (!missed.length) return 'Nothing missed yesterday â clean slate today! ð';
       const today = new Date();
       const suggestions = missed.slice(0, 3).map(b => {
         const sug = suggestReschedule(b.id, today);
-        return sug ? `• ${b.title}: ${sug.start}–${sug.end}` : `• ${b.title}: no free slot (consider Saturday)`;
+        return sug ? `â¢ ${b.title}: ${sug.start}â${sug.end}` : `â¢ ${b.title}: no free slot (consider Saturday)`;
       });
       return `Missed yesterday:\n${suggestions.join('\n')}`;
     },
 
     whatToSkip() {
-      // "מה אני יכול לדלג בלי לפגוע בשבוע"
+      // "×× ×× × ×××× ×××× ××× ××¤×××¢ ××©×××¢"
       const today    = new Date();
       const debt     = projectDebt();
       const skippable = blocksForDay(today).filter(b => {
@@ -702,12 +691,12 @@
         const d = debt[PROJECTS[b.proj]?.name];
         return !d || d.debt < 60;
       });
-      if (!skippable.length) return 'Nothing safe to skip today — every block matters.';
-      return `Safe to skip today (no weekly damage):\n${skippable.map(b=>`• ${b.title} (${b.start}–${b.end})`).join('\n')}`;
+      if (!skippable.length) return 'Nothing safe to skip today â every block matters.';
+      return `Safe to skip today (no weekly damage):\n${skippable.map(b=>`â¢ ${b.title} (${b.start}â${b.end})`).join('\n')}`;
     },
 
     whatNow(args) {
-      // "מה לעשות עכשיו" — energy-based planning
+      // "×× ××¢×©××ª ×¢××©××" â energy-based planning
       const energy   = (args || {}).energy || 'medium';
       const now      = new Date();
       const hm       = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
@@ -725,42 +714,32 @@
       const eLabel   = energy==='high' ? 'high' : energy==='low' ? 'low' : 'medium';
       if (current) {
         const tip = energy==='low' ? 'Wrap it up and rest.' : 'Lock in and execute.';
-        return `You should be on: "${current.title}" until ${current.end}. Energy ${eLabel} — ${tip}`;
+        return `You should be on: "${current.title}" until ${current.end}. Energy ${eLabel} â ${tip}`;
       }
       const best = upcoming.find(b => suitable.includes(b.type));
       if (best) {
         const debtNote = behind.length ? ` Note: you have debt on ${behind[0][0]}.` : '';
-        return `Energy ${eLabel} — best move: "${best.title}" at ${best.start}.${debtNote}`;
+        return `Energy ${eLabel} â best move: "${best.title}" at ${best.start}.${debtNote}`;
       }
       if (behind.length) {
         const action = energy==='high' ? 'open a deep-work session' : energy==='low' ? 'do a light task on the project' : 'push as far as you can';
-        return `No scheduled block right now — but you have debt on ${behind[0][0]}. Energy ${eLabel}: ${action}.`;
+        return `No scheduled block right now â but you have debt on ${behind[0][0]}. Energy ${eLabel}: ${action}.`;
       }
       const freeAct = energy==='low' ? 'Take a break.' : energy==='high' ? 'Jump ahead on your schedule.' : 'Review your open tasks.';
       return `You\'re between blocks. Energy ${eLabel}: ${freeAct}`;
     },
 
-    // ── Modal-opening shorthands ───────────────────────────────────────────
+    // ââ Modal-opening shorthands âââââââââââââââââââââââââââââââââââââââââââ
     dailyCheckIn()  { openDailyCheckIn();  return 'Opening daily check-in...'; },
     weeklyReview()  { openWeeklyReview();  return 'Opening weekly review...'; },
     openWhatNow()   { openWhatNowPanel();  return ''; },
 
     speakOnly(args) { return args.text || ''; },
-    closeJarvis() {
-      _recogStarted = false;
-      if (recog) try { recog.stop(); } catch(e) {}
-      var panel = document.getElementById("jv-panel");
-      var dock  = document.getElementById("jv-dock");
-      if (panel) panel.classList.remove("show");
-      if (dock)  dock.classList.remove("show");
-      hud.setState("idle");
-      return "";
-    },
   };
 
-  // ────────────────────────────────────────────────────────────────────────
-  //  5-A. SYSTEM WRITE HELPERS — direct state mutations by JARVIS
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  //  5-A. SYSTEM WRITE HELPERS â direct state mutations by JARVIS
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function writeScheduleBlock(day, start, end, title, type, proj) {
     const sched = loadSchedule();
     const id = 'jv_custom_' + Date.now();
@@ -783,15 +762,15 @@
       return;
     }
     if (Notification.permission === 'granted') {
-      hud.toast('Notifications already enabled ✓', 'ok');
+      hud.toast('Notifications already enabled â', 'ok');
       speak('Push notifications are already active.');
       return;
     }
     Notification.requestPermission().then(perm => {
       if (perm === 'granted') {
-        hud.toast('🔔 Notifications enabled!', 'ok');
+        hud.toast('ð Notifications enabled!', 'ok');
         speak('Great. I\'ll now send you push notifications for reminders and briefings.');
-        new Notification('JARVIS is connected 🔔', {
+        new Notification('JARVIS is connected ð', {
           body: 'You\'ll get reminders and briefing alerts from here.',
           icon: '/favicon.ico'
         });
@@ -803,18 +782,18 @@
   }
 
   function parseRelativeTime(spec) {
-    // accepts: "בעוד 10 דקות", "מחר 09:00", "ב-14:30", or Date/ISO
+    // accepts: "××¢×× 10 ××§××ª", "×××¨ 09:00", "×-14:30", or Date/ISO
     if (!spec) { const t = new Date(); t.setHours(t.getHours()+1); return t; }
     if (spec instanceof Date) return spec;
     if (typeof spec === 'string') {
-      const m1 = spec.match(/(\d+)\s*(דקות|דקה|min|minutes?)/i);
+      const m1 = spec.match(/(\d+)\s*(××§××ª|××§×|min|minutes?)/i);
       if (m1) { const t = new Date(); t.setMinutes(t.getMinutes() + parseInt(m1[1])); return t; }
-      const m2 = spec.match(/(\d+)\s*(שעות|שעה|hours?)/i);
+      const m2 = spec.match(/(\d+)\s*(×©×¢××ª|×©×¢×|hours?)/i);
       if (m2) { const t = new Date(); t.setHours(t.getHours() + parseInt(m2[1])); return t; }
       const m3 = spec.match(/(\d{1,2}):(\d{2})/);
       if (m3) {
         const t = new Date(); t.setHours(parseInt(m3[1]), parseInt(m3[2]), 0, 0);
-        if (/מחר/.test(spec)) t.setDate(t.getDate()+1);
+        if (/×××¨/.test(spec)) t.setDate(t.getDate()+1);
         if (t < new Date()) t.setDate(t.getDate()+1);
         return t;
       }
@@ -827,7 +806,7 @@
     if (delay > 2147483000) return; // > 24.8 days, skip
     setTimeout(() => {
       if (Notification && Notification.permission === 'granted') {
-        new Notification('JARVIS — תזכורת', { body: text, icon: '/favicon.ico' });
+        new Notification('JARVIS â ×ª××××¨×ª', { body: text, icon: '/favicon.ico' });
       }
       speak(`Reminder: ${text}.`);
     }, delay);
@@ -839,49 +818,49 @@
     }
   }
 
-  // ────────────────────────────────────────────────────────────────────────
-  //  6. NLU — Hebrew-first command router
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  //  6. NLU â Hebrew-first command router
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function route(text) {
     const t = text.trim();
     if (!t) return null;
     const lower = t.toLowerCase();
 
-    // — Navigation (Hebrew + English) —
-    let m = t.match(/(?:פתח|תפתח|לך ל|נווט ל|תעבור ל|תראה לי|open|go to|navigate to|show me)\s+(.+)/i);
+    // â Navigation (Hebrew + English) â
+    let m = t.match(/(?:×¤×ª×|×ª×¤×ª×|×× ×|× ××× ×|×ª×¢×××¨ ×|×ª×¨×× ××|open|go to|navigate to|show me)\s+(.+)/i);
     if (m) return { action:'navigate', args:{ where: m[1] } };
 
-    // — Add task (Hebrew) —
-    m = t.match(/(?:הוסף|תוסיף)\s+משימה\s+(.+?)(?:\s+לפרויקט\s+(\S+))?$/);
+    // â Add task (Hebrew) â
+    m = t.match(/(?:×××¡×£|×ª××¡××£)\s+××©×××\s+(.+?)(?:\s+××¤×¨×××§×\s+(\S+))?$/);
     if (m) return { action:'addTask', args:{ text: m[1], proj: PAGE_ALIASES[m[2]] || m[2] || null } };
-    m = t.match(/^(?:הוסף|תוסיף)\s+(.+?)\s+(?:ל|אל)\s*(?:משימות|טודו)$/);
+    m = t.match(/^(?:×××¡×£|×ª××¡××£)\s+(.+?)\s+(?:×|××)\s*(?:××©××××ª|××××)$/);
     if (m) return { action:'addTask', args:{ text: m[1] } };
-    // — Add task (English) —
+    // â Add task (English) â
     m = t.match(/^(?:add task|create task|new task)\s+(.+?)(?:\s+(?:to|for)\s+(\w+))?$/i);
     if (m) return { action:'addTask', args:{ text: m[1], proj: m[2] || null } };
 
-    // — Complete task (Hebrew + English) —
-    m = t.match(/(?:סמן|תסמן|סיימתי|גמרתי|הושלם)(?:\s+את)?\s+(.+?)(?:\s+כהושלם|\s+כסיימתי)?$/);
+    // â Complete task (Hebrew + English) â
+    m = t.match(/(?:×¡××|×ª×¡××|×¡××××ª×|×××¨×ª×|×××©××)(?:\s+××ª)?\s+(.+?)(?:\s+××××©××|\s+××¡××××ª×)?$/);
     if (m) return { action:'completeTask', args:{ match: m[1] } };
     m = t.match(/^(?:done|complete|finish|mark done|mark as done)\s+(.+)/i);
     if (m) return { action:'completeTask', args:{ match: m[1] } };
 
-    // — Add reminder (Hebrew) —
-    m = t.match(/(?:תזכר|תזכור|תזכיר|הזכר)\s+(?:לי\s+)?(?:על\s+)?(.+?)\s+(?:בעוד\s+(.+)|ב-?(\d{1,2}:\d{2})|מחר\s+(\d{1,2}:\d{2}))/);
+    // â Add reminder (Hebrew) â
+    m = t.match(/(?:×ª×××¨|×ª××××¨|×ª××××¨|××××¨)\s+(?:××\s+)?(?:×¢×\s+)?(.+?)\s+(?:××¢××\s+(.+)|×-?(\d{1,2}:\d{2})|×××¨\s+(\d{1,2}:\d{2}))/);
     if (m) {
-      const when = m[2] || m[3] || (m[4] ? 'מחר ' + m[4] : null);
+      const when = m[2] || m[3] || (m[4] ? '×××¨ ' + m[4] : null);
       return { action:'addReminder', args:{ text: m[1], when } };
     }
-    m = t.match(/(?:תזכר|תזכיר)\s+(?:לי\s+)?(.+)/);
-    if (m) return { action:'addReminder', args:{ text: m[1], when: 'בעוד שעה' } };
-    // — Add reminder (English) —
+    m = t.match(/(?:×ª×××¨|×ª××××¨)\s+(?:××\s+)?(.+)/);
+    if (m) return { action:'addReminder', args:{ text: m[1], when: '××¢×× ×©×¢×' } };
+    // â Add reminder (English) â
     m = t.match(/^remind me (?:to |about )?(.+?) (?:at|in)\s+(.+)/i);
     if (m) return { action:'addReminder', args:{ text: m[1], when: m[2] } };
     m = t.match(/^remind me (?:to |about )?(.+)/i);
     if (m) return { action:'addReminder', args:{ text: m[1], when: 'in 1 hour' } };
 
-    // — Schedule a block: "תכניסי X מ-Y עד Z" / "schedule X from Y to Z" —
-    m = t.match(/(?:תכנסי|תכניסי|תוסיפי|הכנסי|תזמני)\s+(.+?)\s+(?:מ-?|מ–?)(\d{1,2}:\d{2}|\d{1,2})\s+(?:עד|–|-)\s*(\d{1,2}:\d{2}|\d{1,2})/);
+    // â Schedule a block: "×ª×× ××¡× X ×-Y ×¢× Z" / "schedule X from Y to Z" â
+    m = t.match(/(?:×ª×× ×¡×|×ª×× ××¡×|×ª××¡××¤×|××× ×¡×|×ª××× ×)\s+(.+?)\s+(?:×-?|×â?)(\d{1,2}:\d{2}|\d{1,2})\s+(?:×¢×|â|-)\s*(\d{1,2}:\d{2}|\d{1,2})/);
     if (m) {
       const title = m[1].trim();
       const start = m[2].includes(':') ? m[2] : m[2]+':00';
@@ -894,89 +873,103 @@
       return { action:'addScheduleBlock', args:{ title: m[1].trim(), start: toH(m[2]), end: toH(m[3]), day: new Date().getDay() } };
     }
 
-    // — Queries (Hebrew + English) —
-    if (/מה (אני )?(חייב|צריך|עליי)\s+(היום|לעשות היום)/.test(t) || /מה (יש לי )?היום/.test(t)
+    // â Queries (Hebrew + English) â
+    if (/×× (×× × )?(××××|×¦×¨××|×¢×××)\s+(××××|××¢×©××ª ××××)/.test(t) || /×× (××© ×× )?××××/.test(t)
         || /^(?:what(?:'s| is) (?:on )?(?:my )?(?:today|today's|schedule today)|what do i have today)/i.test(lower))
       return { action:'queryDue', args:{ scope:'today' } };
-    if (/מה (אני )?חייב\s+השבוע/.test(t) || /מה (יש לי )?השבוע/.test(t)
+    if (/×× (×× × )?××××\s+××©×××¢/.test(t) || /×× (××© ×× )?××©×××¢/.test(t)
         || /^(?:what(?:'s| is) (?:on )?(?:my )?(?:week|this week|weekly))/i.test(lower))
       return { action:'queryDue', args:{ scope:'week' } };
 
-    // — Briefings (Hebrew + English) —
-    if (/(תיאור|תקציר|סיכום) (?:של )?(?:ה)?(?:בוקר|יום)/.test(t) || /בוקר טוב/.test(t)
+    // â Briefings (Hebrew + English) â
+    if (/(×ª××××¨|×ª×§×¦××¨|×¡××××) (?:×©× )?(?:×)?(?:×××§×¨|×××)/.test(t) || /×××§×¨ ×××/.test(t)
         || /^(?:morning brief|good morning|morning update|start my day)/i.test(lower))
       return { action:'morningBrief', args:{} };
-    if (/(סיכום|תקציר)\s+(ה?ערב|ה?יום)/.test(t) || /לילה טוב/.test(t)
+    if (/(×¡××××|×ª×§×¦××¨)\s+(×?×¢×¨×|×?×××)/.test(t) || /×××× ×××/.test(t)
         || /^(?:evening brief|good night|end of day|daily summary)/i.test(lower))
       return { action:'eveningBrief', args:{} };
 
-    // — Schedule / Debt (Hebrew + English) —
-    if (/(חוב|דיווח)\s+(פרויקטים?|זמן)/.test(t)
+    // â Schedule / Debt (Hebrew + English) â
+    if (/(×××|×××××)\s+(×¤×¨×××§×××?|×××)/.test(t)
         || /^(?:project debt|show debt|time debt)/i.test(lower))
       return { action:'showDebt', args:{} };
-    m = t.match(/(תזמן|הצע|הצעה ל)?\s*(?:לדחות|להעביר)\s+(.+?)\s+(?:למחר|לעוד|ל-?\d+)/);
+    m = t.match(/(×ª×××|××¦×¢|××¦×¢× ×)?\s*(?:×××××ª|×××¢×××¨)\s+(.+?)\s+(?:××××¨|××¢××|×-?\d+)/);
     if (m) return { action:'rescheduleBlock', args:{ blockId: m[2] } };
 
-    // ── Advanced commands ────────────────────────────────────────────────
-    // "הייתי בים מ-14 עד 17"
-    m = t.match(/(?:הייתי|הלכתי|בליתי)\s+(.+?)\s+(?:מ-?|מ–?)(\d{1,2})(?::\d{2})?\s+(?:עד|–|-)\s*(\d{1,2})/);
+    // ââ Advanced commands ââââââââââââââââââââââââââââââââââââââââââââââââ
+    // "××××ª× ××× ×-14 ×¢× 17"
+    m = t.match(/(?:××××ª×|××××ª×|××××ª×)\s+(.+?)\s+(?:×-?|×â?)(\d{1,2})(?::\d{2})?\s+(?:×¢×|â|-)\s*(\d{1,2})/);
     if (m) return { action:'activityReport', args:{ activity: m[1], fromHour: m[2], toHour: m[3] } };
 
-    // "עשיתי 70 דק׳ Upselles במקום 120"
-    m = t.match(/(?:עשיתי|ביצעתי|השקעתי)\s+(\d+)\s*(?:דק[׳'ות]?|שעות?)\s+(?:על\s+|ב-?)?([\w֐-׿]+)/);
+    // "×¢×©××ª× 70 ××§×³ Upselles ×××§×× 120"
+    m = t.match(/(?:×¢×©××ª×|×××¦×¢×ª×|××©×§×¢×ª×)\s+(\d+)\s*(?:××§[×³'××ª]?|×©×¢××ª?)\s+(?:×¢×\s+|×-?)?([\wÖ-×¿]+)/);
     if (m) {
       const rawProj = m[2].toLowerCase();
       const projKey = Object.keys(PROJECTS).find(k =>
         rawProj.includes(k) || PROJECTS[k].name.toLowerCase().includes(rawProj)
       ) || rawProj;
-      const planned = parseInt((t.match(/(?:במקום|מתוך|מ-?)\s*(\d+)/)||[])[1] || '0');
+      const planned = parseInt((t.match(/(?:×××§××|××ª××|×-?)\s*(\d+)/)||[])[1] || '0');
       return { action:'logActualTime', args:{ proj: projKey, actualMinutes: parseInt(m[1]), plannedMinutes: planned } };
     }
 
-    // "תכנן לי את היום לפי מה שפספסתי אתמול"
-    if (/(?:תכנן|תסדר|תעזור)\s+(?:לי\s+)?(?:את\s+)?(?:ה?יום|המשך)\s+(?:לפי\s+)?(?:מה\s+ש)?(?:פספסתי|החמצתי)/.test(t)
-        || /(?:מה\s+)?פספסתי\s+אתמול/.test(t))
+    // "×ª×× × ×× ××ª ×××× ××¤× ×× ×©×¤×¡×¤×¡×ª× ××ª×××"
+    if (/(?:×ª×× ×|×ª×¡××¨|×ª×¢×××¨)\s+(?:××\s+)?(?:××ª\s+)?(?:×?×××|×××©×)\s+(?:××¤×\s+)?(?:××\s+×©)?(?:×¤×¡×¤×¡×ª×|××××¦×ª×)/.test(t)
+        || /(?:××\s+)?×¤×¡×¤×¡×ª×\s+××ª×××/.test(t))
       return { action:'planByMissed', args:{} };
 
-    // "מה אני יכול לדלג בלי לפגוע בשבוע"
-    if (/(?:מה|אילו?)\s+(?:אני\s+)?(?:יכול|אפשר)\s+(?:לדלג|לדחות|לוותר|לפספס)/.test(t)
-        || /מה\s+(?:לא\s+)?חייב\s+(?:להיות|לעשות)/.test(t))
+    // "×× ×× × ×××× ×××× ××× ××¤×××¢ ××©×××¢"
+    if (/(?:××|××××?)\s+(?:×× ×\s+)?(?:××××|××¤×©×¨)\s+(?:××××|×××××ª|××××ª×¨|××¤×¡×¤×¡)/.test(t)
+        || /××\s+(?:××\s+)?××××\s+(?:×××××ª|××¢×©××ª)/.test(t))
       return { action:'whatToSkip', args:{} };
 
-    // "מה לעשות עכשיו"
-    if (/מה\s+(?:לעשות|אעשה|אני\s+עושה|כדאי)\s+(?:ע?כשיו|עכשו)/.test(t)
-        || /^(?:עזור\s+לי\s+)?(?:מה\s+)?עכשיו\??$/.test(t)) {
-      const energy = /(?:אנרגיה\s+)?(?:נמוכה|low|עייף|רגוע)/.test(lower) ? 'low'
-                   : /(?:אנרגיה\s+)?(?:גבוהה|high|ממוקד|חזק)/.test(lower) ? 'high' : 'medium';
+    // "×× ××¢×©××ª ×¢××©××"
+    if (/××\s+(?:××¢×©××ª|××¢×©×|×× ×\s+×¢××©×|××××)\s+(?:×¢?××©××|×¢××©×)/.test(t)
+        || /^(?:×¢×××¨\s+××\s+)?(?:××\s+)?×¢××©××\??$/.test(t)) {
+      const energy = /(?:×× ×¨×××\s+)?(?:× ××××|low|×¢×××£|×¨×××¢)/.test(lower) ? 'low'
+                   : /(?:×× ×¨×××\s+)?(?:×××××|high|××××§×|×××§)/.test(lower) ? 'high' : 'medium';
       return { action:'whatNow', args:{ energy } };
     }
 
-    // "צ׳ק-אין" / "Daily Check-in"
-    if (/(?:צ[׳']?ק[- ]?אין|check[\s-]?in|התחל(?:ת)?\s+יום|תכנון\s+יום\s+עכשיו)/.test(lower))
+    // "×¦×³×§-×××" / "Daily Check-in"
+    if (/(?:×¦[×³']?×§[- ]?×××|check[\s-]?in|××ª××(?:×ª)?\s+×××|×ª×× ××\s+×××\s+×¢××©××)/.test(lower))
       return { action:'dailyCheckIn', args:{} };
 
-    // "סיכום שבועי" / "Weekly Review"
-    if (/(?:סיכום\s+שבועי|weekly\s+review|סיכום\s+שבוע(?:\s+הזה)?)/.test(lower))
+    // "×¡×××× ×©×××¢×" / "Weekly Review"
+    if (/(?:×¡××××\s+×©×××¢×|weekly\s+review|×¡××××\s+×©×××¢(?:\s+×××)?)/.test(lower))
       return { action:'weeklyReview', args:{} };
 
     // fallback: ask the LLM (if available)
-    var lwr = lower || "";
-    if (/^(\u05e1\u05d2\u05d5\u05e8|\u05ea\u05e1\u05d2\u05e8|bye|goodbye|close|thanks|\u05ea\u05d5\u05d3\u05d4|\u05e2\u05d6\u05d5\u05d1|\u05ea\u05e4\u05e1\u05d9\u05e7)/.test(lwr))
-      return { action: "closeJarvis", args: {} };
     return { action:'llmFallback', args:{ text: t } };
   }
 
-  async function llmFallback(prompt) {
-    // Try the host app's callClaude if available, else fall back to a friendly nudge.
-    if (typeof window.callClaude === 'function') {
-      try {
-        const sys = `You are JARVIS, Roei Klein's AI personal assistant. Reply concisely (1–2 sentences). Be direct. Do not make things up.
-User context: ${JSON.stringify(quickContext()).slice(0,800)}`;
-        const reply = await window.callClaude(prompt, sys);
-        return typeof reply === 'string' ? reply : (reply?.text || 'Got it. On it.');
-      } catch (e) { return 'Understood, but I don\'t have a precise answer right now.'; }
+  async function llmFallback(text) {
+    if (!window.callClaude) return null;
+    var today = new Date().toLocaleDateString('he-IL');
+    var tasks = '' ;
+    try {
+      var d = readState();
+      tasks = (d.tasks||[]).filter(function(t){return !t.done;}).slice(0,8).map(function(t){return t.text;}).join(', ');
+    } catch(e2){}
+    var sys = 'You are JARVIS, the AI companion of Personal OS for Roei Klein.\n'+ 'Today: ' + today + '\nOpen tasks: ' + (tasks||'none') + '\n'+ 'Available tools (respond ONLY as JSON):\n'+ '  goPage(page) - navigate to: dashboard,weekly,tasks,reminders,projects,tools\n'+ '  addTask(text,priority,project) - add task; priority: low/medium/high\n'+ '  addReminder(text,minutes) - remind in N minutes\n'+ '  setBlockStatus(blockId,status) - status: completed/missed/skipped\n'+ '  speak(text) - just say something\n'+ 'Format: {\"speech\":\"...\",\"actions\":[{\"tool\":\"...\",\"args\":{}}]}\n'+ 'Speak Hebrew unless user uses English. Be concise.';
+    try {
+      var raw = await window.callClaude(sys + '\nUser: ' + text);
+      var clean = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+      var parsed = JSON.parse(clean);
+      var acts = parsed.actions || [];
+      for (var i = 0; i < acts.length; i++) {
+        var a = acts[i];
+        try {
+          if (a.tool === 'goPage' && window.goPage) window.goPage(a.args.page);
+          else if (a.tool === 'addTask' && window.addTask) window.addTask(a.args.text, a.args.priority||'medium', a.args.project||'');
+          else if (a.tool === 'addReminder' && window.addReminder) window.addReminder(a.args.text, a.args.minutes||5);
+          else if (a.tool === 'setBlockStatus') setBlockStatus(a.args.blockId, new Date().toISOString().slice(0,10), {status:a.args.status});
+          else if (a.tool === 'speak') speak(a.args.text);
+        } catch(ae) { console.warn('JARVIS action failed:', ae); }
+      }
+      return parsed.speech || raw;
+    } catch(e) {
+      try { return await window.callClaude(text); } catch(e2) { return null; }
     }
-    return `I heard "${prompt}". I can't handle that command yet — try: "what's today", "add task...", "remind me about...", or "schedule X from Y to Z".`;
   }
 
   function quickContext() {
@@ -1002,11 +995,10 @@ User context: ${JSON.stringify(quickContext()).slice(0,800)}`;
     return out;
   }
 
-  // ────────────────────────────────────────────────────────────────────────
-  //  7. VOICE — recognition + synthesis
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  //  7. VOICE â recognition + synthesis
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   let recog = null, recogActive = false, listeningHard = false;
-  var _recogStarted = false;
 
   function makeRecognizer() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1019,25 +1011,28 @@ User context: ${JSON.stringify(quickContext()).slice(0,800)}`;
     return r;
   }
 
-  function startListening(hard) {
-    hard = !!hard;
+  function startListening(hard=false) {
     if (!settings().voiceOn) return;
     if (!recog) recog = makeRecognizer();
-    if (!recog) { speak("Speech recognition not available."); return; }
+    if (!recog) { speak('Speech recognition is not available in this browser.'); return; }
     listeningHard = hard;
-    _recogStarted = true;
     if (recogActive) return;
-    try { recog.start(); } catch(e) {}
+    try { recog.start(); } catch (e) {}
   }
   function stopListening() {
     listeningHard = false;
-    _recogStarted = false;
-    if (recog) try { recog.stop(); } catch(e) {}
+    if (recog) try { recog.stop(); } catch (e) {}
   }
-    recog.onend   = function() {
-      recogActive = false; hud.setState("idle");
-      if (_recogStarted && settings().wakeWordOn && !listeningHard)
-        setTimeout(function() { if (_recogStarted) startListening(false); }, 1000);
+  function bindRecog() {
+    if (!recog) return;
+    recog.onstart = () => { recogActive = true; hud.setState('listening'); };
+    recog.onend   = () => {
+      recogActive = false;
+      hud.setState('idle');
+      // auto-restart if wake-word mode is on
+      if (settings().wakeWordOn && !listeningHard) {
+        setTimeout(() => startListening(false), 700);
+      }
     };
     recog.onerror = (e) => {
       hud.setState('idle');
@@ -1078,7 +1073,7 @@ User context: ${JSON.stringify(quickContext()).slice(0,800)}`;
       const reply = await handle(text);
       if (reply) { hud.setReply(reply); speak(reply); }
     } catch (e) {
-      hud.toast('משהו השתבש: ' + e.message, 'error');
+      hud.toast('××©×× ××©×ª××©: ' + e.message, 'error');
     } finally {
       hud.setState('idle');
       listeningHard = false;
@@ -1087,46 +1082,38 @@ User context: ${JSON.stringify(quickContext()).slice(0,800)}`;
 
   let voicesCache = null;
   function pickVoice() {
-    var v = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-    var prefer = [
-      v.find(function(x){return x.lang==="en-US" && /samantha|zira|google us english|ava|aria/i.test(x.name);}),
-      v.find(function(x){return x.lang==="en-US" && !x.localService;}),
-      v.find(function(x){return x.lang==="en-US";}),
-      v.find(function(x){return x.lang==="en-GB";}),
-      v.find(function(x){return x.lang && x.lang.startsWith("en");}),
-      v.find(function(x){return x.lang==="he-IL";}),
-      v[0],
-    ];
-    return prefer.find(Boolean) || null;
+    const v = window.speechSynthesis?.getVoices() || [];
+    voicesCache = v;
+    // prefer he-IL female if available
+    return v.find(x => x.lang === 'he-IL' && /female|carmit/i.test(x.name))
+        || v.find(x => x.lang === 'he-IL')
+        || v.find(x => x.lang?.startsWith('he'))
+        || v[0];
   }
   function speak(text) {
     if (!settings().voiceOn) return;
     if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    var doSpeak = function() {
-      var u = new SpeechSynthesisUtterance(text);
-      var v = pickVoice();
-      if (v) u.voice = v;
-      u.lang   = v ? v.lang : "en-US";
-      u.rate   = Math.min(1.1, Math.max(0.85, (settings().rate || 0.95)));
-      u.volume = settings().volume != null ? settings().volume : 1.0;
-      u.pitch  = 1.0;
-      hud.setState("speaking");
-      u.onend  = function() { hud.setState("idle"); };
-      u.onerror = function() { hud.setState("idle"); };
-      try { window.speechSynthesis.speak(u); } catch(e) { hud.setState("idle"); }
-    };
-    if (window.speechSynthesis.getVoices().length === 0) {
-      window.speechSynthesis.onvoiceschanged = function() { window.speechSynthesis.onvoiceschanged = null; doSpeak(); };
-    } else { doSpeak(); }
+    const u = new SpeechSynthesisUtterance(text);
+    const v = pickVoice();
+    if (v) u.voice = v;
+    u.lang = v?.lang || LANG;
+    u.rate = settings().rate || 1.05;
+    u.volume = settings().volume || 1.0;
+    u.pitch = 1.0;
+    hud.setState('speaking');
+    u.onend = () => hud.setState('idle');
+    try { window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch (e) {}
   }
-  // ────────────────────────────────────────────────────────────────────────
+
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  //  7-A. APPLE / FUTURISTIC THEME INJECTION
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function injectAppleTheme() {
     if (document.getElementById('jv-apple-theme')) return;
     const s = document.createElement('style');
     s.id = 'jv-apple-theme';
     s.textContent = `
-/* ═══ JARVIS APPLE THEME — injected by jarvis.js ═══ */
+/* âââ JARVIS APPLE THEME â injected by jarvis.js âââ */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -1149,7 +1136,7 @@ User context: ${JSON.stringify(quickContext()).slice(0,800)}`;
   --jv-blur:      blur(24px) saturate(180%);
 }
 
-/* ── Reset & body ── */
+/* ââ Reset & body ââ */
 html, body {
   background: var(--jv-bg) !important;
   color: var(--jv-text) !important;
@@ -1157,13 +1144,13 @@ html, body {
   -webkit-font-smoothing: antialiased !important;
 }
 
-/* ── Scrollbar ── */
+/* ââ Scrollbar ââ */
 ::-webkit-scrollbar { width:5px; height:5px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.15); border-radius:10px; }
 ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,.28); }
 
-/* ── All card-like containers ── */
+/* ââ All card-like containers ââ */
 .card, .widget, .panel, .box, .block, .module, .section-card,
 [class*="card"], [class*="widget"], [class*="panel"],
 [class*="-box"], [class*="-block"], [class*="-module"],
@@ -1179,7 +1166,7 @@ html, body {
   color: var(--jv-text) !important;
 }
 
-/* ── Sidebar / nav ── */
+/* ââ Sidebar / nav ââ */
 nav, sidebar, .sidebar, .nav, .side-nav, .left-panel, .right-panel,
 [class*="sidebar"], [class*="nav-"]:not(.jv-chip) {
   background: rgba(10,10,10,.92) !important;
@@ -1187,7 +1174,7 @@ nav, sidebar, .sidebar, .nav, .side-nav, .left-panel, .right-panel,
   border-color: var(--jv-border) !important;
 }
 
-/* ── Buttons ── */
+/* ââ Buttons ââ */
 button:not(.jv-chip):not(.jv-dock button):not(#jv-lock-enter):not(#jv-lock-checkin):not(#jv-lock-skip):not(#jv-panel-close) {
   border-radius: 10px !important;
   font-family: var(--jv-font) !important;
@@ -1198,7 +1185,7 @@ button:not(.jv-chip):not(.jv-dock button):not(#jv-lock-enter):not(#jv-lock-check
   transform: translateY(-1px) !important;
 }
 
-/* ── Primary action buttons ── */
+/* ââ Primary action buttons ââ */
 [class*="btn-primary"], [class*="primary-btn"],
 [class*="add-btn"], [class*="save-btn"],
 button[class*="primary"] {
@@ -1208,7 +1195,7 @@ button[class*="primary"] {
   box-shadow: 0 4px 16px rgba(0,113,227,.35) !important;
 }
 
-/* ── Inputs ── */
+/* ââ Inputs ââ */
 input, textarea, select {
   background: rgba(255,255,255,.06) !important;
   border: 1px solid var(--jv-border) !important;
@@ -1225,10 +1212,10 @@ input::placeholder, textarea::placeholder {
   color: var(--jv-text3) !important;
 }
 
-/* ── Headers / titles ── */
+/* ââ Headers / titles ââ */
 h1,h2,h3,h4,h5,h6 { font-family: var(--jv-font) !important; font-weight:600 !important; }
 
-/* ── KPI / stat numbers ── */
+/* ââ KPI / stat numbers ââ */
 [class*="kpi"], [class*="stat"], [class*="metric"],
 [class*="number"], [class*="count"] {
   font-weight: 700 !important;
@@ -1236,7 +1223,7 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--jv-font) !important; font-weight:600 !imp
   color: var(--jv-accent) !important;
 }
 
-/* ── Tags / badges ── */
+/* ââ Tags / badges ââ */
 [class*="tag"], [class*="badge"], [class*="chip"],
 [class*="label"], [class*="pill"] {
   background: rgba(0,212,255,.12) !important;
@@ -1247,18 +1234,18 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--jv-font) !important; font-weight:600 !imp
   font-weight: 500 !important;
 }
 
-/* ── Checkboxes (task done state) ── */
+/* ââ Checkboxes (task done state) ââ */
 input[type="checkbox"] {
   accent-color: var(--jv-accent) !important;
 }
 
-/* ── Tables ── */
+/* ââ Tables ââ */
 table { border-collapse: collapse !important; }
 th { color: var(--jv-text2) !important; font-weight:500 !important; font-size:11px !important; letter-spacing:.5px !important; text-transform:uppercase !important; }
 tr:hover td { background: rgba(255,255,255,.03) !important; }
 td, th { border-color: var(--jv-border) !important; }
 
-/* ── Progress bars ── */
+/* ââ Progress bars ââ */
 progress, [class*="progress"] {
   background: rgba(255,255,255,.08) !important;
   border-radius: 4px !important;
@@ -1267,20 +1254,20 @@ progress, [class*="progress"] {
 progress::-webkit-progress-bar { background: rgba(255,255,255,.08) !important; }
 progress::-webkit-progress-value { background: var(--jv-accent) !important; border-radius:4px !important; }
 
-/* ── Glowing accent dividers ── */
+/* ââ Glowing accent dividers ââ */
 hr { border-color: var(--jv-border) !important; }
 
-/* ── Subtle background shimmer on main content area ── */
+/* ââ Subtle background shimmer on main content area ââ */
 main, .main, .content, .main-content, [class*="main-"], [class*="-content"] {
   background: var(--jv-bg2) !important;
 }
 
-/* ── Page sections / rows ── */
+/* ââ Page sections / rows ââ */
 section, .row, [class*="row-"], [class*="-row"] {
   border-color: var(--jv-border) !important;
 }
 
-/* ── Dropdown menus ── */
+/* ââ Dropdown menus ââ */
 [class*="dropdown"], [class*="menu"], [class*="popover"] {
   background: rgba(28,28,30,.96) !important;
   backdrop-filter: var(--jv-blur) !important;
@@ -1289,7 +1276,7 @@ section, .row, [class*="row-"], [class*="-row"] {
   box-shadow: 0 20px 60px rgba(0,0,0,.6) !important;
 }
 
-/* ── Modal overlays ── */
+/* ââ Modal overlays ââ */
 [class*="modal"], [class*="dialog"], [class*="overlay"] {
   background: rgba(0,0,0,.75) !important;
   backdrop-filter: blur(8px) !important;
@@ -1300,13 +1287,13 @@ section, .row, [class*="row-"], [class*="-row"] {
   border-radius: 18px !important;
 }
 
-/* ── Selection highlight ── */
+/* ââ Selection highlight ââ */
 ::selection {
   background: rgba(0,212,255,.25) !important;
   color: #fff !important;
 }
 
-/* ═══ JARVIS HUD itself — update to match ═══ */
+/* âââ JARVIS HUD itself â update to match âââ */
 .jv-panel {
   background: rgba(10,10,12,.95) !important;
   border-color: rgba(0,212,255,.25) !important;
@@ -1314,30 +1301,14 @@ section, .row, [class*="row-"], [class*="-row"] {
 .jv-dock {
   background: rgba(10,10,12,.95) !important;
   border-color: rgba(0,212,255,.20) !important;
-/* ── Global text visibility fix ── */
-body, body * {
-  color: var(--jv-text) !important;
-}
-input, textarea, select, button {
-  color: var(--jv-text) !important;
-  background-color: var(--jv-card) !important;
-  border-color: var(--jv-border) !important;
-}
-input::placeholder, textarea::placeholder {
-  color: rgba(245,245,247,0.4) !important;
-}
-a { color: #0071e3 !important; }
-a:hover { opacity: 0.8; }
-#jv-login input, #jv-login button { color: #f5f5f7 !important; }
-#jv-lock { color: #f5f5f7 !important; }
 }
 `;
     document.head.appendChild(s);
   }
 
-  // ────────────────────────────────────────────────────────────────────────
-  //  8. HUD — visual layer
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  //  8. HUD â visual layer
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const hud = (function () {
     let root, orb, panel, heard, reply, statusEl, dock;
     let state = 'idle';
@@ -1411,30 +1382,30 @@ a:hover { opacity: 0.8; }
         <div class="jv-panel" id="jv-panel">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <div class="jv-status" id="jv-status">JARVIS</div>
-            <button id="jv-panel-close" title="Close" style="background:none;border:none;color:#8b9bb4;cursor:pointer;font-size:16px;padding:0 0 0 8px;line-height:1;transition:color .15s" onmouseenter="this.style.color='#fff'" onmouseleave="this.style.color='#8b9bb4'">✕</button>
+            <button id="jv-panel-close" title="Close" style="background:none;border:none;color:#8b9bb4;cursor:pointer;font-size:16px;padding:0 0 0 8px;line-height:1;transition:color .15s" onmouseenter="this.style.color='#fff'" onmouseleave="this.style.color='#8b9bb4'">â</button>
           </div>
           <div class="jv-heard" id="jv-heard"></div>
           <div class="jv-reply" id="jv-reply">Hey Roei. I'm online. Say "Jarvis" or tap the orb to start.</div>
           <div class="jv-actions" id="jv-actions">
-            <button class="jv-chip" data-cmd="מה יש לי היום">📋 Today</button>
-            <button class="jv-chip" data-cmd="מה לעשות עכשיו">⚡ What now</button>
-            <button class="jv-chip" data-cmd="מה אני חייב השבוע">📅 This week</button>
-            <button class="jv-chip" data-cmd="חוב פרויקטים">⚠️ Debt</button>
-            <button class="jv-chip" data-cmd="סיכום הבוקר">🌅 Morning brief</button>
+            <button class="jv-chip" data-cmd="×× ××© ×× ××××">ð Today</button>
+            <button class="jv-chip" data-cmd="×× ××¢×©××ª ×¢××©××">â¡ What now</button>
+            <button class="jv-chip" data-cmd="×× ×× × ×××× ××©×××¢">ð This week</button>
+            <button class="jv-chip" data-cmd="××× ×¤×¨×××§×××">â ï¸ Debt</button>
+            <button class="jv-chip" data-cmd="×¡×××× ××××§×¨">ð Morning brief</button>
           </div>
         </div>
         <div class="jv-dock" id="jv-dock">
-          <button data-act="checkin">☀️ Daily Check-In</button>
-          <button data-act="whatnow">⚡ What to do now</button>
-          <button data-act="brief">📋 Morning Brief</button>
-          <button data-act="schedule">📅 Weekly Schedule</button>
-          <button data-act="debt">⚠️ Project Debt</button>
-          <button data-act="review">📊 Weekly Review</button>
-          <button data-act="notif">🔔 Notifications</button>
-          <button data-act="settings">⚙️ Settings</button>
-          <button data-act="log">📜 Execution Log</button>
+          <button data-act="checkin">âï¸ Daily Check-In</button>
+          <button data-act="whatnow">â¡ What to do now</button>
+          <button data-act="brief">ð Morning Brief</button>
+          <button data-act="schedule">ð Weekly Schedule</button>
+          <button data-act="debt">â ï¸ Project Debt</button>
+          <button data-act="review">ð Weekly Review</button>
+          <button data-act="notif">ð Notifications</button>
+          <button data-act="settings">âï¸ Settings</button>
+          <button data-act="log">ð Execution Log</button>
         </div>
-        <div class="jv-orb" id="jv-orb" title="לחיצה אחת — דבר • לחיצה ארוכה — תפריט"></div>
+        <div class="jv-orb" id="jv-orb" title="××××¦× ×××ª â ×××¨ â¢ ××××¦× ××¨××× â ×ª×¤×¨××"></div>
       `;
       document.body.appendChild(root);
 
@@ -1445,7 +1416,7 @@ a:hover { opacity: 0.8; }
       statusEl = root.querySelector('#jv-status');
       dock    = root.querySelector('#jv-dock');
 
-      // Click → toggle listening + show panel
+      // Click â toggle listening + show panel
       let pressTimer;
       orb.addEventListener('pointerdown', () => {
         pressTimer = setTimeout(() => { dock.classList.toggle('show'); pressTimer = null; }, 450);
@@ -1475,9 +1446,9 @@ a:hover { opacity: 0.8; }
           const a = b.dataset.act;
           if (a === 'checkin')  return openDailyCheckIn();
           if (a === 'whatnow')  return openWhatNowPanel();
-          if (a === 'brief')    return processSpoken('סיכום הבוקר');
+          if (a === 'brief')    return processSpoken('×¡×××× ××××§×¨');
           if (a === 'schedule') return openScheduleModal();
-          if (a === 'debt')     return processSpoken('חוב פרויקטים');
+          if (a === 'debt')     return processSpoken('××× ×¤×¨×××§×××');
           if (a === 'review')   return openWeeklyReview();
           if (a === 'log')      return openLogModal();
           if (a === 'settings') return openSettingsModal();
@@ -1498,14 +1469,14 @@ a:hover { opacity: 0.8; }
       if (!orb) return;
       orb.classList.remove('listening','thinking','speaking');
       if (s !== 'idle') orb.classList.add(s);
-      const labels = { idle:'JARVIS', listening:'מקשיב…', thinking:'חושב…', speaking:'מדבר…' };
+      const labels = { idle:'JARVIS', listening:'××§×©××â¦', thinking:'×××©×â¦', speaking:'××××¨â¦' };
       if (statusEl) statusEl.textContent = labels[s] || 'JARVIS';
       if (window._jvEdge) {
         if (s === 'listening' || s === 'thinking') window._jvEdge.classList.add('active');
         else window._jvEdge.classList.remove('active');
       }
     }
-    function setHeard(t) { if (heard) heard.textContent = t ? '🎙 ' + t : ''; if (panel) panel.classList.add('show'); }
+    function setHeard(t) { if (heard) heard.textContent = t ? 'ð ' + t : ''; if (panel) panel.classList.add('show'); }
     function setReply(t) { if (reply) reply.textContent = t; if (panel) panel.classList.add('show'); }
 
     function toast(text, kind='ok') {
@@ -1520,9 +1491,9 @@ a:hover { opacity: 0.8; }
     return { mount, setState, setHeard, setReply, toast, toggleListen };
   })();
 
-  // ────────────────────────────────────────────────────────────────────────
-  //  9. MODALS — Schedule update, Log, Settings
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  //  9. MODALS â Schedule update, Log, Settings
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function modalShell(title, bodyHtml) {
     const wrap = document.createElement('div');
     wrap.style.cssText = `position:fixed;inset:0;background:#000a;z-index:100001;
@@ -1534,7 +1505,7 @@ a:hover { opacity: 0.8; }
         box-shadow:0 20px 60px #000c, 0 0 30px ${ACCENT}33">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <h3 style="margin:0;color:${ACCENT};font-size:15px;letter-spacing:.5px">${title}</h3>
-          <button id="jv-close" style="background:transparent;color:#cfe8ff;border:none;font-size:20px;cursor:pointer">✕</button>
+          <button id="jv-close" style="background:transparent;color:#cfe8ff;border:none;font-size:20px;cursor:pointer">â</button>
         </div>
         <div id="jv-body">${bodyHtml}</div>
       </div>`;
@@ -1550,12 +1521,12 @@ a:hover { opacity: 0.8; }
     const wk = isoWeekKey(today);
     const sched = loadSchedule();
     const wkData = sched.weeks[wk] || {};
-    const dayName = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][today.getDay()];
+    const dayName = ['×¨××©××','×©× ×','×©×××©×','×¨×××¢×','××××©×','×©××©×','×©××ª'][today.getDay()];
     const html = `
-      <p style="opacity:.85;font-size:13px;margin:0 0 12px">היום, יום ${dayName}, ${today.toLocaleDateString('he-IL')}</p>
+      <p style="opacity:.85;font-size:13px;margin:0 0 12px">××××, ××× ${dayName}, ${today.toLocaleDateString('he-IL')}</p>
       <div id="jv-blocks" style="display:flex;flex-direction:column;gap:8px"></div>
-      <p style="opacity:.6;font-size:11px;margin-top:14px">לחץ על סטטוס כדי לעדכן.</p>`;
-    const m = modalShell('📅 לוז היום — עדכון מהיר', html);
+      <p style="opacity:.6;font-size:11px;margin-top:14px">×××¥ ×¢× ×¡××××¡ ××× ××¢×××.</p>`;
+    const m = modalShell('ð ××× ×××× â ×¢×××× ××××¨', html);
     const list = m.querySelector('#jv-blocks');
     blocks.forEach(b => {
       const key = b.id + '::' + dateKey(today);
@@ -1565,13 +1536,13 @@ a:hover { opacity: 0.8; }
       row.innerHTML = `
         <div>
           <div style="font-weight:600">${b.title}</div>
-          <div style="font-size:11px;opacity:.7">${b.start}–${b.end}</div>
+          <div style="font-size:11px;opacity:.7">${b.start}â${b.end}</div>
         </div>
         <div style="display:flex;gap:4px;flex-wrap:wrap">
           ${['planned','completed','partial','missed','replaced'].map(s =>
             `<button data-s="${s}" style="background:${st.status===s ? ACCENT+'44' : 'transparent'};
               color:#e6f3ff;border:1px solid ${ACCENT}55;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">
-              ${ {planned:'מתוכנן',completed:'בוצע',partial:'חלקי',missed:'הוחמץ',replaced:'הוחלף'}[s] }</button>`
+              ${ {planned:'××ª××× ×',completed:'×××¦×¢',partial:'×××§×',missed:'×××××¥',replaced:'×××××£'}[s] }</button>`
           ).join('')}
         </div>`;
       row.querySelectorAll('button').forEach(btn => {
@@ -1592,14 +1563,14 @@ a:hover { opacity: 0.8; }
        <td style="padding:4px 8px;font-size:11px">${e.kind}</td>
        <td style="padding:4px 8px;font-size:11px;opacity:.85">${escapeHtml(JSON.stringify(e.payload||{}).slice(0,80))}</td></tr>`
     ).join('');
-    modalShell('📜 יומן ביצוע', `
-      <p style="opacity:.7;font-size:12px;margin:0 0 10px">50 פעולות אחרונות</p>
+    modalShell('ð ×××× ×××¦××¢', `
+      <p style="opacity:.7;font-size:12px;margin:0 0 10px">50 ×¤×¢××××ª ×××¨×× ××ª</p>
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="opacity:.6">
-          <th style="text-align:right;padding:4px 8px">זמן</th>
-          <th style="text-align:right;padding:4px 8px">סוג</th>
-          <th style="text-align:right;padding:4px 8px">פרטים</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="3" style="padding:10px;opacity:.6">אין רשומות עדיין.</td></tr>'}</tbody>
+          <th style="text-align:right;padding:4px 8px">×××</th>
+          <th style="text-align:right;padding:4px 8px">×¡××</th>
+          <th style="text-align:right;padding:4px 8px">×¤×¨×××</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="3" style="padding:10px;opacity:.6">××× ×¨×©××××ª ×¢××××.</td></tr>'}</tbody>
       </table>`);
   }
 
@@ -1607,17 +1578,17 @@ a:hover { opacity: 0.8; }
     const s = settings();
     const html = `
       <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
-        <label><input type="checkbox" id="jv-voiceOn" ${s.voiceOn?'checked':''}/> קול פעיל</label>
-        <label><input type="checkbox" id="jv-wake" ${s.wakeWordOn?'checked':''}/> מילת הפעלה (ג׳רוויס)</label>
-        <label>מהירות דיבור: <input type="range" id="jv-rate" min="0.8" max="1.4" step="0.05" value="${s.rate}"/></label>
-        <label>תקציר בוקר ב: <input type="time" id="jv-am" value="${s.morningBriefAt}"/></label>
-        <label>תקציר ערב ב: <input type="time" id="jv-pm" value="${s.eveningBriefAt}"/></label>
+        <label><input type="checkbox" id="jv-voiceOn" ${s.voiceOn?'checked':''}/> ×§×× ×¤×¢××</label>
+        <label><input type="checkbox" id="jv-wake" ${s.wakeWordOn?'checked':''}/> ××××ª ××¤×¢×× (××³×¨××××¡)</label>
+        <label>××××¨××ª ×××××¨: <input type="range" id="jv-rate" min="0.8" max="1.4" step="0.05" value="${s.rate}"/></label>
+        <label>×ª×§×¦××¨ ×××§×¨ ×: <input type="time" id="jv-am" value="${s.morningBriefAt}"/></label>
+        <label>×ª×§×¦××¨ ×¢×¨× ×: <input type="time" id="jv-pm" value="${s.eveningBriefAt}"/></label>
         <button id="jv-save" style="background:${ACCENT};color:#001828;border:none;border-radius:8px;
-          padding:8px 14px;font-weight:600;cursor:pointer;margin-top:8px">שמור</button>
+          padding:8px 14px;font-weight:600;cursor:pointer;margin-top:8px">×©×××¨</button>
         <button id="jv-test" style="background:transparent;color:#cfe8ff;border:1px solid ${ACCENT}55;
-          border-radius:8px;padding:8px 14px;cursor:pointer">בדיקת קול</button>
+          border-radius:8px;padding:8px 14px;cursor:pointer">××××§×ª ×§××</button>
       </div>`;
-    const m = modalShell('⚙️ הגדרות JARVIS', html);
+    const m = modalShell('âï¸ ××××¨××ª JARVIS', html);
     m.querySelector('#jv-save').onclick = () => {
       updateSettings({
         voiceOn:       m.querySelector('#jv-voiceOn').checked,
@@ -1626,50 +1597,65 @@ a:hover { opacity: 0.8; }
         morningBriefAt:m.querySelector('#jv-am').value,
         eveningBriefAt:m.querySelector('#jv-pm').value,
       });
-      hud.toast('הגדרות נשמרו', 'ok');
+      hud.toast('××××¨××ª × ×©××¨×', 'ok');
       m.remove();
     };
-    m.querySelector('#jv-test').onclick = () => speak('בדיקת מערכת. שומע אותי, רואי?');
+    m.querySelector('#jv-test').onclick = () => speak('××××§×ª ××¢×¨××ª. ×©×××¢ ×××ª×, ×¨×××?');
   }
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c =>
       ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   // 10. PROJECT DEBT WIDGET (injects into dashboard if there's a spot)
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function renderDebtWidget() {
-    const page = (window.currentPage || location.hash.replace("#","") || (document.querySelector(".nav-link.active, [data-page][class*=active]") || {}).dataset && document.querySelector(".nav-link.active, [data-page][class*=active]").dataset.page || "dashboard").toLowerCase();
-    if (page && page !== 'dashboard' && page !== 'home' && page !== '' && page !== 'ראשי' && page !== 'בית') return;
     const existing = document.getElementById('jv-debt-widget');
     if (existing) existing.remove();
     const debt = projectDebt();
     const entries = Object.entries(debt);
     if (!entries.length) return;
-    const w = document.createElement('div');
-    w.id = 'jv-debt-widget';
-    w.style.cssText = 'position:fixed;bottom:90px;right:18px;background:rgba(0,0,0,0.85);border:1px solid rgba(255,180,0,0.4);border-radius:14px;padding:14px 18px;max-width:260px;z-index:9990;font-family:Inter,sans-serif;backdrop-filter:blur(12px);';
-    var rows = entries.slice(0,5).map(function(entry) {
-      var k = entry[0], v = entry[1];
-      var pct = v.planned > 0 ? Math.round((v.actual/v.planned)*100) : 100;
-      var color = pct >= 90 ? "#34c759" : pct >= 50 ? "#ff9500" : "#ff3b30";
-      return "<div style='display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;'><span style='color:#f5f5f7;'>" + k + "</span><span style='color:" + color + ";'>" + v.actual + "/" + v.planned + "m</span></div>";
-    }).join("");
-    w.innerHTML = '<p style="color:#ff9500;font-size:11px;font-weight:600;margin:0 0 8px;text-transform:uppercase;">&#9888; Project Debt</p>' + rows;
-    var closeBtn = document.createElement('button');
-    closeBtn.textContent = '\u00d7';
-    closeBtn.style.cssText = 'position:absolute;top:6px;right:8px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:16px;cursor:pointer;';
-    closeBtn.addEventListener('click', function() { w.remove(); });
-    w.style.position = "relative";
-    w.appendChild(closeBtn);
-    var target = document.querySelector('.dashboard, #dashboard, main') || document.body;
-    target.appendChild(w);
+
+    const widget = document.createElement('div');
+    widget.id = 'jv-debt-widget';
+    widget.style.cssText = `border:1px solid ${ACCENT}55;border-radius:12px;padding:12px 14px;
+      margin:10px 0;background:rgba(8,14,28,.6);color:#e6f3ff;direction:rtl;
+      font-family:inherit;font-size:13px`;
+    widget.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong style="color:${ACCENT}">â ï¸ ××× ×¤×¨×××§××× â ××©×××¢</strong>
+        <button id="jv-debt-close" style="background:transparent;color:#cfe8ff;border:none;cursor:pointer">â</button>
+      </div>
+      ${entries.map(([p,o]) => {
+        const ratio = o.planned ? Math.min(100, Math.round((o.actual/o.planned)*100)) : 0;
+        return `<div style="margin:6px 0">
+          <div style="display:flex;justify-content:space-between">
+            <span>${p}</span>
+            <span style="opacity:.7">${Math.round(o.actual/60)}/${Math.round(o.planned/60)} ×©×³ â ${ratio}%</span>
+          </div>
+          <div style="background:#0f1e36;height:6px;border-radius:3px;margin-top:2px;overflow:hidden">
+            <div style="background:${ratio<50?ACCENT_BAD:ratio<80?ACCENT_WARM:ACCENT_OK};
+              height:100%;width:${ratio}%;transition:.4s"></div>
+          </div>
+        </div>`;
+      }).join('')}`;
+    widget.querySelector('#jv-debt-close').onclick = () => widget.remove();
+
+    // Try to find dashboard container
+    const target = document.querySelector('[data-page="dashboard"], #dashboard, .dashboard, main') || document.body;
+    if (target === document.body) {
+      widget.style.position = 'fixed';
+      widget.style.left = '24px';
+      widget.style.bottom = '24px';
+      widget.style.maxWidth = '300px';
+    }
+    target.prepend(widget);
   }
 
-  // ────────────────────────────────────────────────────────────────────────
-  // 11. BRIEFINGS — cron-style timers
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // 11. BRIEFINGS â cron-style timers
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function setupBriefings() {
     const tick = () => {
       const s = settings();
@@ -1689,124 +1675,176 @@ a:hover { opacity: 0.8; }
     setInterval(tick, 30*1000);
   }
 
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   // 12-A. LOCK / DAILY GREETING SCREEN
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function openLockScreen() {
+    const today  = new Date();
+    const dKey   = dateKey(today);
+    // Show once per session (every fresh page load), not once per day
     if (sessionStorage.getItem('jv_locked_this_session')) return;
     sessionStorage.setItem('jv_locked_this_session', '1');
-    const overlay = document.createElement('div');
-    overlay.id = 'jv-lock';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.96);z-index:99998;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Inter,-apple-system,sans-serif;';
-    const name = getCurrentUserDisplay();
-    const now = new Date(), hour = now.getHours();
-    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-    overlay.innerHTML = '<div style="text-align:center;">'
-      + '<div style="font-size:52px;margin-bottom:16px;">&#128274;</div>'
-      + '<h2 style="color:#f5f5f7;font-size:24px;font-weight:600;margin:0 0 8px;">' + greeting + ', ' + name + '</h2>'
-      + '<p style="color:rgba(255,255,255,0.45);font-size:15px;margin:0 0 36px;">' + now.toLocaleDateString('he-IL',{weekday:'long',month:'long',day:'numeric'}) + '</p>'
-      + '<button id="jv-unlock-btn" style="padding:14px 40px;border-radius:12px;border:none;background:#0071e3;color:#fff;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:14px;">Unlock</button><br>'
-      + '<button id="jv-switch-btn" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:13px;cursor:pointer;text-decoration:underline;">Switch Account</button>'
-      + '</div>';
-    overlay.querySelector('#jv-unlock-btn').addEventListener('click', function() { overlay.remove(); });
-    overlay.querySelector('#jv-switch-btn').addEventListener('click', function() { overlay.remove(); logoutUser(); });
-    document.body.appendChild(overlay);
-    overlay.querySelector('#jv-unlock-btn').focus();
+
+    const dayName = ['×¨××©××','×©× ×','×©×××©×','×¨×××¢×','××××©×','×©××©×','×©××ª'][today.getDay()];
+    const greet   = today.getHours() < 12 ? '×××§×¨ ×××' : today.getHours() < 17 ? '×××"×¦ ×××' : '×¢×¨× ×××';
+    const blocks  = blocksForDay(today).slice(0, 6);
+    const debt    = projectDebt();
+    const behind  = Object.entries(debt).filter(([,o]) => o.debt > 0);
+
+    const wrap = document.createElement('div');
+    wrap.id = 'jv-lock-screen';
+    wrap.style.cssText = `position:fixed;inset:0;background:rgba(4,9,20,.97);z-index:999999;
+      display:flex;align-items:center;justify-content:center;direction:rtl;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+      opacity:0;transition:opacity .4s`;
+
+    wrap.innerHTML = `
+      <div style="max-width:460px;width:92vw;text-align:center;color:#e6f3ff;padding:28px 20px">
+        <div style="font-size:52px;font-weight:100;color:${ACCENT};letter-spacing:3px;margin-bottom:4px">JARVIS</div>
+        <div style="font-size:15px;opacity:.65;margin-bottom:24px">${greet}, ×¨××× &nbsp;â¢&nbsp; ××× ${dayName}, ${today.toLocaleDateString('he-IL')}</div>
+
+        <div style="background:#0a1828;border:1px solid ${ACCENT}44;border-radius:12px;padding:14px 16px;margin-bottom:14px;text-align:right">
+          <div style="font-size:11px;color:${ACCENT};margin-bottom:8px;letter-spacing:.5px;text-transform:uppercase">ð ×××× ×©×× ××××</div>
+          ${blocks.length ? blocks.map(b => `
+            <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;
+              border-bottom:1px solid ${ACCENT}11">
+              <span>${b.title}</span>
+              <span style="opacity:.55">${b.start}â${b.end}</span>
+            </div>`).join('') : '<div style="opacity:.5;font-size:13px;padding:4px 0">××× ××××§×× ×××××¨×× ×××××.</div>'}
+        </div>
+
+        ${behind.length ? `
+        <div style="background:rgba(255,77,109,.06);border:1px solid ${ACCENT_BAD}44;border-radius:10px;
+          padding:12px 14px;margin-bottom:14px;text-align:right">
+          <div style="color:${ACCENT_BAD};font-size:11px;margin-bottom:6px">â ï¸ ××× ×¤×¨×××§×××</div>
+          ${behind.map(([p,o]) => `<div style="font-size:12px;opacity:.85">${p}: ${Math.round(o.debt/60*10)/10} ×©×¢××ª</div>`).join('')}
+        </div>` : `
+        <div style="background:rgba(66,230,149,.05);border:1px solid ${ACCENT_OK}44;border-radius:10px;
+          padding:10px 14px;margin-bottom:14px;font-size:13px;color:${ACCENT_OK}">
+          â ××× ××× ×¤×¨×××§××× â ×× ×××××!
+        </div>`}
+
+        <button id="jv-lock-enter" style="background:${ACCENT};color:#001828;border:none;border-radius:24px;
+          padding:13px 44px;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.5px;
+          box-shadow:0 0 32px ${ACCENT}66;transition:transform .15s">
+          Let's go ð
+        </button>
+        <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          <button id="jv-lock-checkin" style="background:transparent;color:${ACCENT};border:1px solid ${ACCENT}55;
+            border-radius:18px;padding:8px 18px;font-size:12px;cursor:pointer">âï¸ Daily Check-In</button>
+          <button id="jv-lock-skip" style="background:transparent;color:#8b9bb4;border:1px solid #8b9bb444;
+            border-radius:18px;padding:8px 18px;font-size:12px;cursor:pointer">Skip â</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(wrap);
+    requestAnimationFrame(() => { wrap.style.opacity = '1'; });
+
+    const dismiss = () => {
+      wrap.style.opacity = '0';
+      setTimeout(() => wrap.remove(), 400);
+    };
+
+    wrap.querySelector('#jv-lock-enter').onmouseenter = function() { this.style.transform = 'scale(1.04)'; };
+    wrap.querySelector('#jv-lock-enter').onmouseleave = function() { this.style.transform = 'scale(1)'; };
+    wrap.querySelector('#jv-lock-enter').onclick = () => { dismiss(); speak(`${greet}, Roei. Let's get to work.`); };
+    wrap.querySelector('#jv-lock-checkin').onclick = () => { dismiss(); setTimeout(openDailyCheckIn, 350); };
+    wrap.querySelector('#jv-lock-skip').onclick    = dismiss;
   }
 
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   // 12-B. DAILY CHECK-IN MODAL
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function openDailyCheckIn() {
     const today     = new Date();
     const isEvening = today.getHours() >= 17;
     const suffix    = isEvening ? '_pm' : '_am';
     const ciKey     = 'jv_checkin_' + dateKey(today) + suffix;
     const existing  = readLocal(ciKey, {});
-    const title     = isEvening ? '🌙 צ׳ק-אין ערב' : '☀️ צ׳ק-אין בוקר';
+    const title     = isEvening ? 'ð ×¦×³×§-××× ×¢×¨×' : 'âï¸ ×¦×³×§-××× ×××§×¨';
 
     let html;
     if (isEvening) {
-      // ── EVENING ── what happened
+      // ââ EVENING ââ what happened
       html = `
         <div style="display:flex;flex-direction:column;gap:12px;font-size:13px">
-          <div style="color:${ACCENT};font-size:11px;opacity:.75">${today.toLocaleDateString('he-IL')} — סיכום יום</div>
+          <div style="color:${ACCENT};font-size:11px;opacity:.75">${today.toLocaleDateString('he-IL')} â ×¡×××× ×××</div>
           <label style="display:flex;flex-direction:column;gap:4px">
-            <span style="opacity:.8">✅ מה הושלם היום?</span>
+            <span style="opacity:.8">â ×× ×××©×× ××××?</span>
             <textarea id="ci-done" rows="2" style="background:#0f1e36;color:#e6f3ff;border:1px solid ${ACCENT}33;
               border-radius:8px;padding:8px;font-size:13px;resize:none;direction:rtl"
-              placeholder="הישגים, משימות שנסגרו...">${existing.done || ''}</textarea>
+              placeholder="×××©×××, ××©××××ª ×©× ×¡××¨×...">${existing.done || ''}</textarea>
           </label>
           <label style="display:flex;flex-direction:column;gap:4px">
-            <span style="opacity:.8">❌ מה הוחמץ / לא הסתיים?</span>
+            <span style="opacity:.8">â ×× ×××××¥ / ×× ××¡×ª×××?</span>
             <textarea id="ci-missed" rows="2" style="background:#0f1e36;color:#e6f3ff;border:1px solid ${ACCENT}33;
               border-radius:8px;padding:8px;font-size:13px;resize:none;direction:rtl"
-              placeholder="בלוקים שלא בוצעו...">${existing.missed || ''}</textarea>
+              placeholder="××××§×× ×©×× ×××¦×¢×...">${existing.missed || ''}</textarea>
           </label>
           <label style="display:flex;flex-direction:column;gap:4px">
-            <span style="opacity:.8">📦 מה עובר למחר?</span>
+            <span style="opacity:.8">ð¦ ×× ×¢×××¨ ××××¨?</span>
             <textarea id="ci-move" rows="2" style="background:#0f1e36;color:#e6f3ff;border:1px solid ${ACCENT}33;
               border-radius:8px;padding:8px;font-size:13px;resize:none;direction:rtl"
-              placeholder="משימות שנדחות למחר...">${existing.move || ''}</textarea>
+              placeholder="××©××××ª ×©× ××××ª ××××¨...">${existing.move || ''}</textarea>
           </label>
           <label style="display:flex;flex-direction:column;gap:4px">
-            <span style="opacity:.8">⚡ רמת אנרגיה צפויה מחר</span>
+            <span style="opacity:.8">â¡ ×¨××ª ×× ×¨××× ×¦×¤××× ×××¨</span>
             <div style="display:flex;gap:8px">
               <button data-e="low"    class="ci-e-btn" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-size:12px;
                 background:${existing.energyTmr==='low'?ACCENT+'33':'#0f1e36'};
-                color:${existing.energyTmr==='low'?ACCENT:'#cfe8ff'};border:1px solid ${ACCENT}33">😴 נמוכה</button>
+                color:${existing.energyTmr==='low'?ACCENT:'#cfe8ff'};border:1px solid ${ACCENT}33">ð´ × ××××</button>
               <button data-e="medium" class="ci-e-btn" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-size:12px;
                 background:${!existing.energyTmr||existing.energyTmr==='medium'?ACCENT+'33':'#0f1e36'};
-                color:${!existing.energyTmr||existing.energyTmr==='medium'?ACCENT:'#cfe8ff'};border:1px solid ${ACCENT}33">😐 בינונית</button>
+                color:${!existing.energyTmr||existing.energyTmr==='medium'?ACCENT:'#cfe8ff'};border:1px solid ${ACCENT}33">ð ××× ×× ××ª</button>
               <button data-e="high"   class="ci-e-btn" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-size:12px;
                 background:${existing.energyTmr==='high'?ACCENT+'33':'#0f1e36'};
-                color:${existing.energyTmr==='high'?ACCENT:'#cfe8ff'};border:1px solid ${ACCENT}33">⚡ גבוהה</button>
+                color:${existing.energyTmr==='high'?ACCENT:'#cfe8ff'};border:1px solid ${ACCENT}33">â¡ ×××××</button>
             </div>
           </label>
           <input type="hidden" id="ci-energy-val" value="${existing.energyTmr || 'medium'}"/>
           <button id="ci-save" style="background:${ACCENT};color:#001828;border:none;border-radius:8px;
-            padding:10px;font-weight:700;cursor:pointer;margin-top:4px">שמור סיכום ✓</button>
+            padding:10px;font-weight:700;cursor:pointer;margin-top:4px">×©×××¨ ×¡×××× â</button>
         </div>`;
     } else {
-      // ── MORNING ── what's planned
+      // ââ MORNING ââ what's planned
       const topBlocks = blocksForDay(today).filter(b => b.type === 'deep_work' || (b.proj && b.type !== 'food' && b.type !== 'reminder')).slice(0, 4);
       html = `
         <div style="display:flex;flex-direction:column;gap:12px;font-size:13px">
-          <div style="color:${ACCENT};font-size:11px;opacity:.75">${today.toLocaleDateString('he-IL')} — תכנון יום</div>
+          <div style="color:${ACCENT};font-size:11px;opacity:.75">${today.toLocaleDateString('he-IL')} â ×ª×× ×× ×××</div>
           <label style="display:flex;flex-direction:column;gap:4px">
-            <span style="opacity:.8">🎯 המשימה המרכזית שלך היום</span>
+            <span style="opacity:.8">ð¯ ×××©××× ×××¨××××ª ×©×× ××××</span>
             <input id="ci-main" type="text" style="background:#0f1e36;color:#e6f3ff;border:1px solid ${ACCENT}33;
               border-radius:8px;padding:8px;font-size:13px;direction:rtl"
-              placeholder="הדבר האחד הכי חשוב היום..." value="${existing.main || ''}"/>
+              placeholder="××××¨ ×××× ××× ××©×× ××××..." value="${existing.main || ''}"/>
           </label>
           <label style="display:flex;flex-direction:column;gap:4px">
-            <span style="opacity:.8">📋 משימה שניונית (אם יהיה זמן)</span>
+            <span style="opacity:.8">ð ××©××× ×©× ××× ××ª (×× ×××× ×××)</span>
             <input id="ci-sec" type="text" style="background:#0f1e36;color:#e6f3ff;border:1px solid ${ACCENT}33;
               border-radius:8px;padding:8px;font-size:13px;direction:rtl"
-              placeholder="משימה חשובה נוספת..." value="${existing.secondary || ''}"/>
+              placeholder="××©××× ××©××× × ××¡×¤×ª..." value="${existing.secondary || ''}"/>
           </label>
           <label style="display:flex;flex-direction:column;gap:4px">
-            <span style="opacity:.8">⚡ רמת אנרגיה היום</span>
+            <span style="opacity:.8">â¡ ×¨××ª ×× ×¨××× ××××</span>
             <div style="display:flex;gap:8px">
               <button data-e="low"    class="ci-e-btn" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-size:12px;
                 background:${existing.energy==='low'?ACCENT+'33':'#0f1e36'};
-                color:${existing.energy==='low'?ACCENT:'#cfe8ff'};border:1px solid ${ACCENT}33">😴 נמוכה</button>
+                color:${existing.energy==='low'?ACCENT:'#cfe8ff'};border:1px solid ${ACCENT}33">ð´ × ××××</button>
               <button data-e="medium" class="ci-e-btn" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-size:12px;
                 background:${!existing.energy||existing.energy==='medium'?ACCENT+'33':'#0f1e36'};
-                color:${!existing.energy||existing.energy==='medium'?ACCENT:'#cfe8ff'};border:1px solid ${ACCENT}33">😐 בינונית</button>
+                color:${!existing.energy||existing.energy==='medium'?ACCENT:'#cfe8ff'};border:1px solid ${ACCENT}33">ð ××× ×× ××ª</button>
               <button data-e="high"   class="ci-e-btn" style="flex:1;padding:8px;border-radius:8px;cursor:pointer;font-size:12px;
                 background:${existing.energy==='high'?ACCENT+'33':'#0f1e36'};
-                color:${existing.energy==='high'?ACCENT:'#cfe8ff'};border:1px solid ${ACCENT}33">⚡ גבוהה</button>
+                color:${existing.energy==='high'?ACCENT:'#cfe8ff'};border:1px solid ${ACCENT}33">â¡ ×××××</button>
             </div>
           </label>
           <input type="hidden" id="ci-energy-val" value="${existing.energy || 'medium'}"/>
           ${topBlocks.length ? `
           <div style="background:#0f1e36;border-radius:8px;padding:10px">
-            <div style="font-size:11px;opacity:.65;margin-bottom:6px">📅 הבלוקים שלך היום:</div>
-            ${topBlocks.map(b=>`<div style="font-size:12px;opacity:.75;padding:3px 0">${b.start} — ${b.title}</div>`).join('')}
+            <div style="font-size:11px;opacity:.65;margin-bottom:6px">ð ×××××§×× ×©×× ××××:</div>
+            ${topBlocks.map(b=>`<div style="font-size:12px;opacity:.75;padding:3px 0">${b.start} â ${b.title}</div>`).join('')}
           </div>` : ''}
           <button id="ci-save" style="background:${ACCENT};color:#001828;border:none;border-radius:8px;
-            padding:10px;font-weight:700;cursor:pointer;margin-top:4px">שמור תכנון ✓</button>
+            padding:10px;font-weight:700;cursor:pointer;margin-top:4px">×©×××¨ ×ª×× ×× â</button>
         </div>`;
     }
 
@@ -1834,7 +1872,7 @@ a:hover { opacity: 0.8; }
           energyTmr: energy,
           ts:        Date.now(),
         };
-        replyText = `סיכום היום נשמר. ${data.move ? 'מחר: ' + data.move.split('\n')[0] + '.' : 'לילה טוב, רואי.'}`;
+        replyText = `×¡×××× ×××× × ×©××¨. ${data.move ? '×××¨: ' + data.move.split('\n')[0] + '.' : '×××× ×××, ×¨×××.'}`;
       } else {
         data = {
           main:      m.querySelector('#ci-main').value,
@@ -1842,29 +1880,29 @@ a:hover { opacity: 0.8; }
           energy,
           ts:        Date.now(),
         };
-        const eTip = energy === 'low' ? 'תתמקד בדברים החיוניים בלבד.'
-                   : energy === 'high' ? 'תנצל את הטייסת! בוא נתקוף את היום.'
-                   : 'לוז רגיל — תתקדם בשלב שלב.';
+        const eTip = energy === 'low' ? '×ª×ª××§× ××××¨×× ××××× ××× ××××.'
+                   : energy === 'high' ? '×ª× ×¦× ××ª ×××××¡×ª! ××× × ×ª×§××£ ××ª ××××.'
+                   : '××× ×¨××× â ×ª×ª×§×× ××©×× ×©××.';
         replyText = data.main
-          ? `קיבלתי. המשימה המרכזית: "${data.main}". ${eTip}`
+          ? `×§××××ª×. ×××©××× ×××¨××××ª: "${data.main}". ${eTip}`
           : eTip;
         // Add as a task to the app if possible
         if (data.main && typeof window.addTask === 'function') {
-          try { window.addTask({ text: data.main, priority:'high', tags:['יומי'] }); } catch(e) {}
+          try { window.addTask({ text: data.main, priority:'high', tags:['××××'] }); } catch(e) {}
         }
       }
       writeLocal(ciKey, data);
       logEvent(isEvening ? 'checkin.pm' : 'checkin.am', data);
       hud.setReply(replyText);
       speak(replyText);
-      hud.toast(isEvening ? 'סיכום ערב נשמר ✓' : 'תכנון בוקר נשמר ✓', 'ok');
+      hud.toast(isEvening ? '×¡×××× ×¢×¨× × ×©××¨ â' : '×ª×× ×× ×××§×¨ × ×©××¨ â', 'ok');
       m.remove();
     };
   }
 
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   // 12-C. WEEKLY REVIEW MODAL
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function openWeeklyReview() {
     const today    = new Date();
     const wk       = isoWeekKey(today);
@@ -1886,29 +1924,29 @@ a:hover { opacity: 0.8; }
     const html = `
       <div style="display:flex;flex-direction:column;gap:14px;font-size:13px">
         <div style="background:#0f1e36;border-radius:10px;padding:14px">
-          <div style="color:${ACCENT};font-size:11px;margin-bottom:10px;letter-spacing:.5px">📊 שבוע ${wk} — סיכום</div>
+          <div style="color:${ACCENT};font-size:11px;margin-bottom:10px;letter-spacing:.5px">ð ×©×××¢ ${wk} â ×¡××××</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center">
             <div style="background:#0a1828;border-radius:8px;padding:8px">
               <div style="font-size:22px;color:${ACCENT_OK}">${tally.completed}</div>
-              <div style="font-size:10px;opacity:.6">בוצע</div>
+              <div style="font-size:10px;opacity:.6">×××¦×¢</div>
             </div>
             <div style="background:#0a1828;border-radius:8px;padding:8px">
               <div style="font-size:22px;color:${ACCENT_BAD}">${tally.missed}</div>
-              <div style="font-size:10px;opacity:.6">הוחמץ</div>
+              <div style="font-size:10px;opacity:.6">×××××¥</div>
             </div>
             <div style="background:#0a1828;border-radius:8px;padding:8px">
               <div style="font-size:22px;color:${ACCENT_WARM}">${tally.partial}</div>
-              <div style="font-size:10px;opacity:.6">חלקי</div>
+              <div style="font-size:10px;opacity:.6">×××§×</div>
             </div>
             <div style="background:#0a1828;border-radius:8px;padding:8px">
               <div style="font-size:22px;color:#8b9bb4">${tally.replaced}</div>
-              <div style="font-size:10px;opacity:.6">הוחלף</div>
+              <div style="font-size:10px;opacity:.6">×××××£</div>
             </div>
           </div>
           ${total ? `
           <div style="margin-top:10px">
             <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.7;margin-bottom:4px">
-              <span>ביצוע כולל</span><span>${pct}%</span>
+              <span>×××¦××¢ ××××</span><span>${pct}%</span>
             </div>
             <div style="background:#0a1828;height:6px;border-radius:3px;overflow:hidden">
               <div style="background:${pct<50?ACCENT_BAD:pct<80?ACCENT_WARM:ACCENT_OK};height:100%;width:${pct}%;transition:.4s"></div>
@@ -1918,53 +1956,53 @@ a:hover { opacity: 0.8; }
 
         ${behind.length ? `
         <div style="background:rgba(255,77,109,.05);border:1px solid ${ACCENT_BAD}33;border-radius:10px;padding:12px">
-          <div style="color:${ACCENT_BAD};font-size:11px;margin-bottom:8px">⚠️ פרויקטים מאחורי</div>
+          <div style="color:${ACCENT_BAD};font-size:11px;margin-bottom:8px">â ï¸ ×¤×¨×××§××× ×××××¨×</div>
           ${behind.map(([p,o])=>`
             <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px">
               <span>${p}</span>
-              <span style="color:${ACCENT_BAD}">${Math.round(o.actual/60*10)/10}/${Math.round(o.planned/60*10)/10} ש׳</span>
+              <span style="color:${ACCENT_BAD}">${Math.round(o.actual/60*10)/10}/${Math.round(o.planned/60*10)/10} ×©×³</span>
             </div>`).join('')}
         </div>` : ''}
 
         ${ontrack.length ? `
         <div style="background:rgba(66,230,149,.04);border:1px solid ${ACCENT_OK}33;border-radius:10px;padding:10px">
-          <div style="color:${ACCENT_OK};font-size:11px;margin-bottom:6px">✅ פרויקטים בקצב טוב</div>
-          <div style="font-size:12px;opacity:.8">${ontrack.map(([p])=>p).join(' · ')}</div>
+          <div style="color:${ACCENT_OK};font-size:11px;margin-bottom:6px">â ×¤×¨×××§××× ××§×¦× ×××</div>
+          <div style="font-size:12px;opacity:.8">${ontrack.map(([p])=>p).join(' Â· ')}</div>
         </div>` : ''}
 
         <label style="display:flex;flex-direction:column;gap:4px">
-          <span style="opacity:.8">🏆 הגדול של השבוע (הישג אחד)</span>
+          <span style="opacity:.8">ð ××××× ×©× ××©×××¢ (×××©× ×××)</span>
           <input id="wr-win" type="text" style="background:#0f1e36;color:#e6f3ff;border:1px solid ${ACCENT}33;
             border-radius:8px;padding:8px;font-size:13px;direction:rtl"
-            placeholder="הדבר הכי טוב שהשגת השבוע..." value="${existing.win || ''}"/>
+            placeholder="××××¨ ××× ××× ×©××©××ª ××©×××¢..." value="${existing.win || ''}"/>
         </label>
 
         <label style="display:flex;flex-direction:column;gap:4px">
-          <span style="opacity:.8">🎯 עדיפות ראשית שבוע הבא</span>
+          <span style="opacity:.8">ð¯ ×¢×××¤××ª ×¨××©××ª ×©×××¢ ×××</span>
           <input id="wr-next" type="text" style="background:#0f1e36;color:#e6f3ff;border:1px solid ${ACCENT}33;
             border-radius:8px;padding:8px;font-size:13px;direction:rtl"
-            placeholder="מה הדבר הכי חשוב לשבוע הבא?" value="${existing.nextPriority || ''}"/>
+            placeholder="×× ××××¨ ××× ××©×× ××©×××¢ ×××?" value="${existing.nextPriority || ''}"/>
         </label>
 
         <label style="display:flex;flex-direction:column;gap:4px">
-          <span style="opacity:.8">📦 מה להעביר לשבוע הבא?</span>
+          <span style="opacity:.8">ð¦ ×× ×××¢×××¨ ××©×××¢ ×××?</span>
           <textarea id="wr-move" rows="2" style="background:#0f1e36;color:#e6f3ff;border:1px solid ${ACCENT}33;
             border-radius:8px;padding:8px;font-size:13px;resize:none;direction:rtl"
-            placeholder="משימות / בלוקים שלא הספקת...">${existing.move || ''}</textarea>
+            placeholder="××©××××ª / ××××§×× ×©×× ××¡×¤×§×ª...">${existing.move || ''}</textarea>
         </label>
 
         <label style="display:flex;flex-direction:column;gap:4px">
-          <span style="opacity:.8">✂️ מה לשנות / לצמצם בלוז?</span>
+          <span style="opacity:.8">âï¸ ×× ××©× ××ª / ××¦××¦× ××××?</span>
           <textarea id="wr-reduce" rows="2" style="background:#0f1e36;color:#e6f3ff;border:1px solid ${ACCENT}33;
             border-radius:8px;padding:8px;font-size:13px;resize:none;direction:rtl"
-            placeholder="מה לא עבד בלוז השבוע...">${existing.reduce || ''}</textarea>
+            placeholder="×× ×× ×¢×× ×××× ××©×××¢...">${existing.reduce || ''}</textarea>
         </label>
 
         <button id="wr-save" style="background:${ACCENT};color:#001828;border:none;border-radius:8px;
-          padding:10px;font-weight:700;cursor:pointer">שמור סיכום שבועי ✓</button>
+          padding:10px;font-weight:700;cursor:pointer">×©×××¨ ×¡×××× ×©×××¢× â</button>
       </div>`;
 
-    const m = modalShell('📊 סיכום שבועי — Weekly Review', html);
+    const m = modalShell('ð ×¡×××× ×©×××¢× â Weekly Review', html);
     m.querySelector('#wr-save').onclick = () => {
       const data = {
         win:          m.querySelector('#wr-win').value,
@@ -1979,42 +2017,42 @@ a:hover { opacity: 0.8; }
       writeLocal(wrKey, data);
       logEvent('weekly.review', data);
       const reply = data.nextPriority
-        ? `סיכום שבועי נשמר. עדיפות שבוע הבא: "${data.nextPriority}". ${data.win ? 'כל הכבוד על ' + data.win + '!' : 'שבוע טוב!'}`
-        : 'סיכום שבועי נשמר. שבוע טוב, רואי!';
-      speak(reply); hud.toast('סיכום שבועי נשמר ✓', 'ok'); m.remove();
+        ? `×¡×××× ×©×××¢× × ×©××¨. ×¢×××¤××ª ×©×××¢ ×××: "${data.nextPriority}". ${data.win ? '×× ××××× ×¢× ' + data.win + '!' : '×©×××¢ ×××!'}`
+        : '×¡×××× ×©×××¢× × ×©××¨. ×©×××¢ ×××, ×¨×××!';
+      speak(reply); hud.toast('×¡×××× ×©×××¢× × ×©××¨ â', 'ok'); m.remove();
     };
   }
 
-  // ────────────────────────────────────────────────────────────────────────
-  // 12-D. "מה לעשות עכשיו" — ENERGY PANEL
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // 12-D. "×× ××¢×©××ª ×¢××©××" â ENERGY PANEL
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function openWhatNowPanel() {
     const html = `
       <div style="display:flex;flex-direction:column;gap:14px;font-size:13px">
-        <p style="opacity:.8;margin:0;font-size:13px">מה רמת האנרגיה שלך ברגע זה?</p>
+        <p style="opacity:.8;margin:0;font-size:13px">×× ×¨××ª ××× ×¨××× ×©×× ××¨××¢ ××?</p>
         <div style="display:flex;gap:8px">
           <button data-e="low" class="wn-btn" style="flex:1;background:#0f1e36;color:#cfe8ff;
             border:1px solid ${ACCENT}33;border-radius:10px;padding:12px 6px;cursor:pointer;font-size:13px">
-            😴<br/><span style="font-size:11px;opacity:.7">נמוכה</span>
+            ð´<br/><span style="font-size:11px;opacity:.7">× ××××</span>
           </button>
           <button data-e="medium" class="wn-btn" style="flex:1;background:#0f1e36;color:#cfe8ff;
             border:1px solid ${ACCENT}33;border-radius:10px;padding:12px 6px;cursor:pointer;font-size:13px">
-            😐<br/><span style="font-size:11px;opacity:.7">בינונית</span>
+            ð<br/><span style="font-size:11px;opacity:.7">××× ×× ××ª</span>
           </button>
           <button data-e="high" class="wn-btn" style="flex:1;background:${ACCENT}22;color:${ACCENT};
             border:1px solid ${ACCENT};border-radius:10px;padding:12px 6px;cursor:pointer;font-size:13px">
-            ⚡<br/><span style="font-size:11px;opacity:.9">גבוהה</span>
+            â¡<br/><span style="font-size:11px;opacity:.9">×××××</span>
           </button>
         </div>
         <div id="wn-result" style="min-height:56px;padding:12px;background:#0f1e36;border-radius:8px;
           color:#8b9bb4;font-size:13px;line-height:1.5;text-align:right">
-          בחר רמת אנרגיה...
+          ×××¨ ×¨××ª ×× ×¨×××...
         </div>
         <div id="wn-debt" style="display:none;padding:10px;background:rgba(255,77,109,.06);
           border:1px solid ${ACCENT_BAD}33;border-radius:8px;font-size:12px;text-align:right"></div>
       </div>`;
 
-    const m = modalShell('⚡ מה לעשות עכשיו?', html);
+    const m = modalShell('â¡ ×× ××¢×©××ª ×¢××©××?', html);
     m.querySelectorAll('.wn-btn').forEach(btn => {
       btn.onclick = () => {
         const energy = btn.dataset.e;
@@ -2036,8 +2074,8 @@ a:hover { opacity: 0.8; }
         const debtEl = m.querySelector('#wn-debt');
         if (behind.length) {
           debtEl.style.display = 'block';
-          debtEl.innerHTML = `<strong style="color:${ACCENT_WARM}">⚠️ חוב פרויקטים:</strong> ` +
-            behind.map(([p,o]) => `${p}: ${Math.round(o.debt/60*10)/10}ש׳`).join(' · ');
+          debtEl.innerHTML = `<strong style="color:${ACCENT_WARM}">â ï¸ ××× ×¤×¨×××§×××:</strong> ` +
+            behind.map(([p,o]) => `${p}: ${Math.round(o.debt/60*10)/10}×©×³`).join(' Â· ');
         }
         speak(result);
       };
@@ -2046,113 +2084,78 @@ a:hover { opacity: 0.8; }
     m.querySelector('[data-e="medium"]').click();
   }
 
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   // 12. BOOT
-  // ────────────────────────────────────────────────────────────────────────
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // === ACCOUNT SYSTEM ===
+  var ACCOUNTS_KEY = 'jv_accounts';
+  var SESSION_USER = 'jv_session_user';
+  function hashPass(p){var h=5381;for(var i=0;i<p.length;i++)h=((h<<5)+h)^p.charCodeAt(i);return(h>>>0).toString(36);}
+  function getAccounts(){return JSON.parse(localStorage.getItem(ACCOUNTS_KEY)||'{}');}
+  function getCurrentUser(){return sessionStorage.getItem(SESSION_USER);}
+  function installAccountProxy(username){
+    if(Storage.prototype._jvProxied)return;
+    var UK='pos3_u_'+username;
+    var ex=localStorage.getItem('pos3');
+    if(ex&&!localStorage.getItem(UK))localStorage.setItem(UK,ex);
+    var g=Storage.prototype.getItem,s=Storage.prototype.setItem,r=Storage.prototype.removeItem;
+    Storage.prototype._jvProxied=true;
+    Storage.prototype.getItem=function(k){return g.call(this,k==='pos3'?UK:k);};
+    Storage.prototype.setItem=function(k,v){return s.call(this,k==='pos3'?UK:k,v);};
+    Storage.prototype.removeItem=function(k){return r.call(this,k==='pos3'?UK:k);};
+  }
+  function loginUser(u,pw){var a=getAccounts(),k=u.toLowerCase().trim();if(!a[k]||a[k]!==hashPass(pw))return false;sessionStorage.setItem(SESSION_USER,k);installAccountProxy(k);return true;}
+  function registerUser(u,pw){var a=getAccounts(),k=u.toLowerCase().trim();if(!k)return false;a[k]=hashPass(pw);localStorage.setItem(ACCOUNTS_KEY,JSON.stringify(a));sessionStorage.setItem(SESSION_USER,k);installAccountProxy(k);return true;}
+  function logoutUser(){sessionStorage.removeItem(SESSION_USER);sessionStorage.removeItem('jv_locked_this_session');Storage.prototype._jvProxied=false;location.reload();}
 
-  // ─── Multi-Account System ────────────────────────────────────────
-  const ACCOUNTS_KEY = 'jv_accounts';
-  const SESSION_USER = 'jv_session_user';
-  function hashPass(p) {
-    let h = 5381;
-    for (let i = 0; i < p.length; i++) h = ((h << 5) + h) ^ p.charCodeAt(i);
-    return (h >>> 0).toString(36);
-  }
-  function getAccounts() { return readLocal(ACCOUNTS_KEY, {}); }
-  function getCurrentUser() { return sessionStorage.getItem(SESSION_USER) || null; }
-  function getCurrentUserDisplay() {
-    const u = getCurrentUser(); if (!u) return "Guest";
-    return getAccounts()[u]?.displayName || u;
-  }
-  function installAccountProxy(username) {
-    if (Storage.prototype._jvProxied) return;
-    const UK = 'pos3_u_' + username;
-    const g = Storage.prototype.getItem, s = Storage.prototype.setItem, r = Storage.prototype.removeItem;
-    Storage.prototype._jvProxied = true;
-    Storage.prototype.getItem    = function(k) { return g.call(this, k === 'pos3' ? UK : k); };
-    Storage.prototype.setItem    = function(k,v) { return s.call(this, k === 'pos3' ? UK : k, v); };
-    Storage.prototype.removeItem = function(k) { return r.call(this, k === 'pos3' ? UK : k); };
-  }
-  function loginUser(username, password) {
-    const key = username.toLowerCase().trim(), accounts = getAccounts(), acc = accounts[key];
-    if (!acc) return { ok:false, error:'Account not found.' };
-    if (acc.passwordHash !== hashPass(password)) return { ok:false, error:'Wrong password.' };
-    sessionStorage.setItem(SESSION_USER, key); installAccountProxy(key);
-    return { ok:true, displayName: acc.displayName };
-  }
-  function registerUser(username, password) {
-    const key = username.toLowerCase().trim(), accounts = getAccounts();
-    if (key.length < 2) return { ok:false, error:'Username too short (min 2).' };
-    if (password.length < 4) return { ok:false, error:'Password too short (min 4).' };
-    if (accounts[key]) return { ok:false, error:'Username taken.' };
-    accounts[key] = { displayName: username.trim(), passwordHash: hashPass(password), createdAt: Date.now() };
-    writeLocal(ACCOUNTS_KEY, accounts); sessionStorage.setItem(SESSION_USER, key); installAccountProxy(key);
-    return { ok:true, displayName: username.trim() };
-  }
-  function logoutUser() {
-    sessionStorage.removeItem(SESSION_USER);
-    sessionStorage.removeItem('jv_locked_this_session');
-    location.reload();
-  }
-  function openLoginScreen(onSuccess) {
-    const ex = document.getElementById('jv-login'); if (ex) ex.remove();
-    const sc = document.createElement('div');
-    sc.id = 'jv-login';
-    sc.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,-apple-system,sans-serif;';
-    sc.innerHTML = '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:40px;width:340px;max-width:90vw;box-sizing:border-box;">'
-      + '<div style="text-align:center;font-size:40px;margin-bottom:10px;">&#129302;</div>'
-      + '<h2 id="jv-ltit" style="color:#f5f5f7;text-align:center;margin:0 0 6px;font-size:20px;font-weight:700;"></h2>'
-      + '<p id="jv-lerr" style="color:#ff6b6b;font-size:13px;text-align:center;min-height:18px;margin:0 0 12px;"></p>'
-      + '<input id="jv-luser" type="text" placeholder="Username" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:12px;color:#f5f5f7;font-size:15px;margin-bottom:10px;outline:none;">'
-      + '<input id="jv-lpass" type="password" placeholder="Password" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:12px;color:#f5f5f7;font-size:15px;margin-bottom:16px;outline:none;">'
-      + '<button id="jv-lbtn" style="width:100%;padding:13px;border-radius:10px;border:none;background:#0071e3;color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:14px;"></button>'
-      + '<p style="text-align:center;font-size:13px;color:rgba(255,255,255,0.45);"><span id="jv-ltogm"></span> <a id="jv-ltog" href="#" style="color:#0071e3;text-decoration:none;"></a></p>'
-      + '</div>';
-    let mode = 'login';
-    const upd = () => {
-      const il = mode === 'login';
-      sc.querySelector('#jv-ltit').textContent = il ? 'JARVIS — Sign In' : 'JARVIS — Sign Up';
-      sc.querySelector('#jv-lbtn').textContent = il ? 'Sign In' : 'Create Account';
-      sc.querySelector('#jv-ltogm').textContent = il ? 'No account?' : 'Have account?';
-      sc.querySelector('#jv-ltog').textContent  = il ? 'Create one' : 'Sign in';
-    }; upd();
-    sc.querySelector('#jv-lbtn').addEventListener('click', () => {
-      const u = sc.querySelector('#jv-luser').value.trim(), p = sc.querySelector('#jv-lpass').value;
-      const e = sc.querySelector('#jv-lerr');
-      if (!u || !p) { e.textContent = 'Fill in all fields.'; return; }
-      const r = mode === 'login' ? loginUser(u, p) : registerUser(u, p);
-      r.ok ? (sc.remove(), onSuccess && onSuccess()) : (e.textContent = r.error);
-    });
-    sc.querySelector('#jv-lpass').addEventListener('keydown', ev => ev.key === 'Enter' && sc.querySelector('#jv-lbtn').click());
-    sc.querySelector('#jv-ltog').addEventListener('click', ev => { ev.preventDefault(); mode = mode === 'login' ? 'register' : 'login'; upd(); sc.querySelector('#jv-lerr').textContent = ''; });
-    document.body.appendChild(sc);
-    setTimeout(() => sc.querySelector('#jv-luser').focus(), 100);
+  function openLoginScreen(onSuccess){
+    var o=document.createElement('div');o.id='jv-login';
+    o.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,10,20,0.97);display:flex;align-items:center;justify-content:center;z-index:99999;font-family:-apple-system,sans-serif;';
+    o.innerHTML='<div style="background:#0a1628;border:1px solid #00d4ff44;border-radius:16px;padding:40px;width:340px;color:#e0f0ff;"><div style="text-align:center;margin-bottom:24px;"><div style="font-size:36px;color:#00d4ff;font-weight:700;letter-spacing:3px;">JARVIS</div><div style="font-size:12px;color:#7fb3d0;margin-top:4px;">Personal OS Access</div></div><div id="jv-lmsg" style="color:#ff6b6b;font-size:12px;text-align:center;min-height:16px;margin-bottom:8px;"></div><input id="jv-luser" placeholder="Username" style="width:100%;padding:10px 12px;margin-bottom:12px;background:#0d1f35;border:1px solid #00d4ff44;border-radius:8px;color:#e0f0ff;font-size:14px;box-sizing:border-box;outline:none;" /><input id="jv-lpass" type="password" placeholder="Password" style="width:100%;padding:10px 12px;margin-bottom:20px;background:#0d1f35;border:1px solid #00d4ff44;border-radius:8px;color:#e0f0ff;font-size:14px;box-sizing:border-box;outline:none;" /><button id="jv-lbtn" style="width:100%;padding:11px;background:linear-gradient(135deg,#00d4ff,#0066cc);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px;">Sign In</button><button id="jv-rbtn" style="width:100%;padding:11px;background:transparent;border:1px solid #00d4ff44;border-radius:8px;color:#7fb3d0;font-size:13px;cursor:pointer;">Create Account</button></div>';
+    document.body.appendChild(o);
+    var msg=document.getElementById('jv-lmsg');
+    var uIn=document.getElementById('jv-luser');
+    var pIn=document.getElementById('jv-lpass');
+    document.getElementById('jv-lbtn').onclick=function(){
+      var u=uIn.value.trim(),p=pIn.value;
+      if(!u||!p){msg.textContent='Enter username and password';return;}
+      if(loginUser(u,p)){o.remove();onSuccess();}
+      else{msg.textContent='Invalid credentials';pIn.value='';}
+    };
+    document.getElementById('jv-rbtn').onclick=function(){
+      var u=uIn.value.trim(),p=pIn.value;
+      if(!u||!p){msg.textContent='Enter username and password';return;}
+      var a=getAccounts();if(a[u.toLowerCase()]){msg.textContent='Username taken';return;}
+      registerUser(u,p);o.remove();onSuccess();
+    };
+    pIn.onkeydown=function(e){if(e.key==='Enter')document.getElementById('jv-lbtn').onclick();};
+    setTimeout(function(){uIn.focus();},100);
   }
 
   function boot() {
     injectAppleTheme();
-    const doInit = () => {
-      const user = getCurrentUser();
+    var doInit = function() {
+      var user = getCurrentUser();
       if (user) installAccountProxy(user);
       hud.mount();
       bindRecogHandlers();
       setupBriefings();
       setTimeout(renderDebtWidget, 1500);
-      if ('Notification' in window && Notification.permission === 'default') {
-        setTimeout(() => Notification.requestPermission().catch(() => {}), 8000);
-      }
       window.JARVIS = {
-        version: VERSION, handle, route, speak, listen: startListening,
-        stopListen: stopListening, log: addLog, state: readState, writeState,
-        schedule: SCHEDULE, projects: PROJECTS, debt: projectDebt,
-        setBlock: setBlockStatus, writeScheduleBlock, requestNotifPermission,
-        addBlock: args => ACTIONS.addScheduleBlock(args), logoutUser,
+        version: VERSION,
+        handle: handle,
+        route: route,
+        speak: speak,
+        listen: function(){ _recogStarted=true; if(recog) recog.start(); },
+        stop: function(){ _recogStarted=false; if(recog) recog.abort(); },
+        logoutUser: logoutUser,
+        getCurrentUser: getCurrentUser,
+        writeScheduleBlock: writeScheduleBlock
       };
       setTimeout(openLockScreen, 900);
-      console.log('%cJARVIS v2.1 online', 'color:#00d4ff;font-weight:bold;font-size:13px');
     };
     if (getCurrentUser()) { doInit(); }
-    else { openLoginScreen(() => doInit()); }
+    else { openLoginScreen(function(){ doInit(); }); }
   }
   function bindRecogActual() {
     recog = makeRecognizer();
@@ -2200,13 +2203,13 @@ a:hover { opacity: 0.8; }
 })();
 
 /* ============================================================================
- * INTEGRATION INSTRUCTIONS — how to add JARVIS to your Personal OS
+ * INTEGRATION INSTRUCTIONS â how to add JARVIS to your Personal OS
  * ============================================================================
  *
- * STEP 1 — Upload jarvis.js to your project root
+ * STEP 1 â Upload jarvis.js to your project root
  *   Place this file at the root of your GitHub repo (next to index.html).
  *
- * STEP 2 — Add ONE line to index.html
+ * STEP 2 â Add ONE line to index.html
  *   Open index.html in your editor. Find the closing </body> tag and add:
  *
  *     <script src="/jarvis.js" defer></script>
@@ -2214,56 +2217,56 @@ a:hover { opacity: 0.8; }
  *   It must come AFTER all other <script> tags so JARVIS can hook into
  *   the existing window.* functions (addTask, goPage, callClaude, etc.)
  *
- * STEP 3 — Commit and push to GitHub → Vercel auto-deploys
+ * STEP 3 â Commit and push to GitHub â Vercel auto-deploys
  *
  *   git add jarvis.js index.html
  *   git commit -m "feat: add JARVIS AI companion module v1.0"
  *   git push
  *
- * STEP 4 — Verify
+ * STEP 4 â Verify
  *   Open https://personal-os-coral-tau.vercel.app/
  *   You should see the blue arc-reactor orb in the bottom-right corner.
- *   Say "ג'רוויס, מה היום" or click the orb.
+ *   Say "×'×¨××××¡, ×× ××××" or click the orb.
  *
- * ── localStorage keys used by JARVIS (all prefixed pos3_jarvis_) ──────────
- *   pos3_jarvis_schedule   — weekly block schedule + status log
- *   pos3_jarvis_log        — execution log (last 500 events)
- *   pos3_jarvis_settings   — voice, rate, briefing times
- *   pos3_jarvis_persona    — reserved for persona customisation
- *   jv_last_lock           — date of last lock-screen dismissal
- *   jv_last_am / jv_last_pm — briefing triggers
- *   jv_checkin_YYYY-MM-DD_am/pm — daily check-in data
- *   jv_weeklyreview_YYYY-W## — weekly review data
+ * ââ localStorage keys used by JARVIS (all prefixed pos3_jarvis_) ââââââââââ
+ *   pos3_jarvis_schedule   â weekly block schedule + status log
+ *   pos3_jarvis_log        â execution log (last 500 events)
+ *   pos3_jarvis_settings   â voice, rate, briefing times
+ *   pos3_jarvis_persona    â reserved for persona customisation
+ *   jv_last_lock           â date of last lock-screen dismissal
+ *   jv_last_am / jv_last_pm â briefing triggers
+ *   jv_checkin_YYYY-MM-DD_am/pm â daily check-in data
+ *   jv_weeklyreview_YYYY-W## â weekly review data
  *
- * ── Public API (window.JARVIS.*) ──────────────────────────────────────────
- *   .handle(text)         — process any Hebrew command string
- *   .speak(text)          — text-to-speech
- *   .listen()             — start voice recognition
- *   .brief()              — morning briefing
- *   .debt()               — project debt report
- *   .whatNow('high')      — energy-based recommendation (low/medium/high)
- *   .whatSkip()           — safe-to-skip blocks today
- *   .planDay()            — plan today from yesterday's misses
+ * ââ Public API (window.JARVIS.*) ââââââââââââââââââââââââââââââââââââââââââ
+ *   .handle(text)         â process any Hebrew command string
+ *   .speak(text)          â text-to-speech
+ *   .listen()             â start voice recognition
+ *   .brief()              â morning briefing
+ *   .debt()               â project debt report
+ *   .whatNow('high')      â energy-based recommendation (low/medium/high)
+ *   .whatSkip()           â safe-to-skip blocks today
+ *   .planDay()            â plan today from yesterday's misses
  *   .logTime({proj, actualMinutes, plannedMinutes})
  *   .activity({activity, fromHour, toHour})
- *   .openCheckIn()        — daily check-in modal
- *   .openWeeklyReview()   — weekly review modal
- *   .openWhatNow()        — energy panel
- *   .openLock()           — daily lock/greeting screen
- *   .openSchedule()       — quick-update schedule modal
- *   .openSettings()       — settings modal
+ *   .openCheckIn()        â daily check-in modal
+ *   .openWeeklyReview()   â weekly review modal
+ *   .openWhatNow()        â energy panel
+ *   .openLock()           â daily lock/greeting screen
+ *   .openSchedule()       â quick-update schedule modal
+ *   .openSettings()       â settings modal
  *
- * ── Voice commands (Hebrew) ───────────────────────────────────────────────
- *   "ג'רוויס, מה יש לי היום"
- *   "ג'רוויס, מה לעשות עכשיו"
- *   "הייתי בים מ-14 עד 17 במקום ללמוד"
- *   "עשיתי 70 דק׳ Upselles במקום 120"
- *   "תכנן לי את היום לפי מה שפספסתי אתמול"
- *   "מה אני יכול לדלג בלי לפגוע בשבוע"
- *   "הוסף משימה [שם] לפרויקט [פרויקט]"
- *   "תזכר לי על [משימה] בעוד [זמן]"
- *   "חוב פרויקטים"
- *   "צ׳ק-אין"
- *   "סיכום שבועי"
+ * ââ Voice commands (Hebrew) âââââââââââââââââââââââââââââââââââââââââââââââ
+ *   "×'×¨××××¡, ×× ××© ×× ××××"
+ *   "×'×¨××××¡, ×× ××¢×©××ª ×¢××©××"
+ *   "××××ª× ××× ×-14 ×¢× 17 ×××§×× ×××××"
+ *   "×¢×©××ª× 70 ××§×³ Upselles ×××§×× 120"
+ *   "×ª×× × ×× ××ª ×××× ××¤× ×× ×©×¤×¡×¤×¡×ª× ××ª×××"
+ *   "×× ×× × ×××× ×××× ××× ××¤×××¢ ××©×××¢"
+ *   "×××¡×£ ××©××× [×©×] ××¤×¨×××§× [×¤×¨×××§×]"
+ *   "×ª×××¨ ×× ×¢× [××©×××] ××¢×× [×××]"
+ *   "××× ×¤×¨×××§×××"
+ *   "×¦×³×§-×××"
+ *   "×¡×××× ×©×××¢×"
  *
  * ============================================================================ */
