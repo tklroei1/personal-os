@@ -74,131 +74,127 @@
   // Each block: id, day (0=Sun..6=Sat), start, end, title, type, proj,
   //             dedicated (purpose), action, replaceable, fixed.
   const DEFAULT_BLOCKS = [
-    // ───── SUNDAY (day 0) ─────
-    { id:'sun-plan',     day:0, start:'10:30', end:'11:00', title:'תכנון שבועי', type:'planning',
-      proj:null, dedicated:'תכנון השבוע', action:'בחר 3 משימות מרכזיות לשבוע', replaceable:false, fixed:true },
-    { id:'sun-upselles', day:0, start:'11:00', end:'13:00', title:'Upselles — Deep Work', type:'deep_work',
-      proj:'upselles', dedicated:'עבודה עמוקה על הפלטפורמה', action:'Roadmap / Prompt / Audit / Implementation review', replaceable:true, fixed:false },
-    { id:'sun-buf1',     day:0, start:'13:00', end:'13:30', title:'בופר / התאוששות קצרה', type:'buffer',
-      proj:null, dedicated:'מעבר בין משימות', action:'מנוחה קצרה', replaceable:true, fixed:false },
+    // ── SUNDAY (0) ──
+    { id:'sun-plan',     day:0, start:'10:30', end:'11:00', title:'פתיחת שבוע', type:'planning',
+      proj:null, dedicated:'בחירת 3 משימות מרכזיות לשבוע + בדיקת מה נכנס למשבצות', action:'תכנן את השבוע', replaceable:false, fixed:true },
+    { id:'sun-upselles', day:0, start:'11:00', end:'13:00', title:'Upselles — עבודה עמוקה', type:'deep_work',
+      proj:'upselles', dedicated:'עבודה עמוקה', action:'Roadmap / Prompt / בדיקה / קריאת דוח', replaceable:true, fixed:false },
+    { id:'sun-buf1',     day:0, start:'13:00', end:'13:30', title:'באפר / מנוחה', type:'buffer',
+      proj:null, dedicated:'מנוחה קצרה / מעבר', action:'מנוחה', replaceable:true, fixed:false },
     { id:'sun-bela',     day:0, start:'13:30', end:'14:30', title:'פגישה עם בלה', type:'meeting',
-      proj:null, dedicated:'פגישה קבועה', action:'נוכחות בפגישה', replaceable:false, fixed:true },
-    { id:'sun-lunch',    day:0, start:'14:30', end:'15:20', title:'הכנת צהריים + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילת ארוחת צהריים', replaceable:false, fixed:true },
+      proj:'family', dedicated:'פגישה קבועה', action:'נוכחות בפגישה', replaceable:false, fixed:true },
+    { id:'sun-lunch',    day:0, start:'14:30', end:'15:20', title:'צהריים', type:'food',
+      proj:'fitness', dedicated:'תזונה', action:'30 דק׳ הכנה + 20 דק׳ אוכל', replaceable:false, fixed:true },
     { id:'sun-uni',      day:0, start:'15:30', end:'16:45', title:'אוניברסיטה — לימוד עצמי', type:'university',
-      proj:'university', dedicated:'שיעורי בית + תרגול', action:'פירוק וביצוע מטלה', replaceable:true, fixed:false },
-    { id:'sun-buf2',     day:0, start:'16:45', end:'17:45', title:'בופר / סידורים קלים', type:'buffer',
-      proj:null, dedicated:'התאוששות / סידורים', action:'התאוששות או סידורים קלים', replaceable:true, fixed:false },
+      proj:'university', dedicated:'שיעורי בית', action:'פירוק מטלה / מעבר על חומר / תכנון השלמות', replaceable:true, fixed:false },
+    { id:'sun-buf2',     day:0, start:'16:45', end:'17:45', title:'באפר / סידורים', type:'buffer',
+      proj:null, dedicated:'התאוששות', action:'סידורים קלים / מנוחה', replaceable:true, fixed:false },
     { id:'sun-ronit',    day:0, start:'18:00', end:'18:45', title:'פגישה עם רונית', type:'meeting',
-      proj:null, dedicated:'פגישה קבועה', action:'נוכחות בפגישה', replaceable:false, fixed:true },
+      proj:'family', dedicated:'פגישה קבועה', action:'נוכחות בפגישה', replaceable:false, fixed:true },
     { id:'sun-train',    day:0, start:'19:15', end:'20:45', title:'אימון כוח', type:'training',
-      proj:'fitness', dedicated:'אימון כוח', action:'אימון לפי תוכנית', replaceable:false, fixed:true },
-    { id:'sun-dinner',   day:0, start:'21:00', end:'21:35', title:'הכנת ערב + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילת ארוחת ערב', replaceable:false, fixed:true },
-    { id:'sun-meat',     day:0, start:'22:00', end:'22:05', title:'תזכורת: להפשיר עוף/בשר למחר', type:'reminder',
-      proj:'fitness', dedicated:'הכנה לעוף ובשר', action:'הוצא מהמקפיא', replaceable:false, fixed:true },
+      proj:'fitness', dedicated:'אימון ערב', action:'אימון לפי תוכנית', replaceable:false, fixed:true },
+    { id:'sun-dinner',   day:0, start:'21:00', end:'21:35', title:'ארוחת ערב', type:'food',
+      proj:'fitness', dedicated:'תזונה', action:'15 דק׳ הכנה + 20 דק׳ אוכל', replaceable:false, fixed:true },
+    { id:'sun-meat',     day:0, start:'22:00', end:'22:05', title:'תזכורת: הפשרת עוף/בשר', type:'reminder',
+      proj:'fitness', dedicated:'הכנה למחר', action:'הוצא מהמקפיא', replaceable:false, fixed:true },
 
-    // ───── MONDAY (day 1) — LOW CAPACITY DAY ─────
+    // ── MONDAY (1) — יום אוניברסיטה מלא ──
     { id:'mon-commute',  day:1, start:'07:00', end:'08:00', title:'נסיעה לאוניברסיטה', type:'buffer',
-      proj:'university', dedicated:'נסיעה', action:'תחבורה', replaceable:false, fixed:true },
+      proj:'university', dedicated:'נסיעה', action:'יציאה ונסיעה', replaceable:false, fixed:true },
     { id:'mon-uni',      day:1, start:'08:00', end:'19:30', title:'אוניברסיטה — יום מלא', type:'university',
-      proj:'university', dedicated:'יום אוניברסיטה מלא', action:'הרצאות, תרגולים, מטלות בקמפוס', replaceable:false, fixed:true },
+      proj:'university', dedicated:'לימודים', action:'הרצאות, תרגולים, מטלות בקמפוס', replaceable:false, fixed:true },
     { id:'mon-return',   day:1, start:'19:30', end:'20:15', title:'חזרה הביתה', type:'buffer',
-      proj:null, dedicated:'נסיעה הביתה', action:'תחבורה', replaceable:false, fixed:true },
-    { id:'mon-recover',  day:1, start:'20:15', end:'21:00', title:'אוכל / מקלחת / התאוששות', type:'recovery',
-      proj:'fitness', dedicated:'התאוששות יום ארוך', action:'אכילה, מקלחת, מנוחה', replaceable:false, fixed:true },
-    { id:'mon-uni-rev',  day:1, start:'21:00', end:'21:20', title:'סקירת אוניברסיטה קצרה', type:'planning',
-      proj:'university', dedicated:'סיכום יום הלימודים', action:'כתוב 3 משימות המשך', replaceable:true, fixed:false },
-    { id:'mon-meat',     day:1, start:'22:00', end:'22:05', title:'תזכורת: להפשיר עוף/בשר למחר', type:'reminder',
+      proj:null, dedicated:'נסיעה הביתה', action:'הגעה הביתה', replaceable:false, fixed:true },
+    { id:'mon-recover',  day:1, start:'20:15', end:'21:00', title:'התאוששות', type:'recovery',
+      proj:'fitness', dedicated:'אוכל / מקלחת / מנוחה אחרי יום עמוס', action:'אכילה, מקלחת, מנוחה', replaceable:true, fixed:false },
+    { id:'mon-uni-rev',  day:1, start:'21:00', end:'21:20', title:'סיכום קצר — אוניברסיטה', type:'light',
+      proj:'university', dedicated:'סיכום יום', action:'לכתוב 3 דברים שצריך להשלים מהאוניברסיטה', replaceable:true, fixed:false },
+    { id:'mon-meat',     day:1, start:'22:00', end:'22:05', title:'תזכורת: הפשרת עוף/בשר', type:'reminder',
       proj:'fitness', dedicated:'הכנה', action:'הוצא מהמקפיא', replaceable:false, fixed:true },
 
-    // ───── TUESDAY (day 2) ─────
-    { id:'tue-plan',     day:2, start:'10:30', end:'11:00', title:'תכנון יומי', type:'planning',
-      proj:null, dedicated:'תכנון היום', action:'בחר משימות היום', replaceable:false, fixed:true },
-    { id:'tue-uni',      day:2, start:'11:00', end:'13:00', title:'אוניברסיטה — Deep Study', type:'deep_work',
-      proj:'university', dedicated:'לימוד עצמי עמוק', action:'מטלה / תרגול', replaceable:true, fixed:false },
-    { id:'tue-lunch',    day:2, start:'13:00', end:'13:50', title:'הכנת צהריים + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
-    { id:'tue-upselles', day:2, start:'14:00', end:'15:30', title:'Upselles — Deep Work', type:'deep_work',
-      proj:'upselles', dedicated:'עבודה עמוקה', action:'דוח / פרומפט / פלטפורמה', replaceable:true, fixed:false },
+    // ── TUESDAY (2) ──
+    { id:'tue-plan',     day:2, start:'10:30', end:'11:00', title:'פתיחת יום', type:'planning',
+      proj:null, dedicated:'תכנון', action:'בחירת משימה מרכזית + משימה משנית', replaceable:true, fixed:false },
+    { id:'tue-uni',      day:2, start:'11:00', end:'13:00', title:'אוניברסיטה — לימוד עמוק', type:'deep_work',
+      proj:'university', dedicated:'לימוד בית עמוק', action:'מטלה / תרגול / חומר קשה', replaceable:true, fixed:false },
+    { id:'tue-lunch',    day:2, start:'13:00', end:'13:50', title:'צהריים', type:'food',
+      proj:'fitness', dedicated:'תזונה', action:'30 דק׳ הכנה + 20 דק׳ אוכל', replaceable:false, fixed:true },
+    { id:'tue-upselles', day:2, start:'14:00', end:'15:30', title:'Upselles — עבודה עמוקה', type:'deep_work',
+      proj:'upselles', dedicated:'עבודה עמוקה', action:'פלטפורמה / דוח / Prompt / צעד הבא', replaceable:true, fixed:false },
     { id:'tue-walk',     day:2, start:'16:00', end:'16:45', title:'הליכה / סידורים', type:'walk',
-      proj:'fitness', dedicated:'תנועה ואוויר', action:'הליכה 30-45 דק׳', replaceable:true, fixed:false },
+      proj:'fitness', dedicated:'תנועה', action:'30–45 דק׳ הליכה / סידורים / התאוששות', replaceable:true, fixed:false },
     { id:'tue-train',    day:2, start:'18:30', end:'20:00', title:'אימון כוח', type:'training',
-      proj:'fitness', dedicated:'אימון כוח', action:'אימון לפי תוכנית', replaceable:false, fixed:true },
-    { id:'tue-dinner',   day:2, start:'20:15', end:'20:50', title:'הכנת ערב + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
-    { id:'tue-anthropic',day:2, start:'21:15', end:'22:00', title:'קורס Anthropic / למידה קלה', type:'light',
-      proj:'anthropic', dedicated:'למידת AI', action:'מודול קורס / קריאה', replaceable:true, fixed:false },
-    { id:'tue-meat',     day:2, start:'22:00', end:'22:05', title:'תזכורת: להפשיר עוף/בשר למחר', type:'reminder',
+      proj:'fitness', dedicated:'אימון ערב', action:'אימון לפי תוכנית', replaceable:false, fixed:true },
+    { id:'tue-dinner',   day:2, start:'20:15', end:'20:50', title:'ארוחת ערב', type:'food',
+      proj:'fitness', dedicated:'תזונה', action:'15 דק׳ הכנה + 20 דק׳ אוכל', replaceable:false, fixed:true },
+    { id:'tue-anthropic',day:2, start:'21:15', end:'22:00', title:'קורס Anthropic', type:'light',
+      proj:'anthropic', dedicated:'למידת AI', action:'יחידה אחת + 5 נקודות סיכום', replaceable:true, fixed:false },
+    { id:'tue-meat',     day:2, start:'22:00', end:'22:05', title:'תזכורת: הפשרת עוף/בשר', type:'reminder',
       proj:'fitness', dedicated:'הכנה', action:'הוצא מהמקפיא', replaceable:false, fixed:true },
 
-    // ───── WEDNESDAY (day 3) ─────
-    { id:'wed-plan',     day:3, start:'10:30', end:'11:00', title:'תכנון יומי', type:'planning',
-      proj:null, dedicated:'תכנון היום', action:'בחר משימות', replaceable:false, fixed:true },
-    { id:'wed-uni',      day:3, start:'11:00', end:'13:00', title:'אוניברסיטה — Deep Study', type:'deep_work',
-      proj:'university', dedicated:'לימוד עצמי עמוק', action:'מטלות ותרגול', replaceable:true, fixed:false },
-    { id:'wed-lunch',    day:3, start:'13:00', end:'13:50', title:'הכנת צהריים + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
-    { id:'wed-apt',      day:3, start:'14:00', end:'15:00', title:'חיפוש דירה', type:'medium',
-      proj:'apartment', dedicated:'איתור דירה', action:'מודעות, הודעות, סיורים', replaceable:true, fixed:false },
+    // ── WEDNESDAY (3) ──
+    { id:'wed-plan',     day:3, start:'10:30', end:'11:00', title:'פתיחת יום', type:'planning',
+      proj:null, dedicated:'תכנון', action:'בדיקת משימות היום ועדיפויות', replaceable:true, fixed:false },
+    { id:'wed-uni',      day:3, start:'11:00', end:'13:00', title:'אוניברסיטה — לימוד עמוק', type:'deep_work',
+      proj:'university', dedicated:'לימוד בית', action:'עבודות / תרגול / קריאה', replaceable:true, fixed:false },
+    { id:'wed-lunch',    day:3, start:'13:00', end:'13:50', title:'צהריים', type:'food',
+      proj:'fitness', dedicated:'תזונה', action:'30 דק׳ הכנה + 20 דק׳ אוכל', replaceable:false, fixed:true },
+    { id:'wed-apt',      day:3, start:'14:00', end:'15:00', title:'חיפוש דירה', type:'light',
+      proj:'apartment', dedicated:'איתור דירה', action:'מודעות / הודעות / תיאום צפיות', replaceable:true, fixed:false },
     { id:'wed-tamar',    day:3, start:'15:30', end:'17:00', title:'פגישה עם תמר', type:'meeting',
-      proj:null, dedicated:'פגישה קבועה', action:'נוכחות בפגישה', replaceable:false, fixed:true },
+      proj:'family', dedicated:'פגישה קבועה', action:'נוכחות בפגישה', replaceable:false, fixed:true },
     { id:'wed-walk',     day:3, start:'17:30', end:'18:15', title:'הליכה', type:'walk',
-      proj:'fitness', dedicated:'תנועה ואוויר', action:'הליכה 45 דק׳', replaceable:true, fixed:false },
-    { id:'wed-dinner',   day:3, start:'19:00', end:'19:35', title:'הכנת ערב + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
+      proj:'fitness', dedicated:'תנועה', action:'30–45 דק׳ הליכה', replaceable:true, fixed:false },
+    { id:'wed-dinner',   day:3, start:'19:00', end:'19:35', title:'ארוחת ערב', type:'food',
+      proj:'fitness', dedicated:'תזונה', action:'15 דק׳ הכנה + 20 דק׳ אוכל', replaceable:false, fixed:true },
     { id:'wed-jobs',     day:3, start:'20:00', end:'21:00', title:'חיפוש עבודה', type:'light',
-      proj:'jobs', dedicated:'חיפוש משרות', action:'איתור ושמירה ל-tracker', replaceable:true, fixed:false },
-    { id:'wed-meat',     day:3, start:'22:00', end:'22:05', title:'תזכורת: להפשיר עוף/בשר למחר', type:'reminder',
+      proj:'jobs', dedicated:'חיפוש משרות', action:'למצוא 3 משרות ולשמור בטבלה', replaceable:true, fixed:false },
+    { id:'wed-meat',     day:3, start:'22:00', end:'22:05', title:'תזכורת: הפשרת עוף/בשר', type:'reminder',
       proj:'fitness', dedicated:'הכנה', action:'הוצא מהמקפיא', replaceable:false, fixed:true },
 
-    // ───── THURSDAY (day 4) ─────
-    { id:'thu-plan',     day:4, start:'10:30', end:'11:00', title:'תכנון יומי', type:'planning',
-      proj:null, dedicated:'תכנון היום', action:'בחר משימות', replaceable:false, fixed:true },
-    { id:'thu-upselles', day:4, start:'11:00', end:'13:00', title:'Upselles — Deep Work', type:'deep_work',
-      proj:'upselles', dedicated:'עבודה עמוקה', action:'פיתוח / לידים / שיווק', replaceable:true, fixed:false },
-    { id:'thu-lunch',    day:4, start:'13:00', end:'13:50', title:'הכנת צהריים + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
+    // ── THURSDAY (4) ──
+    { id:'thu-plan',     day:4, start:'10:30', end:'11:00', title:'פתיחת יום', type:'planning',
+      proj:null, dedicated:'תכנון', action:'בדיקת פוקוס יומי', replaceable:true, fixed:false },
+    { id:'thu-upselles', day:4, start:'11:00', end:'13:00', title:'Upselles — עבודה עמוקה', type:'deep_work',
+      proj:'upselles', dedicated:'עבודה עמוקה', action:'Prompt / פיצ׳ר / בדיקות / Roadmap', replaceable:true, fixed:false },
+    { id:'thu-lunch',    day:4, start:'13:00', end:'13:50', title:'צהריים', type:'food',
+      proj:'fitness', dedicated:'תזונה', action:'30 דק׳ הכנה + 20 דק׳ אוכל', replaceable:false, fixed:true },
     { id:'thu-uni',      day:4, start:'14:00', end:'15:30', title:'אוניברסיטה — מטלה', type:'medium',
-      proj:'university', dedicated:'מטלת אוניברסיטה', action:'מטלה / תרגול / כתיבה', replaceable:true, fixed:false },
+      proj:'university', dedicated:'לימוד בית', action:'מטלה / תרגול / כתיבה', replaceable:true, fixed:false },
     { id:'thu-walk',     day:4, start:'16:00', end:'16:45', title:'הליכה / סידורים', type:'walk',
-      proj:'fitness', dedicated:'תנועה ואוויר', action:'הליכה 30-45 דק׳', replaceable:true, fixed:false },
+      proj:'fitness', dedicated:'תנועה', action:'הליכה או סידורים קלים', replaceable:true, fixed:false },
     { id:'thu-train',    day:4, start:'18:30', end:'20:00', title:'אימון כוח', type:'training',
-      proj:'fitness', dedicated:'אימון כוח', action:'אימון לפי תוכנית', replaceable:false, fixed:true },
-    { id:'thu-dinner',   day:4, start:'20:15', end:'20:50', title:'הכנת ערב + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
-    { id:'thu-review',   day:4, start:'21:15', end:'21:45', title:'עדכון התקדמות שבועית', type:'planning',
-      proj:null, dedicated:'תכנון', action:'מה התקדם השבוע, מה חסר', replaceable:false, fixed:true },
-    { id:'thu-meat',     day:4, start:'22:00', end:'22:05', title:'תזכורת: להפשיר עוף/בשר למחר', type:'reminder',
+      proj:'fitness', dedicated:'אימון ערב', action:'אימון לפי תוכנית', replaceable:false, fixed:true },
+    { id:'thu-dinner',   day:4, start:'20:15', end:'20:50', title:'ארוחת ערב', type:'food',
+      proj:'fitness', dedicated:'תזונה', action:'15 דק׳ הכנה + 20 דק׳ אוכל', replaceable:false, fixed:true },
+    { id:'thu-review',   day:4, start:'21:15', end:'21:45', title:'עדכון שבועי קצר', type:'planning',
+      proj:null, dedicated:'סיכום', action:'מה בוצע ומה עובר לשבת / שבוע הבא', replaceable:true, fixed:false },
+    { id:'thu-meat',     day:4, start:'22:00', end:'22:05', title:'תזכורת: הפשרת עוף/בשר', type:'reminder',
       proj:'fitness', dedicated:'הכנה', action:'הוצא מהמקפיא', replaceable:false, fixed:true },
 
-    // ───── FRIDAY (day 5) ─────
-    { id:'fri-plan',     day:5, start:'10:30', end:'11:00', title:'תכנון יום (קל)', type:'planning',
-      proj:null, dedicated:'תכנון יום שישי', action:'בחר משימות יום', replaceable:false, fixed:true },
-    { id:'fri-jobs',     day:5, start:'11:00', end:'12:15', title:'חיפוש עבודה איכותי', type:'medium',
-      proj:'jobs', dedicated:'הגשת מועמדויות', action:'2 הגשות איכותיות', replaceable:true, fixed:false },
+    // ── FRIDAY (5) ──
+    { id:'fri-plan',     day:5, start:'10:30', end:'11:00', title:'פתיחת יום קלילה', type:'planning',
+      proj:null, dedicated:'תכנון', action:'בדיקת משימות קצרות', replaceable:true, fixed:false },
+    { id:'fri-jobs',     day:5, start:'11:00', end:'12:15', title:'חיפוש עבודה', type:'medium',
+      proj:'jobs', dedicated:'הגשת מועמדויות', action:'להגיש ל־2 משרות איכותיות + עדכון מעקב', replaceable:true, fixed:false },
     { id:'fri-errands',  day:5, start:'12:15', end:'13:00', title:'סידורים / בית', type:'light',
-      proj:null, dedicated:'סידורים', action:'משימות בית', replaceable:true, fixed:false },
-    { id:'fri-lunch',    day:5, start:'13:00', end:'13:50', title:'הכנת צהריים + אכילה', type:'food',
-      proj:'fitness', dedicated:'תזונה', action:'בישול ואכילה', replaceable:false, fixed:true },
+      proj:null, dedicated:'סידורים', action:'קניות / בית / משימות קטנות', replaceable:true, fixed:false },
+    { id:'fri-lunch',    day:5, start:'13:00', end:'13:50', title:'צהריים', type:'food',
+      proj:'fitness', dedicated:'תזונה', action:'30 דק׳ הכנה + 20 דק׳ אוכל', replaceable:false, fixed:true },
     { id:'fri-apt',      day:5, start:'14:00', end:'15:15', title:'חיפוש דירה', type:'medium',
-      proj:'apartment', dedicated:'איתור דירה', action:'הודעות וסיורים', replaceable:true, fixed:false },
-    { id:'fri-rest',     day:5, start:'15:15', end:'17:30', title:'מנוחה / הכנה / משפחה', type:'recovery',
-      proj:'family', dedicated:'התאוששות והכנה לשבת', action:'מנוחה והכנות', replaceable:false, fixed:true },
-    { id:'fri-dinner',   day:5, start:'18:00', end:'21:00', title:'ארוחת ערב משפחתית — שישי', type:'family',
-      proj:'family', dedicated:'זמן משפחתי', action:'ארוחה משפחתית', replaceable:false, fixed:true },
+      proj:'apartment', dedicated:'איתור דירה', action:'הודעות / תיאום צפיות / סטטוס', replaceable:true, fixed:false },
+    { id:'fri-rest',     day:5, start:'15:15', end:'17:30', title:'מנוחה / התארגנות', type:'recovery',
+      proj:'family', dedicated:'מנוחה', action:'משפחה / מנוחה / הכנות לשישי', replaceable:true, fixed:false },
+    { id:'fri-dinner',   day:5, start:'18:00', end:'20:00', title:'ארוחת שישי — משפחה', type:'family',
+      proj:'family', dedicated:'זמן משפחתי', action:'ארוחת שישי עם המשפחה', replaceable:false, fixed:true },
 
-    // ───── SATURDAY (day 6) ─────
-    { id:'sat-am',       day:6, start:'08:00', end:'14:00', title:'מנוחה / ים / זמן חופשי', type:'recovery',
-      proj:'recovery', dedicated:'התאוששות', action:'בחירה חופשית', replaceable:true, fixed:false },
-    { id:'sat-buffer',   day:6, start:'14:00', end:'16:00', title:'בופר משימות שהוחמצו (אופציונלי)', type:'buffer',
-      proj:null, dedicated:'השלמת חוב', action:'אוניברסיטה / Upselles / חשוב', replaceable:true, fixed:false },
+    // ── SATURDAY (6) ──
+    { id:'sat-buffer',   day:6, start:'14:00', end:'16:00', title:'השלמות (אופציונלי)', type:'buffer',
+      proj:null, dedicated:'השלמת חוב', action:'אוניברסיטה / Upselles / מה שפוספס בלבד', replaceable:true, fixed:false },
     { id:'sat-walk',     day:6, start:'16:30', end:'17:15', title:'הליכה (אופציונלי)', type:'walk',
-      proj:'fitness', dedicated:'תנועה', action:'הליכה', replaceable:true, fixed:false },
-    { id:'sat-review',   day:6, start:'18:00', end:'18:45', title:'סיכום שבועי + תכנון שבוע הבא', type:'planning',
-      proj:null, dedicated:'Weekly Review', action:'מה התבצע / מה חסר / יעדים', replaceable:false, fixed:true },
-    { id:'sat-evening',  day:6, start:'19:00', end:'23:00', title:'זמן חופשי', type:'recovery',
-      proj:'recovery', dedicated:'מנוחה', action:'חופשי', replaceable:true, fixed:false },
+      proj:'fitness', dedicated:'תנועה', action:'הליכה אם מתאים', replaceable:true, fixed:false },
+    { id:'sat-review',   day:6, start:'18:00', end:'18:45', title:'Weekly Review', type:'planning',
+      proj:null, dedicated:'סיכום שבוע + תכנון שבוע הבא', action:'מה בוצע / מה חסר / יעדים', replaceable:false, fixed:true },
   ];
 
   const PAGE_ALIASES = {
@@ -1076,12 +1072,12 @@
   }
 
   async function _parseAndExecuteLLM(text, originalPrompt) {
-    const jsonMatch = text.match(/\{[\s\S]*?\}/);
-    if (jsonMatch) {
-      try {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (Array.isArray(parsed.actions)) {
-          for (const act of parsed.actions) {
+    try {
+      const j = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || text);
+      if (j && j.speech) {
+        // execute actions if present
+        if (Array.isArray(j.actions)) {
+          for (const act of j.actions) {
             try {
               if (act.tool === 'goPage' && typeof window.goPage === 'function') window.goPage(act.args?.page);
               else if (act.tool === 'addTask' && typeof window.addTask === 'function') window.addTask(act.args);
@@ -1095,11 +1091,15 @@
             } catch (e) { /* silent */ }
           }
         }
-        return parsed.speech || 'בוצע.';
-      } catch (e) { /* not valid JSON */ }
+        return j.speech;
+      }
+      // JSON parsed but no .speech — return raw text
+      return text.slice(0, 500);
+    } catch(e) {
+      // Not JSON — plain text AI response, return as-is
+      if (text && text.length > 0) return text.slice(0, 500);
+      return 'לא הצלחתי לעבד את התשובה.';
     }
-    // Plain text: return as-is (truncated)
-    return text.slice(0, 300) || 'בוצע.';
   }
 
   function quickContext() {
@@ -1127,16 +1127,25 @@
 
   async function handle(text) {
     const r = route(text);
-    if (!r) return '';
-    if (r.action === 'llmFallback') {
-      const out = await llmFallback(r.args.text);
+    if (!r) return llmFallback(text); // fallback הכל ל-LLM
+
+    // פעולות שצריכות AI response — שלח ל-llmFallback עם context
+    const llmRoutes = ['queryDue','morningBrief','eveningBrief','llmFallback'];
+    if (llmRoutes.includes(r.action)) {
+      const out = await llmFallback(r.action === 'llmFallback' ? r.args.text : text);
       logEvent('llm', r.args, out);
       return out;
     }
+
+    // פעולות שמבצעות משהו (פתיחת modal, ניווט) — בצע + תן תשובה קצרה
     const fn = ACTIONS[r.action];
-    if (!fn) return '';
-    const out = fn(r.args) || '';
-    return out;
+    if (!fn) return llmFallback(text);
+    const actionResult = fn(r.args);
+
+    // אחרי ביצוע, שאל AI לתת context רלוונטי
+    const contextResponse = await llmFallback(text).catch(() => actionResult);
+    logEvent(r.action, r.args, contextResponse);
+    return contextResponse || actionResult || '';
   }
 
   // ────────────────────────────────────────────────────────────────────────
@@ -1866,6 +1875,23 @@ section, .row, [class*="row-"], [class*="-row"] {
       // Close panel button
       const closeBtn = root.querySelector('#jv-panel-close');
       if (closeBtn) closeBtn.addEventListener('click', () => panel.classList.remove('show'));
+
+      // Close on Escape key
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+          const p = document.getElementById('jv-panel');
+          if (p) p.classList.remove('show');
+        }
+      });
+      // Close on click outside panel
+      document.addEventListener('click', e => {
+        const p = document.getElementById('jv-panel');
+        const o = document.getElementById('jv-orb');
+        if (p && p.classList.contains('show') &&
+            !p.contains(e.target) && !o?.contains(e.target)) {
+          p.classList.remove('show');
+        }
+      });
 
       // Dock buttons
       dock.querySelectorAll('button').forEach(b => {
@@ -3267,7 +3293,29 @@ section, .row, [class*="row-"], [class*="-row"] {
       };
 
       setTimeout(openLockScreen, 900);
-      setTimeout(injectScheduleIntoGrid, 2000); // inject after app renders
+
+      // Inject on page navigation
+      const _origGoPage = window.goPage;
+      window.goPage = function(page) {
+        if (typeof _origGoPage === 'function') _origGoPage(page);
+        if (page === 'week' || page === 'schedule') {
+          setTimeout(injectScheduleIntoGrid, 400);
+        }
+      };
+
+      // Also inject if already on week page
+      setTimeout(() => {
+        if (getCurrentPage() === 'week') injectScheduleIntoGrid();
+      }, 1500);
+
+      // MutationObserver — inject when week grid appears
+      const _gridObserver = new MutationObserver(() => {
+        if (document.getElementById('wc-0-0') || document.querySelector('.wg-cell')) {
+          injectScheduleIntoGrid();
+          _gridObserver.disconnect();
+        }
+      });
+      _gridObserver.observe(document.body, { childList: true, subtree: true });
       console.log('%cזורו v5.0 online — chat UI, week grid injection, drag-drop, real AI, dark theme fix.', 'color:#00d4ff;font-weight:bold;font-size:14px');
     };
 
