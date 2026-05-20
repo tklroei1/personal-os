@@ -1245,6 +1245,7 @@
   //  7. VOICE — recognition + synthesis
   // ────────────────────────────────────────────────────────────────────────
   let recog = null, recogActive = false, listeningHard = false;
+  let zoroSpeaking = false; // true while TTS is talking — mutes the mic
 
   function makeRecognizer() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1293,6 +1294,7 @@
       }
     };
     recog.onresult = async (ev) => {
+      if (zoroSpeaking) return; // ignore mic input while Zoro is talking
       let interim = '', final = '';
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
         const r = ev.results[i];
@@ -1366,9 +1368,15 @@
       u.volume = settings().volume ?? 1.0;
       u.pitch  = 1.0;
       hud.setState('speaking');
-      u.onend   = () => hud.setState('idle');
-      u.onerror = () => hud.setState('idle');
-      try { window.speechSynthesis.speak(u); } catch (e) { hud.setState('idle'); }
+      zoroSpeaking = true; // mute the mic so Zoro never hears itself
+      const finish = () => {
+        hud.setState('idle');
+        // release the guard a beat after the audio tail clears
+        setTimeout(() => { zoroSpeaking = false; }, 350);
+      };
+      u.onend   = finish;
+      u.onerror = finish;
+      try { window.speechSynthesis.speak(u); } catch (e) { zoroSpeaking = false; hud.setState('idle'); }
     };
     if (window.speechSynthesis.getVoices().length === 0) {
       window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; doSpeak(); };
@@ -3440,6 +3448,7 @@ section, .row, [class*="row-"], [class*="-row"] {
       if (e.error === 'not-allowed') { _recogStarted = false; hud.toast('Microphone access denied. Enable in browser settings.', 'error'); }
     };
     recog.onresult = async (ev) => {
+      if (zoroSpeaking) return; // ignore mic input while Zoro is talking
       let interim = '', final = '';
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
         const r = ev.results[i];
