@@ -27,7 +27,7 @@
   // ────────────────────────────────────────────────────────────────────────
   //  0. CONFIG
   // ────────────────────────────────────────────────────────────────────────
-  const VERSION       = '5.0.0';
+  const VERSION       = '5.2.0';
   const STATE_KEY     = 'pos3';
   const LOG_KEY       = 'pos3_jarvis_log';
   const SCHED_KEY     = 'pos3_jarvis_schedule';
@@ -1016,90 +1016,196 @@
     return { action:'llmFallback', args:{ text: t } };
   }
 
-  async function llmFallback(prompt) {
-    const ctx = quickContext();
-    const debt = ctx.projectDebt && ctx.projectDebt.length ? ctx.projectDebt.join(', ') : 'אין חוב';
-    const todayBlocks = ctx.todayBlocks?.map(b=>`${b.start}-${b.end} ${b.title} [${b.status}]`).join('; ') || 'לא נטען';
+  // ════════════════════════════════════════════════════════════════════
+  //  ZORO AI ENGINE — real tool-use agent (rebuilt v5.2)
+  //  Talks to /api/claude, runs a client-side tool loop, executes via POS.
+  // ════════════════════════════════════════════════════════════════════
+  let zoroMem = [];
+  const ZORO_MEM_KEY = 'pos3_zoro_memory';
 
-    const sys = `אתה זורו — העוזר האישי של רועי קליין ב-Personal OS.
-אתה מדבר עברית בצורה טבעית וידידותית, קצר וממוקד.
-תאריך: ${ctx.today}. משימות פתוחות: ${ctx.tasksOpen}. חוב שבועי: ${debt}.
-לוז היום: ${todayBlocks}.
-פרויקטים: ${ctx.projects?.join(', ')}.
+  function loadZoroMem() {
+    try { zoroMem = JSON.parse(localStorage.getItem(ZORO_MEM_KEY) || '[]') || []; }
+    catch (e) { zoroMem = []; }
+  }
+  function saveZoroMem() {
+    try { localStorage.setItem(ZORO_MEM_KEY, JSON.stringify(zoroMem.slice(-20))); } catch (e) {}
+  }
+  function clearZoroMem() { zoroMem = []; saveZoroMem(); }
 
-כלים שיש לך:
-- goPage(page) — עבור לעמוד (dashboard/schedule/tasks/projects/reminders)
-- addTask(text,priority,proj) — הוסף משימה
-- addReminder(text,when) — הוסף תזכורת
-- setBlockStatus(blockId,status,actualMinutes,actualActivity) — עדכן בלוק לוז
-- showDebt() — הצג חוב פרויקטים
-- openSchedule() — פתח לוז
+  const ZORO_TOOLS = [
+    { name:'add_task', description:'הוסף משימה חדשה לרשימת המשימות',
+      input_schema:{ type:'object', properties:{
+        text:{type:'string',description:'תוכן המשימה בעברית'},
+        proj:{type:'string',description:'מזהה פרויקט: jobs/upselles/health/apartment/family/university/anthropic/none'},
+        cat:{type:'string',description:'work/health/family/project/home'} },
+        required:['text'] } },
+    { name:'complete_task', description:'סמן משימה פתוחה כבוצעה לפי חיפוש בטקסט שלה',
+      input_schema:{ type:'object', properties:{ query:{type:'string',description:'מילים מתוך המשימה'} }, required:['query'] } },
+    { name:'add_reminder', description:'הוסף תזכורת עם תאריך ושעה',
+      input_schema:{ type:'object', properties:{
+        text:{type:'string'}, date:{type:'string',description:'YYYY-MM-DD'}, time:{type:'string',description:'HH:MM'} },
+        required:['text'] } },
+    { name:'add_event', description:'הוסף אירוע ליומן בתאריך מסוים',
+      input_schema:{ type:'object', properties:{
+        title:{type:'string'}, date:{type:'string',description:'YYYY-MM-DD'}, time:{type:'string',description:'HH:MM'} },
+        required:['title','date'] } },
+    { name:'add_habit', description:'הוסף הרגל חדש למעקב',
+      input_schema:{ type:'object', properties:{ name:{type:'string'} }, required:['name'] } },
+    { name:'log_habit', description:'תעד הרגל כבוצע היום',
+      input_schema:{ type:'object', properties:{ name:{type:'string'} }, required:['name'] } },
+    { name:'add_note', description:'שמור פתק או מידע חשוב',
+      input_schema:{ type:'object', properties:{ title:{type:'string'}, content:{type:'string'} }, required:['content'] } },
+    { name:'add_goal', description:'הוסף מטרה',
+      input_schema:{ type:'object', properties:{ text:{type:'string'}, emoji:{type:'string'} }, required:['text'] } },
+    { name:'add_idea', description:'שמור רעיון',
+      input_schema:{ type:'object', properties:{ text:{type:'string'}, cat:{type:'string'} }, required:['text'] } },
+    { name:'add_journal', description:'הוסף רשומה ליומן האישי',
+      input_schema:{ type:'object', properties:{ text:{type:'string'} }, required:['text'] } },
+    { name:'add_job', description:'הוסף משרה למעקב חיפוש העבודה',
+      input_schema:{ type:'object', properties:{
+        title:{type:'string'}, company:{type:'string'},
+        status:{type:'string',description:'waiting/interview/offer/rejected'}, link:{type:'string'} },
+        required:['title'] } },
+    { name:'update_project', description:'עדכן אחוז התקדמות של פרויקט',
+      input_schema:{ type:'object', properties:{ id:{type:'string'}, progress:{type:'number'} }, required:['id','progress'] } },
+    { name:'update_schedule_block', description:'עדכן סטטוס של בלוק בלוז היום',
+      input_schema:{ type:'object', properties:{
+        block_id:{type:'string'}, status:{type:'string',description:'completed/partial/missed/skipped'},
+        actual_minutes:{type:'number'}, actual_activity:{type:'string'} },
+        required:['block_id','status'] } },
+    { name:'navigate', description:'נווט לעמוד באפליקציה',
+      input_schema:{ type:'object', properties:{ page:{type:'string',
+        description:'dashboard/agenda/tasks/reminders/jobs/upselles/health/apartment/family/ideas/journal/goals/finance/notes/news/ds-ai'} },
+        required:['page'] } },
+    { name:'get_data', description:'קבל תמונת מצב עדכנית של כל הנתונים — משימות, אירועים, פרויקטים, לוז',
+      input_schema:{ type:'object', properties:{} } },
+  ];
 
-ענה תמיד ב-JSON: {"speech":"<תשובה קצרה בעברית>","actions":[{"tool":"שם","args":{...}}]}
-אם זו שיחה פשוטה — actions יהיה [].
-אל תמציא נתונים. הישאר קצר וממוקד.`;
-
-    // Try app's callClaude first
-    if (typeof window.callClaude === 'function') {
-      try {
-        const raw = await window.callClaude(prompt, sys);
-        const text = typeof raw === 'string' ? raw : (raw?.text || raw?.content || JSON.stringify(raw) || '');
-        return await _parseAndExecuteLLM(text, prompt);
-      } catch (e) { /* fall through */ }
-    }
-
-    // Try Anthropic API directly via fetch
-    const apiKey = settings().anthropicKey || window.__ANTHROPIC_KEY;
-    if (apiKey) {
-      try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-          body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 512,
-            system: sys,
-            messages: [{ role: 'user', content: prompt }]
-          })
-        });
-        const data = await res.json();
-        const text = data?.content?.[0]?.text || '';
-        if (text) return await _parseAndExecuteLLM(text, prompt);
-      } catch (e) { /* fall through */ }
-    }
-
-    return `שמעתי: "${prompt}". נסה: "מה יש לי היום", "הוסף משימה...", "מה אני מאחר", "פתח לוז", "Project Hub".`;
+  function zoroContext() {
+    const base = (window.POS && window.POS.snapshot) ? window.POS.snapshot() : {};
+    let jc = {};
+    try { jc = quickContext(); } catch (e) {}
+    const todayBlocks = (jc.todayBlocks || []).map(b => ({
+      start:b.start, end:b.end, title:b.title, status:b.status
+    }));
+    return { ...base, todaySchedule: todayBlocks, projectDebt: jc.projectDebt || [] };
   }
 
-  async function _parseAndExecuteLLM(text, originalPrompt) {
+  function zoroSystemPrompt(ctx) {
+    return `אתה זורו — העוזר האישי החכם של Roei ב-Personal OS, בהשראת JARVIS של איירון מן.
+אישיות: רגוע, חד, יעיל וחם. מדבר עברית טבעית, קצר וענייני. פונה ל-Roei בשמו.
+תאריך היום: ${ctx.date || ''}.
+
+מצב נוכחי:
+- משימות פתוחות: ${(ctx.openTasks||[]).map(t=>t.text).join(' | ') || 'אין'}
+- אירועים קרובים: ${(ctx.upcomingEvents||[]).map(e=>e.date+' '+e.text).join(' | ') || 'אין'}
+- לוז היום: ${(ctx.todaySchedule||[]).map(b=>b.start+' '+b.title+' ['+b.status+']').join(' | ') || 'לא נטען'}
+- פרויקטים: ${(ctx.projects||[]).map(p=>p.name+' '+p.progress+'%').join(' | ') || 'אין'}
+- חוב שבועי: ${(ctx.projectDebt||[]).join(', ') || 'אין'}
+
+עקרונות:
+1. כשמבקשים לבצע משהו (להוסיף, לסמן, לעדכן, לנווט) — בצע מיד עם הכלי המתאים, בלי לשאול אישור.
+2. תמיד דווח בקצרה מה עשית. אם רק שאלו שאלה — ענה ישירות בלי כלים.
+3. אל תמציא נתונים. אם חסר לך מידע עדכני — השתמש ב-get_data.
+4. ענה תמיד בעברית, משפט-שניים, בלי רשימות ארוכות אלא אם ביקשו במפורש.
+5. מותר להפעיל כמה כלים ברצף כדי להשלים בקשה מורכבת.`;
+  }
+
+  function executeZoroTool(name, input) {
+    const P = window.POS;
+    input = input || {};
+    if (!P && name !== 'update_schedule_block') return 'המערכת עוד נטענת, נסה שוב';
     try {
-      const j = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || text);
-      if (j && j.speech) {
-        // execute actions if present
-        if (Array.isArray(j.actions)) {
-          for (const act of j.actions) {
-            try {
-              if (act.tool === 'goPage' && typeof window.goPage === 'function') window.goPage(act.args?.page);
-              else if (act.tool === 'addTask' && typeof window.addTask === 'function') window.addTask(act.args);
-              else if (act.tool === 'addReminder' && typeof window.addReminder === 'function') window.addReminder(act.args);
-              else if (act.tool === 'setBlockStatus') {
-                const a = act.args || {};
-                setBlockStatus(a.blockId, new Date(), { status: a.status, actualMinutes: a.actualMinutes, actualActivity: a.actualActivity });
-              }
-              else if (act.tool === 'showDebt') ACTIONS.showDebt();
-              else if (act.tool === 'openSchedule') openScheduleModal();
-            } catch (e) { /* silent */ }
-          }
-        }
-        return j.speech;
+      switch (name) {
+        case 'add_task':       return P.addTask(input);
+        case 'complete_task':  return P.completeTask(input);
+        case 'add_reminder':   return P.addReminder(input);
+        case 'add_event':      return P.addEvent(input);
+        case 'add_habit':      return P.addHabit(input);
+        case 'log_habit':      return P.logHabit(input);
+        case 'add_note':       return P.addNote(input);
+        case 'add_goal':       return P.addGoal(input);
+        case 'add_idea':       return P.addIdea(input);
+        case 'add_journal':    return P.addJournal(input);
+        case 'add_job':        return P.addJob(input);
+        case 'update_project': return P.updateProject(input);
+        case 'navigate':       return P.navigate(input.page);
+        case 'get_data':       return JSON.stringify(zoroContext());
+        case 'update_schedule_block':
+          try {
+            setBlockStatus(input.block_id, new Date(), {
+              status: input.status,
+              actualMinutes: input.actual_minutes,
+              actualActivity: input.actual_activity
+            });
+            return 'בלוק הלוז עודכן: ' + input.status;
+          } catch (e) { return 'לא הצלחתי לעדכן את הבלוק'; }
+        default: return 'כלי לא מוכר: ' + name;
       }
-      // JSON parsed but no .speech — return raw text
-      return text.slice(0, 500);
-    } catch(e) {
-      // Not JSON — plain text AI response, return as-is
-      if (text && text.length > 0) return text.slice(0, 500);
-      return 'לא הצלחתי לעבד את התשובה.';
+    } catch (e) { return 'שגיאה בכלי ' + name + ': ' + e.message; }
+  }
+
+  async function zoroAPICall(system, messages) {
+    try {
+      const res = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1024,
+          system,
+          tools: ZORO_TOOLS,
+          messages
+        })
+      });
+      if (!res.ok) return { _error: 'api ' + res.status };
+      const data = await res.json();
+      if (data && data.error) return { _error: data.error.message || 'api error' };
+      return data;
+    } catch (e) { return { _error: e.message }; }
+  }
+
+  // Main entry — a real tool-use agent. Replaces the old broken llmFallback.
+  async function llmFallback(prompt) {
+    prompt = (prompt || '').trim();
+    if (!prompt) return '';
+
+    const ctx = zoroContext();
+    const system = zoroSystemPrompt(ctx);
+
+    zoroMem.push({ role:'user', content: prompt });
+    let messages = zoroMem.slice(-16).map(m => ({ role:m.role, content:m.content }));
+    while (messages.length && messages[0].role !== 'user') messages.shift();
+
+    let loops = 0;
+    while (loops++ < 6) {
+      const data = await zoroAPICall(system, messages);
+      if (data._error) {
+        zoroMem.pop(); // drop the failed turn so memory stays valid
+        return 'לא הצלחתי להתחבר כרגע (' + data._error + '). נסה שוב בעוד רגע.';
+      }
+      const blocks = Array.isArray(data.content) ? data.content : [];
+      const toolUses = blocks.filter(b => b.type === 'tool_use');
+      const textOut = blocks.filter(b => b.type === 'text').map(b => b.text).join('').trim();
+
+      if (toolUses.length === 0) {
+        zoroMem.push({ role:'assistant', content: textOut });
+        saveZoroMem();
+        return textOut || 'בוצע.';
+      }
+
+      // execute the requested tools and feed the results back
+      messages.push({ role:'assistant', content: blocks });
+      const results = [];
+      for (const tu of toolUses) {
+        const out = executeZoroTool(tu.name, tu.input);
+        results.push({ type:'tool_result', tool_use_id: tu.id, content: String(out) });
+      }
+      messages.push({ role:'user', content: results });
     }
+
+    saveZoroMem();
+    return 'הבקשה מורכבת מדי — נסה לפצל אותה לכמה צעדים.';
   }
 
   function quickContext() {
@@ -1125,27 +1231,14 @@
     };
   }
 
+  // Every command — voice, chat, or chip — goes through the Zoro agent.
+  // The agent decides what to do and executes tools itself.
   async function handle(text) {
-    const r = route(text);
-    if (!r) return llmFallback(text); // fallback הכל ל-LLM
-
-    // פעולות שצריכות AI response — שלח ל-llmFallback עם context
-    const llmRoutes = ['queryDue','morningBrief','eveningBrief','llmFallback'];
-    if (llmRoutes.includes(r.action)) {
-      const out = await llmFallback(r.action === 'llmFallback' ? r.args.text : text);
-      logEvent('llm', r.args, out);
-      return out;
-    }
-
-    // פעולות שמבצעות משהו (פתיחת modal, ניווט) — בצע + תן תשובה קצרה
-    const fn = ACTIONS[r.action];
-    if (!fn) return llmFallback(text);
-    const actionResult = fn(r.args);
-
-    // אחרי ביצוע, שאל AI לתת context רלוונטי
-    const contextResponse = await llmFallback(text).catch(() => actionResult);
-    logEvent(r.action, r.args, contextResponse);
-    return contextResponse || actionResult || '';
+    text = (text || '').trim();
+    if (!text) return '';
+    const out = await llmFallback(text);
+    try { logEvent('zoro', { text }, out); } catch (e) {}
+    return out;
   }
 
   // ────────────────────────────────────────────────────────────────────────
@@ -1301,9 +1394,12 @@
   function getCurrentUser() { return sessionStorage.getItem(SESSION_USER) || null; }
   function getCurrentUserDisplay() {
     const u = getCurrentUser();
-    if (!u) return 'Guest';
+    if (!u) return 'Roei';
     const acc = getAccounts()[u];
-    return acc?.displayName || u;
+    const name = acc?.displayName || u;
+    // Never show the email address as a name — fall back to Roei.
+    if (!name || name.includes('@')) return 'Roei';
+    return name;
   }
 
   function installAccountProxy(username) {
@@ -3293,6 +3389,7 @@ section, .row, [class*="row-"], [class*="-row"] {
       };
 
       setTimeout(openLockScreen, 900);
+      loadZoroMem();
 
       // Inject on page navigation
       const _origGoPage = window.goPage;
@@ -3316,7 +3413,7 @@ section, .row, [class*="row-"], [class*="-row"] {
         }
       });
       _gridObserver.observe(document.body, { childList: true, subtree: true });
-      console.log('%cזורו v5.0 online — chat UI, week grid injection, drag-drop, real AI, dark theme fix.', 'color:#00d4ff;font-weight:bold;font-size:14px');
+      console.log('%cזורו v5.2 online — real tool-use AI agent, POS bridge, full data access.', 'color:#00d4ff;font-weight:bold;font-size:14px');
     };
 
     // If already logged in this session → go directly

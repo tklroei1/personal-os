@@ -3289,6 +3289,123 @@ function executeClientTool(toolName,input){
   }
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  POS BRIDGE — unified programmatic API for AI agents (Zoro + page agents)
+//  One safe surface for reading and writing every kind of app data.
+// ════════════════════════════════════════════════════════════════════════
+window.POS = (function(){
+  const uid = ()=>Date.now()+Math.floor(Math.random()*1000);
+  const norm = s=>(s||'').toString().toLowerCase().trim();
+  function refresh(){
+    const calls=['renderAll','buildWeekGrid','renderReminders','renderDashReminders',
+      'renderGoals','renderIdeas','renderJEntries','renderNotes','renderJobs',
+      'renderKanban','renderApts','updateStats','updateCatProgress'];
+    calls.forEach(fn=>{try{if(typeof window[fn]==='function')window[fn]();}catch(e){}});
+  }
+  return {
+    version:'1.1',
+    // ───── READ ─────
+    getState(){return S;},
+    snapshot(){
+      const today=new Date().toISOString().split('T')[0];
+      const ev=[];
+      Object.keys(S.weekEvents||{}).sort().filter(d=>d>=today).slice(0,10).forEach(d=>{
+        (S.weekEvents[d]||[]).forEach(e=>ev.push({date:d,text:e.text||e.title||''}));
+      });
+      let userName='Roei';
+      try{if(typeof currentUser!=='undefined'&&currentUser&&currentUser.name&&!currentUser.name.includes('@'))userName=currentUser.name;}catch(e){}
+      return {
+        date:today, user:userName,
+        openTasks:(S.tasks||[]).filter(t=>!t.done).map(t=>({id:t.id,text:t.text,proj:t.proj,cat:t.cat})),
+        doneTasksCount:(S.tasks||[]).filter(t=>t.done).length,
+        habits:(S.habits||[]).map(h=>h.name),
+        upcomingEvents:ev,
+        reminders:(S.reminders||[]).filter(r=>!r.done).map(r=>({text:r.text,date:r.date,time:r.time})),
+        projects:(S.projects||[]).map(p=>({id:p.id,name:p.name,progress:p.progress})),
+        goals:(S.goals||[]).map(g=>({text:g.text,progress:g.progress})),
+        jobs:(S.jobs||[]).map(j=>({title:j.title,company:j.company,status:j.status})),
+        aptsCount:(S.apts||[]).length,
+        ideas:(S.ideas||[]).map(i=>i.text)
+      };
+    },
+    // ───── TASKS ─────
+    addTask(a){a=a||{};const text=(a.text||a.title||'').trim();
+      if(!text)return'חסר טקסט למשימה';
+      S.tasks.unshift({id:uid(),text,done:false,cat:a.cat||a.category||'work',period:a.period||'once',proj:a.proj||a.project||'none',progress:0,status:'',createdBy:'agent'});
+      save();refresh();return'נוספה משימה: '+text;},
+    completeTask(a){a=a||{};const q=norm(a.query||a.task_title||a.text);
+      const t=(S.tasks||[]).find(x=>!x.done&&norm(x.text).includes(q));
+      if(!t)return'לא מצאתי משימה פתוחה שמתאימה';
+      t.done=true;save();refresh();return'סומנה כבוצעה: '+t.text;},
+    // ───── REMINDERS ─────
+    addReminder(a){a=a||{};const text=(a.text||a.title||'').trim();
+      if(!text)return'חסר טקסט לתזכורת';
+      if(!S.reminders)S.reminders=[];
+      S.reminders.unshift({id:uid(),text,date:a.date||new Date().toISOString().split('T')[0],time:a.time||'09:00',done:false,repeat:a.repeat||''});
+      save();refresh();return'נוספה תזכורת: '+text+(a.date?' ל-'+a.date:'');},
+    // ───── EVENTS ─────
+    addEvent(a){a=a||{};const title=(a.title||a.text||'').trim();const date=a.date;
+      if(!title||!date)return'צריך כותרת ותאריך לאירוע';
+      if(!S.weekEvents)S.weekEvents={};
+      if(!S.weekEvents[date])S.weekEvents[date]=[];
+      S.weekEvents[date].push({id:uid(),text:title+(a.time?' '+a.time:''),time:a.time||'',color:'#6c63ff'});
+      save();refresh();return'נוסף אירוע: '+title+' ב-'+date;},
+    // ───── HABITS ─────
+    addHabit(a){a=a||{};const name=(a.name||a.text||'').trim();
+      if(!name)return'חסר שם להרגל';
+      if(!S.habits)S.habits=[];
+      if(S.habits.some(h=>h.name===name))return'ההרגל כבר קיים';
+      S.habits.push({name,days:[0,0,0,0,0,0,0]});
+      save();refresh();return'נוסף הרגל: '+name;},
+    logHabit(a){a=a||{};const q=norm(a.name||a.habit_name||a.text);
+      const h=(S.habits||[]).find(x=>norm(x.name).includes(q));
+      if(!h)return'לא מצאתי הרגל מתאים';
+      h.days[new Date().getDay()]=1;save();refresh();return'תועד: '+h.name;},
+    // ───── NOTES ─────
+    addNote(a){a=a||{};const content=(a.content||a.text||'').trim();
+      if(!content)return'חסר תוכן לפתק';
+      if(!S.notes)S.notes=[];
+      S.notes.unshift({id:uid(),title:a.title||'פתק',content,pinned:false,ts:new Date().toISOString()});
+      save();refresh();return'נשמר פתק';},
+    // ───── GOALS ─────
+    addGoal(a){a=a||{};const text=(a.text||a.title||'').trim();
+      if(!text)return'חסר טקסט למטרה';
+      if(!S.goals)S.goals=[];
+      S.goals.push({text,progress:a.progress||0,emoji:a.emoji||'🎯'});
+      save();refresh();return'נוספה מטרה: '+text;},
+    // ───── IDEAS ─────
+    addIdea(a){a=a||{};const text=(a.text||a.title||'').trim();
+      if(!text)return'חסר טקסט לרעיון';
+      if(!S.ideas)S.ideas=[];
+      S.ideas.unshift({id:uid(),text,cat:a.cat||'general',date:new Date().toLocaleDateString('he-IL'),starred:false});
+      save();refresh();return'נשמר רעיון';},
+    // ───── JOURNAL ─────
+    addJournal(a){a=a||{};const text=(a.text||a.content||'').trim();
+      if(!text)return'חסר טקסט ליומן';
+      if(!S.journalEntries)S.journalEntries=[];
+      S.journalEntries.unshift({id:uid(),text,date:new Date().toISOString(),mood:a.mood||''});
+      save();refresh();return'נשמרה רשומת יומן';},
+    // ───── JOBS ─────
+    addJob(a){a=a||{};const title=(a.title||'').trim();
+      if(!title)return'חסר תפקיד';
+      if(!S.jobs)S.jobs=[];
+      S.jobs.unshift({title,company:a.company||'',cat:a.cat||'',status:a.status||'waiting',match:a.match||0,date:new Date().toLocaleDateString('he-IL'),link:a.link||''});
+      save();refresh();return'נוספה משרה: '+title+(a.company?' ב-'+a.company:'');},
+    // ───── PROJECTS ─────
+    updateProject(a){a=a||{};const q=norm(a.id||a.name);
+      const p=(S.projects||[]).find(x=>norm(x.id)===q||norm(x.name).includes(q));
+      if(!p)return'לא מצאתי פרויקט';
+      if(a.progress!=null)p.progress=Math.max(0,Math.min(100,Number(a.progress)));
+      save();refresh();return'עודכן פרויקט '+p.name;},
+    // ───── NAV / UI ─────
+    navigate(page){if(!page)return'חסר עמוד';
+      try{goPage(page);}catch(e){return'לא הצלחתי לנווט';}
+      return'נפתח: '+page;},
+    notify(msg){try{showNotif(msg);}catch(e){}return'ok';},
+    refresh
+  };
+})();
+
 // Workspace task helpers
 function addWsTask(wsId){
   const inp=document.getElementById(`${wsId}-quick-inp`);
@@ -3466,10 +3583,10 @@ function renderUserProfile(){
   const el=document.getElementById('user-email-lbl');
   const pl=document.getElementById('user-photo');
   const av=document.getElementById('ava');
-  if(nl)nl.textContent=currentUser.name;
-  if(el)el.textContent=currentUser.email;
+  if(nl)nl.textContent='Roei';
+  if(el){el.textContent='';el.style.display='none';}
   if(pl&&currentUser.picture){pl.src=currentUser.picture;pl.style.display='block';}
-  if(av)av.textContent=currentUser.name.charAt(0).toUpperCase();
+  if(av)av.textContent='R';
   document.getElementById('user-info-bar').classList.add('visible');
   document.getElementById('gsignin-wrap').style.display='none';
 }
