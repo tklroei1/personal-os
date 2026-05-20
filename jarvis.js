@@ -27,13 +27,13 @@
   // ────────────────────────────────────────────────────────────────────────
   //  0. CONFIG
   // ────────────────────────────────────────────────────────────────────────
-  const VERSION       = '4.0.0';
+  const VERSION       = '5.0.0';
   const STATE_KEY     = 'pos3';
   const LOG_KEY       = 'pos3_jarvis_log';
   const SCHED_KEY     = 'pos3_jarvis_schedule';
   const PERSONA_KEY   = 'pos3_jarvis_persona';
   const SETTINGS_KEY  = 'pos3_jarvis_settings';
-  const WAKE_WORDS    = ['ג׳רוויס', 'גרוויס', "ג'רוויס", 'גארביס', 'jarvis', 'הג׳רוויס', 'הי גרוויס'];
+  const WAKE_WORDS    = ['זורו','zoro','ג׳רוויס', 'גרוויס', "ג'רוויס", 'גארביס', 'jarvis', 'הג׳רוויס', 'הי גרוויס', 'היי זורו'];
   const LANG          = 'he-IL';
   const ACCENT        = '#00d4ff';   // arc-reactor cyan
   const ACCENT_WARM   = '#ff8a3d';   // warning amber
@@ -818,7 +818,7 @@
       if (perm === 'granted') {
         hud.toast('🔔 Notifications enabled!', 'ok');
         speak('Great. I\'ll now send you push notifications for reminders and briefings.');
-        new Notification('JARVIS is connected 🔔', {
+        new Notification('זורו מחובר 🔔', {
           body: 'You\'ll get reminders and briefing alerts from here.',
           icon: '/favicon.ico'
         });
@@ -1021,41 +1021,85 @@
   }
 
   async function llmFallback(prompt) {
-    // Real AI agent — calls window.callClaude with structured tool-use prompt.
+    const ctx = quickContext();
+    const debt = ctx.projectDebt && ctx.projectDebt.length ? ctx.projectDebt.join(', ') : 'אין חוב';
+    const todayBlocks = ctx.todayBlocks?.map(b=>`${b.start}-${b.end} ${b.title} [${b.status}]`).join('; ') || 'לא נטען';
+
+    const sys = `אתה זורו — העוזר האישי של רועי קליין ב-Personal OS.
+אתה מדבר עברית בצורה טבעית וידידותית, קצר וממוקד.
+תאריך: ${ctx.today}. משימות פתוחות: ${ctx.tasksOpen}. חוב שבועי: ${debt}.
+לוז היום: ${todayBlocks}.
+פרויקטים: ${ctx.projects?.join(', ')}.
+
+כלים שיש לך:
+- goPage(page) — עבור לעמוד (dashboard/schedule/tasks/projects/reminders)
+- addTask(text,priority,proj) — הוסף משימה
+- addReminder(text,when) — הוסף תזכורת
+- setBlockStatus(blockId,status,actualMinutes,actualActivity) — עדכן בלוק לוז
+- showDebt() — הצג חוב פרויקטים
+- openSchedule() — פתח לוז
+
+ענה תמיד ב-JSON: {"speech":"<תשובה קצרה בעברית>","actions":[{"tool":"שם","args":{...}}]}
+אם זו שיחה פשוטה — actions יהיה [].
+אל תמציא נתונים. הישאר קצר וממוקד.`;
+
+    // Try app's callClaude first
     if (typeof window.callClaude === 'function') {
       try {
-        const ctx = quickContext();
-        const sys = `You are JARVIS, Roei Klein's AI personal assistant embedded in his Personal OS app.
-You have access to these tools: goPage(page), addTask(text,priority,proj), addReminder(text,when), setBlockStatus(blockId,status), speak(text).
-Today: ${ctx.today}. Open tasks: ${ctx.tasksOpen}. Projects: ${ctx.projects?.join(', ')}.
-Weekly schedule blocks: ${ctx.todayBlocks?.map(b=>b.start+' '+b.title).join('; ') || 'none loaded'}.
-Reply ONLY with valid JSON: {"speech":"<1-2 sentence reply>","actions":[{"tool":"<toolName>","args":{...}}]}
-Keep speech concise and direct. Actions array can be empty. Do not invent data.`;
         const raw = await window.callClaude(prompt, sys);
-        const text = typeof raw === 'string' ? raw : (raw?.text || '');
-        // Try to parse JSON response
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          // Execute actions
-          if (Array.isArray(parsed.actions)) {
-            for (const act of parsed.actions) {
-              try {
-                if (act.tool === 'goPage' && typeof window.goPage === 'function') window.goPage(act.args.page);
-                else if (act.tool === 'addTask' && typeof window.addTask === 'function') window.addTask(act.args);
-                else if (act.tool === 'addReminder' && typeof window.addReminder === 'function') window.addReminder(act.args);
-                else if (act.tool === 'setBlockStatus') setBlockStatus(act.args.blockId, new Date(), { status: act.args.status });
-                else if (act.tool === 'speak') speak(act.args.text);
-              } catch (e) { /* silent */ }
-            }
-          }
-          return parsed.speech || 'Done.';
-        }
-        // Plain text fallback
-        return text.slice(0, 200) || 'Got it.';
-      } catch (e) { return 'Understood, but I ran into an issue processing that.'; }
+        const text = typeof raw === 'string' ? raw : (raw?.text || raw?.content || JSON.stringify(raw) || '');
+        return await _parseAndExecuteLLM(text, prompt);
+      } catch (e) { /* fall through */ }
     }
-    return `I heard "${prompt}". I can't handle that command yet — try: "what's today", "add task...", "remind me about...", "open project hub", or "schedule X from Y to Z".`;
+
+    // Try Anthropic API directly via fetch
+    const apiKey = settings().anthropicKey || window.__ANTHROPIC_KEY;
+    if (apiKey) {
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 512,
+            system: sys,
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
+        const data = await res.json();
+        const text = data?.content?.[0]?.text || '';
+        if (text) return await _parseAndExecuteLLM(text, prompt);
+      } catch (e) { /* fall through */ }
+    }
+
+    return `שמעתי: "${prompt}". נסה: "מה יש לי היום", "הוסף משימה...", "מה אני מאחר", "פתח לוז", "Project Hub".`;
+  }
+
+  async function _parseAndExecuteLLM(text, originalPrompt) {
+    const jsonMatch = text.match(/\{[\s\S]*?\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed.actions)) {
+          for (const act of parsed.actions) {
+            try {
+              if (act.tool === 'goPage' && typeof window.goPage === 'function') window.goPage(act.args?.page);
+              else if (act.tool === 'addTask' && typeof window.addTask === 'function') window.addTask(act.args);
+              else if (act.tool === 'addReminder' && typeof window.addReminder === 'function') window.addReminder(act.args);
+              else if (act.tool === 'setBlockStatus') {
+                const a = act.args || {};
+                setBlockStatus(a.blockId, new Date(), { status: a.status, actualMinutes: a.actualMinutes, actualActivity: a.actualActivity });
+              }
+              else if (act.tool === 'showDebt') ACTIONS.showDebt();
+              else if (act.tool === 'openSchedule') openScheduleModal();
+            } catch (e) { /* silent */ }
+          }
+        }
+        return parsed.speech || 'בוצע.';
+      } catch (e) { /* not valid JSON */ }
+    }
+    // Plain text: return as-is (truncated)
+    return text.slice(0, 300) || 'בוצע.';
   }
 
   function quickContext() {
@@ -1172,15 +1216,20 @@ Keep speech concise and direct. Actions array can be empty. Do not invent data.`
     };
   }
   async function processSpoken(text) {
+    hud.appendChat('user', text);
     hud.setHeard(text);
     hud.setState('thinking');
+    const typing = hud.showTyping();
     try {
       const reply = await handle(text);
-      if (reply) { hud.setReply(reply); speak(reply); }
+      if (typing) typing.remove();
+      if (reply) { hud.appendChat('bot', reply); speak(reply); }
     } catch (e) {
-      hud.toast('משהו השתבש: ' + e.message, 'error');
+      if (typing) typing.remove();
+      hud.toast('שגיאה: ' + e.message, 'error');
     } finally {
       hud.setState('idle');
+      hud.setHeard('');
       listeningHard = false;
     }
   }
@@ -1357,7 +1406,7 @@ Keep speech concise and direct. Actions array can be empty. Do not invent data.`
           background:#0a0a0a;border:1px solid rgba(255,255,255,.1);border-radius:20px;
           box-shadow:0 40px 80px rgba(0,0,0,.9)">
           <div style="text-align:center;margin-bottom:32px">
-            <div style="font-size:42px;font-weight:100;color:#00d4ff;letter-spacing:4px;margin-bottom:8px">JARVIS</div>
+            <div style="font-size:42px;font-weight:100;color:#00d4ff;letter-spacing:4px;margin-bottom:8px">זורו</div>
             <div style="font-size:13px;color:rgba(255,255,255,.4)">Personal OS &nbsp;·&nbsp; ${mode==='login' ? 'Sign in' : 'Create account'}</div>
           </div>
           <div style="margin-bottom:14px">
@@ -1639,7 +1688,20 @@ section, .row, [class*="row-"], [class*="-row"] {
   color: #fff !important;
 }
 
-/* ═══ JARVIS HUD itself — update to match ═══ */
+/* ── Week grid — dark theme fix (was white-on-white) ── */
+.wg-wrap { background: var(--jv-bg2) !important; border-radius: var(--jv-radius) !important; overflow: hidden !important; }
+.wg-hdr { background: rgba(0,212,255,.07) !important; color: var(--jv-accent) !important; font-size:11px !important; font-weight:700 !important; letter-spacing:.4px !important; padding:6px 4px !important; text-align:center !important; border-color: rgba(0,212,255,.15) !important; }
+.wg-time { background: var(--jv-bg3) !important; color: var(--jv-text3) !important; font-size:10px !important; text-align:center !important; padding:3px 2px !important; border-color: rgba(255,255,255,.05) !important; }
+.wg-cell { background: var(--jv-bg2) !important; border-color: rgba(255,255,255,.05) !important; transition: background .12s !important; }
+.wg-cell:hover { background: rgba(0,212,255,.04) !important; }
+.wg-ev { border-radius: 6px !important; font-size: 11px !important; padding: 3px 6px !important; font-weight: 500 !important; cursor: grab !important; color: #fff !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+.wg-ev:active { cursor: grabbing !important; opacity: .8 !important; }
+.jv-sched-ev { border-radius: 5px; padding: 2px 5px; font-size: 10px; font-weight: 600; color: #fff !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; margin: 1px 0; display: block; line-height: 1.4; }
+.jv-sched-ev:hover { filter: brightness(1.15); transform: scale(1.01); }
+.jv-sched-ev.dragging { opacity: .5; }
+.wg-cell.drag-over { background: rgba(0,212,255,.12) !important; border: 1px dashed var(--jv-accent) !important; }
+
+/* ═══ זורו HUD itself — update to match ═══ */
 .jv-panel {
   background: rgba(10,10,12,.95) !important;
   border-color: rgba(0,212,255,.25) !important;
@@ -1726,18 +1788,34 @@ section, .row, [class*="row-"], [class*="-row"] {
       root = document.createElement('div'); root.className = 'jv-root';
       root.innerHTML = `
         <div class="jv-panel" id="jv-panel">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <div class="jv-status" id="jv-status">JARVIS</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:6px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:15px;font-weight:700;color:#00d4ff;letter-spacing:1px">זורו</span>
+              <div class="jv-status" id="jv-status" style="font-size:11px;opacity:.55;font-weight:400">מוכן</div>
+            </div>
             <button id="jv-panel-close" title="Close" style="background:none;border:none;color:#8b9bb4;cursor:pointer;font-size:16px;padding:0 0 0 8px;line-height:1;transition:color .15s" onmouseenter="this.style.color='#fff'" onmouseleave="this.style.color='#8b9bb4'">✕</button>
           </div>
-          <div class="jv-heard" id="jv-heard"></div>
-          <div class="jv-reply" id="jv-reply">Hey Roei. I'm online. Say "Jarvis" or tap the orb to start.</div>
-          <div class="jv-actions" id="jv-actions">
-            <button class="jv-chip" data-cmd="מה יש לי היום">📋 Today</button>
-            <button class="jv-chip" data-cmd="מה לעשות עכשיו">⚡ What now</button>
-            <button class="jv-chip" data-cmd="מה אני חייב השבוע">📅 This week</button>
-            <button class="jv-chip" data-cmd="חוב פרויקטים">⚠️ Debt</button>
-            <button class="jv-chip" data-cmd="סיכום הבוקר">🌅 Morning brief</button>
+          <div id="jv-chat-log" style="flex:1;overflow-y:auto;max-height:220px;min-height:60px;display:flex;flex-direction:column;gap:6px;margin-bottom:8px;padding-right:2px">
+            <div class="jv-msg jv-msg-bot" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);border-radius:10px 10px 10px 2px;padding:7px 10px;font-size:12px;color:#e6f3ff;max-width:90%;align-self:flex-start">
+              היי רועי, אני זורו — העוזר שלך. תגיד לי מה לעשות, כתוב כאן, או לחץ על ה-orb לדיבור.
+            </div>
+          </div>
+          <div class="jv-heard" id="jv-heard" style="font-size:11px;opacity:.6;margin-bottom:4px;min-height:0"></div>
+          <div id="jv-chat-input-row" style="display:flex;gap:6px;margin-bottom:6px">
+            <input id="jv-chat-input" type="text" placeholder="כתוב פקודה..." dir="rtl"
+              style="flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;
+                     padding:6px 10px;font-size:12px;color:#f5f5f7;outline:none;font-family:inherit"/>
+            <button id="jv-chat-send"
+              style="background:#00d4ff;border:none;border-radius:8px;padding:6px 10px;
+                     cursor:pointer;font-size:14px;color:#000;font-weight:700;transition:opacity .15s"
+              onmouseenter="this.style.opacity='.8'" onmouseleave="this.style.opacity='1'">↑</button>
+          </div>
+          <div class="jv-actions" id="jv-actions" style="display:flex;flex-wrap:wrap;gap:4px">
+            <button class="jv-chip" data-cmd="מה יש לי היום">📋 היום</button>
+            <button class="jv-chip" data-cmd="מה לעשות עכשיו">⚡ מה עכשיו</button>
+            <button class="jv-chip" data-cmd="מה אני חייב השבוע">📅 השבוע</button>
+            <button class="jv-chip" data-cmd="חוב פרויקטים">⚠️ חוב</button>
+            <button class="jv-chip" data-cmd="סיכום הבוקר">🌅 בריפינג</button>
           </div>
         </div>
         <div class="jv-dock" id="jv-dock">
@@ -1811,6 +1889,7 @@ section, .row, [class*="row-"], [class*="-row"] {
       });
 
       window._jvEdge = edge;
+      wireChatInput();
     }
 
     function toggleListen() {
@@ -1823,15 +1902,61 @@ section, .row, [class*="row-"], [class*="-row"] {
       if (!orb) return;
       orb.classList.remove('listening','thinking','speaking');
       if (s !== 'idle') orb.classList.add(s);
-      const labels = { idle:'JARVIS', listening:'מקשיב…', thinking:'חושב…', speaking:'מדבר…' };
-      if (statusEl) statusEl.textContent = labels[s] || 'JARVIS';
+      const labels = { idle:'מוכן', listening:'מקשיב…', thinking:'חושב…', speaking:'מדבר…' };
+      if (statusEl) statusEl.textContent = labels[s] || 'מוכן';
       if (window._jvEdge) {
         if (s === 'listening' || s === 'thinking') window._jvEdge.classList.add('active');
         else window._jvEdge.classList.remove('active');
       }
     }
     function setHeard(t) { if (heard) heard.textContent = t ? '🎙 ' + t : ''; if (panel) panel.classList.add('show'); }
-    function setReply(t) { if (reply) reply.textContent = t; if (panel) panel.classList.add('show'); }
+    function setReply(t) { appendChat('bot', t); if (panel) panel.classList.add('show'); }
+
+    function appendChat(who, text) {
+      const log = document.getElementById('jv-chat-log');
+      if (!log) return;
+      const isBot = who === 'bot';
+      const div = document.createElement('div');
+      div.className = 'jv-msg jv-msg-' + who;
+      div.style.cssText = isBot
+        ? 'background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);border-radius:10px 10px 10px 2px;padding:7px 10px;font-size:12px;color:#e6f3ff;max-width:90%;align-self:flex-start;word-break:break-word'
+        : 'background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:10px 10px 2px 10px;padding:7px 10px;font-size:12px;color:#f5f5f7;max-width:85%;align-self:flex-end;word-break:break-word;direction:rtl';
+      div.textContent = text;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function showTyping() {
+      const log = document.getElementById('jv-chat-log');
+      if (!log) return null;
+      const div = document.createElement('div');
+      div.id = 'jv-typing';
+      div.style.cssText = 'background:rgba(0,212,255,.08);border-radius:10px 10px 10px 2px;padding:7px 12px;font-size:18px;color:#00d4ff;align-self:flex-start;letter-spacing:3px';
+      div.textContent = '···';
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+      return div;
+    }
+
+    // Wire up text input
+    function wireChatInput() {
+      const inp = document.getElementById('jv-chat-input');
+      const btn = document.getElementById('jv-chat-send');
+      if (!inp || !btn) return;
+      const send = async () => {
+        const txt = inp.value.trim();
+        if (!txt) return;
+        inp.value = '';
+        appendChat('user', txt);
+        panel.classList.add('show');
+        const typing = showTyping();
+        const reply = await handle(txt);
+        if (typing) typing.remove();
+        if (reply) { appendChat('bot', reply); speak(reply); }
+      };
+      btn.addEventListener('click', send);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+    }
 
     function toast(text, kind='ok') {
       const el = document.createElement('div');
@@ -1842,7 +1967,7 @@ section, .row, [class*="row-"], [class*="-row"] {
       setTimeout(() => { el.classList.remove('show'); setTimeout(()=>el.remove(), 250); }, 3500);
     }
 
-    return { mount, setState, setHeard, setReply, toast, toggleListen };
+    return { mount, setState, setHeard, setReply, toast, toggleListen, appendChat, showTyping };
   })();
 
   // ────────────────────────────────────────────────────────────────────────
@@ -2103,16 +2228,20 @@ section, .row, [class*="row-"], [class*="-row"] {
     const html = `
       <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
         <label><input type="checkbox" id="jv-voiceOn" ${s.voiceOn?'checked':''}/> קול פעיל</label>
-        <label><input type="checkbox" id="jv-wake" ${s.wakeWordOn?'checked':''}/> מילת הפעלה (ג׳רוויס)</label>
+        <label><input type="checkbox" id="jv-wake" ${s.wakeWordOn?'checked':''}/> מילת הפעלה (זורו)</label>
         <label>מהירות דיבור: <input type="range" id="jv-rate" min="0.8" max="1.4" step="0.05" value="${s.rate}"/></label>
         <label>תקציר בוקר ב: <input type="time" id="jv-am" value="${s.morningBriefAt}"/></label>
         <label>תקציר ערב ב: <input type="time" id="jv-pm" value="${s.eveningBriefAt}"/></label>
+        <label style="flex-direction:column;align-items:flex-start;gap:4px">מפתח Anthropic API (אופציונלי לסוכן AI):
+          <input type="password" id="jv-apikey" placeholder="sk-ant-..." value="${s.anthropicKey||''}"
+            style="width:100%;margin-top:4px"/>
+        </label>
         <button id="jv-save" style="background:${ACCENT};color:#001828;border:none;border-radius:8px;
           padding:8px 14px;font-weight:600;cursor:pointer;margin-top:8px">שמור</button>
         <button id="jv-test" style="background:transparent;color:#cfe8ff;border:1px solid ${ACCENT}55;
           border-radius:8px;padding:8px 14px;cursor:pointer">בדיקת קול</button>
       </div>`;
-    const m = modalShell('⚙️ הגדרות JARVIS', html);
+    const m = modalShell('⚙️ הגדרות זורו', html);
     m.querySelector('#jv-save').onclick = () => {
       updateSettings({
         voiceOn:       m.querySelector('#jv-voiceOn').checked,
@@ -2120,6 +2249,7 @@ section, .row, [class*="row-"], [class*="-row"] {
         rate:          parseFloat(m.querySelector('#jv-rate').value),
         morningBriefAt:m.querySelector('#jv-am').value,
         eveningBriefAt:m.querySelector('#jv-pm').value,
+        anthropicKey:  m.querySelector('#jv-apikey').value.trim(),
       });
       hud.toast('הגדרות נשמרו', 'ok');
       m.remove();
@@ -2570,7 +2700,7 @@ section, .row, [class*="row-"], [class*="-row"] {
 
     wrap.innerHTML = `
       <div style="max-width:460px;width:92vw;text-align:center;color:#e6f3ff;padding:28px 20px">
-        <div style="font-size:52px;font-weight:100;color:${ACCENT};letter-spacing:3px;margin-bottom:4px">JARVIS</div>
+        <div style="font-size:52px;font-weight:100;color:${ACCENT};letter-spacing:3px;margin-bottom:4px">זורו</div>
         <div style="font-size:15px;color:rgba(245,245,247,.65);margin-bottom:24px">${greet}, ${userName} &nbsp;·&nbsp; ${today.toLocaleDateString('en-IL',{weekday:'long',month:'short',day:'numeric'})}</div>
 
         <div style="background:#0a1828;border:1px solid ${ACCENT}44;border-radius:12px;padding:14px 16px;margin-bottom:14px;text-align:right">
@@ -2958,6 +3088,134 @@ section, .row, [class*="row-"], [class*="-row"] {
   }
 
   // ────────────────────────────────────────────────────────────────────────
+  // 11-D. SCHEDULE GRID INJECTION — populate .wg-cell elements with blocks
+  // ────────────────────────────────────────────────────────────────────────
+  const TYPE_COLORS = {
+    fixed:'#ff9f43', deep_work:'#00d4ff', medium:'#a29bfe', light:'#55efc4',
+    food:'#fdcb6e', training:'#e17055', walk:'#00cec9', recovery:'#81ecec',
+    buffer:'#636e72', reminder:'#fd79a8', family:'#ff7675', university:'#74b9ff',
+    meeting:'#ff6b9d', planning:'#a0c4ff'
+  };
+
+  function injectScheduleIntoGrid() {
+    // The app grid: cells are id="wc-{dayIdx}-{rowIdx}"
+    // dayIdx: 0=Sun...6=Sat, rowIdx: 0=06:00, 1=07:00, ... 16=22:00
+    const GRID_START_HOUR = 6;
+    const today = new Date();
+    const wk = isoWeekKey(today);
+    const sched = loadSchedule();
+    const wkData = sched.weeks[wk] || {};
+
+    // Remove any previously injected events
+    document.querySelectorAll('.jv-sched-ev').forEach(el => el.remove());
+
+    DEFAULT_BLOCKS.forEach(block => {
+      const dayIdx = block.day; // 0=Sun...6=Sat
+      const [startH, startM] = block.start.split(':').map(Number);
+      const rowIdx = startH - GRID_START_HOUR;
+      if (rowIdx < 0 || rowIdx > 16) return;
+
+      const cell = document.getElementById(`wc-${dayIdx}-${rowIdx}`);
+      if (!cell) return;
+
+      // Get status for this week
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay()); // Sunday
+      const blockDate = new Date(weekStart);
+      blockDate.setDate(weekStart.getDate() + dayIdx);
+      const dk = dateKey(blockDate);
+      const stEntry = wkData[block.id + '::' + dk] || {};
+      const status = stEntry.status || 'planned';
+
+      const statusEmoji = {planned:'',completed:'✅',partial:'🔶',missed:'❌',replaced:'🔄',skipped:'⏭',postponed:'📌'};
+      const col = TYPE_COLORS[block.type] || '#00d4ff';
+      const em = statusEmoji[status] || '';
+      const locked = block.fixed ? '🔒' : '';
+
+      const el = document.createElement('div');
+      el.className = 'jv-sched-ev';
+      el.draggable = true;
+      el.dataset.blockId = block.id;
+      el.dataset.dayIdx = dayIdx;
+      el.dataset.rowIdx = rowIdx;
+      el.dataset.dk = dk;
+      el.style.cssText = `background:${col}bb;border-left:3px solid ${col};`;
+      el.title = `${block.start}–${block.end} | ${block.title}\n${block.action}`;
+      el.textContent = `${em}${locked} ${block.start} ${block.title}`;
+
+      // Click → open block update modal
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        openBlockUpdateModal(block, blockDate, null);
+      });
+
+      // Drag start
+      el.addEventListener('dragstart', e => {
+        el.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', JSON.stringify({
+          blockId: block.id, dayIdx, rowIdx, dk
+        }));
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      el.addEventListener('dragend', () => el.classList.remove('dragging'));
+
+      cell.appendChild(el);
+    });
+
+    // Make cells accept drops
+    document.querySelectorAll('.wg-cell').forEach(cell => {
+      cell.addEventListener('dragover', e => {
+        e.preventDefault();
+        cell.classList.add('drag-over');
+        e.dataTransfer.dropEffect = 'move';
+      });
+      cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
+      cell.addEventListener('drop', e => {
+        e.preventDefault();
+        cell.classList.remove('drag-over');
+        try {
+          const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+          const idMatch = cell.id.match(/^wc-(\d+)-(\d+)$/);
+          if (!idMatch) return;
+          const newDayIdx = parseInt(idMatch[1]);
+          const newRowIdx = parseInt(idMatch[2]);
+          const newHour = GRID_START_HOUR + newRowIdx;
+          const newStart = String(newHour).padStart(2,'0') + ':00';
+
+          // Update block start time in schedule
+          const sched2 = loadSchedule();
+          const blockIdx = sched2.blocks.findIndex(b => b.id === data.blockId);
+          if (blockIdx === -1) return;
+
+          const origBlock = sched2.blocks[blockIdx];
+          const dur = _blockDurMins(origBlock);
+          const endHour = newHour + Math.floor(dur/60);
+          const endMin = dur % 60;
+          sched2.blocks[blockIdx] = {
+            ...origBlock,
+            day: newDayIdx,
+            start: newStart,
+            end: String(endHour).padStart(2,'0') + ':' + String(endMin).padStart(2,'0')
+          };
+          saveSchedule(sched2);
+          hud.toast(`${origBlock.title} הועבר ל${newStart}`, 'ok');
+          injectScheduleIntoGrid(); // refresh
+        } catch(e2) { /* silent */ }
+      });
+    });
+  }
+
+  function _blockDurMins(block) {
+    const [sh,sm] = block.start.split(':').map(Number);
+    const [eh,em] = block.end.split(':').map(Number);
+    return (eh*60+em) - (sh*60+sm);
+  }
+
+  function saveSchedule(sched) {
+    try { localStorage.setItem(SCHED_KEY, JSON.stringify(sched)); } catch(e) {}
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
   // 12. BOOT
   // ────────────────────────────────────────────────────────────────────────
   function boot() {
@@ -3009,7 +3267,8 @@ section, .row, [class*="row-"], [class*="-row"] {
       };
 
       setTimeout(openLockScreen, 900);
-      console.log('%cJARVIS v4.0 online — week view, project hub, today command center, full block updates, AI agent, Google auth, bilingual.', 'color:#00d4ff;font-weight:bold;font-size:13px');
+      setTimeout(injectScheduleIntoGrid, 2000); // inject after app renders
+      console.log('%cזורו v5.0 online — chat UI, week grid injection, drag-drop, real AI, dark theme fix.', 'color:#00d4ff;font-weight:bold;font-size:14px');
     };
 
     // If already logged in this session → go directly
@@ -3065,71 +3324,4 @@ section, .row, [class*="row-"], [class*="-row"] {
   }
 })();
 
-/* ============================================================================
- * INTEGRATION INSTRUCTIONS — how to add JARVIS to your Personal OS
- * ============================================================================
- *
- * STEP 1 — Upload jarvis.js to your project root
- *   Place this file at the root of your GitHub repo (next to index.html).
- *
- * STEP 2 — Add ONE line to index.html
- *   Open index.html in your editor. Find the closing </body> tag and add:
- *
- *     <script src="/jarvis.js" defer></script>
- *
- *   It must come AFTER all other <script> tags so JARVIS can hook into
- *   the existing window.* functions (addTask, goPage, callClaude, etc.)
- *
- * STEP 3 — Commit and push to GitHub → Vercel auto-deploys
- *
- *   git add jarvis.js index.html
- *   git commit -m "feat: add JARVIS AI companion module v1.0"
- *   git push
- *
- * STEP 4 — Verify
- *   Open https://personal-os-coral-tau.vercel.app/
- *   You should see the blue arc-reactor orb in the bottom-right corner.
- *   Say "ג'רוויס, מה היום" or click the orb.
- *
- * ── localStorage keys used by JARVIS (all prefixed pos3_jarvis_) ──────────
- *   pos3_jarvis_schedule   — weekly block schedule + status log
- *   pos3_jarvis_log        — execution log (last 500 events)
- *   pos3_jarvis_settings   — voice, rate, briefing times
- *   pos3_jarvis_persona    — reserved for persona customisation
- *   jv_last_lock           — date of last lock-screen dismissal
- *   jv_last_am / jv_last_pm — briefing triggers
- *   jv_checkin_YYYY-MM-DD_am/pm — daily check-in data
- *   jv_weeklyreview_YYYY-W## — weekly review data
- *
- * ── Public API (window.JARVIS.*) ──────────────────────────────────────────
- *   .handle(text)         — process any Hebrew command string
- *   .speak(text)          — text-to-speech
- *   .listen()             — start voice recognition
- *   .brief()              — morning briefing
- *   .debt()               — project debt report
- *   .whatNow('high')      — energy-based recommendation (low/medium/high)
- *   .whatSkip()           — safe-to-skip blocks today
- *   .planDay()            — plan today from yesterday's misses
- *   .logTime({proj, actualMinutes, plannedMinutes})
- *   .activity({activity, fromHour, toHour})
- *   .openCheckIn()        — daily check-in modal
- *   .openWeeklyReview()   — weekly review modal
- *   .openWhatNow()        — energy panel
- *   .openLock()           — daily lock/greeting screen
- *   .openSchedule()       — quick-update schedule modal
- *   .openSettings()       — settings modal
- *
- * ── Voice commands (Hebrew) ───────────────────────────────────────────────
- *   "ג'רוויס, מה יש לי היום"
- *   "ג'רוויס, מה לעשות עכשיו"
- *   "הייתי בים מ-14 עד 17 במקום ללמוד"
- *   "עשיתי 70 דק׳ Upselles במקום 120"
- *   "תכנן לי את היום לפי מה שפספסתי אתמול"
- *   "מה אני יכול לדלג בלי לפגוע בשבוע"
- *   "הוסף משימה [שם] לפרויקט [פרויקט]"
- *   "תזכר לי על [משימה] בעוד [זמן]"
- *   "חוב פרויקטים"
- *   "צ׳ק-אין"
- *   "סיכום שבועי"
- *
- * ============================================================================ */
+// zoro v5.0
