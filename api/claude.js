@@ -95,6 +95,80 @@ const AGENT_TOOLS = [
       },
       required: ['type']
     }
+  },
+  {
+    name: 'add_reminder',
+    description: 'Add a reminder with a date and time',
+    input_schema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Reminder text in Hebrew' },
+        date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
+        time: { type: 'string', description: 'Time in HH:MM format' }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'add_goal',
+    description: 'Add a personal goal',
+    input_schema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Goal text in Hebrew' },
+        emoji: { type: 'string', description: 'Optional emoji for the goal' }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'add_idea',
+    description: 'Save an idea',
+    input_schema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Idea text in Hebrew' },
+        cat: { type: 'string', description: 'Category: upselles/jobs/general' }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'add_journal',
+    description: 'Add a personal journal entry',
+    input_schema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Journal entry text in Hebrew' }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'add_job',
+    description: 'Add a job listing to the job-search tracker',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Job title' },
+        company: { type: 'string', description: 'Company name' },
+        status: { type: 'string', enum: ['waiting', 'interview', 'offer', 'rejected'] },
+        link: { type: 'string', description: 'Optional URL to the listing' }
+      },
+      required: ['title']
+    }
+  },
+  {
+    name: 'update_project',
+    description: 'Update a project progress percentage (0-100)',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Project id or name: jobs/upselles/health/apartment/family' },
+        progress: { type: 'number', description: 'Progress percentage 0-100' }
+      },
+      required: ['id', 'progress']
+    }
   }
 ];
 

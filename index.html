@@ -3259,33 +3259,24 @@ function clearAgentMemory(agentId){
   showNotif('זיכרון שיחה נוקה');
 }
 
+// Page agents execute their tools through the unified POS bridge — same
+// surface Zoro uses, so every agent can read/write every kind of data.
 function executeClientTool(toolName,input){
+  const P=window.POS;input=input||{};
+  if(!P)return'המערכת עוד נטענת';
   switch(toolName){
-    case'add_task':
-      if(!input.title)break;
-      S.tasks.unshift({id:Date.now(),text:input.title,done:false,cat:input.category||'work',period:'once',proj:input.project||'none',progress:0,status:'',createdBy:'agent'});
-      save();renderDashTasks();renderAllTasks();break;
-    case'complete_task':{
-      const q=(input.task_title||'').toLowerCase();
-      const t=S.tasks.find(x=>!x.done&&x.text.toLowerCase().includes(q));
-      if(t){t.done=true;save();renderDashTasks();renderAllTasks();}break;}
-    case'add_event':
-      if(!S.weekEvents)S.weekEvents={};
-      if(!S.weekEvents[input.date])S.weekEvents[input.date]=[];
-      S.weekEvents[input.date].push({id:Date.now(),text:input.title+(input.time?' '+input.time:''),color:'#6c63ff'});
-      save();if(typeof renderWeek==='function')renderWeek();break;
-    case'add_habit':
-      if(!input.name||S.habits.some(h=>h.name===input.name))break;
-      S.habits.push({name:input.name,days:[0,0,0,0,0,0,0]});
-      save();renderDashHabits();break;
-    case'log_habit':{
-      const q=(input.habit_name||'').toLowerCase();
-      const h=S.habits.find(x=>x.name.toLowerCase().includes(q));
-      if(h){const day=new Date().getDay();h.days[day]=1;save();renderDashHabits();}break;}
-    case'add_note':
-      if(!S.notes)S.notes=[];
-      S.notes.unshift({id:Date.now(),title:input.title||'פתק מהסוכן',content:input.content,pinned:false,ts:new Date().toISOString()});
-      save();break;
+    case'add_task':       return P.addTask({text:input.title||input.text,proj:input.project||input.proj,cat:input.category||input.cat});
+    case'complete_task':  return P.completeTask({query:input.task_title||input.query||input.text});
+    case'add_event':      return P.addEvent({title:input.title||input.text,date:input.date,time:input.time});
+    case'add_habit':      return P.addHabit({name:input.name||input.text});
+    case'log_habit':      return P.logHabit({name:input.habit_name||input.name||input.text});
+    case'add_note':       return P.addNote({title:input.title,content:input.content||input.text});
+    case'add_reminder':   return P.addReminder({text:input.text||input.title,date:input.date,time:input.time});
+    case'add_goal':       return P.addGoal({text:input.text||input.title,emoji:input.emoji});
+    case'add_idea':       return P.addIdea({text:input.text||input.title,cat:input.cat});
+    case'add_journal':    return P.addJournal({text:input.text||input.content});
+    case'add_job':        return P.addJob({title:input.title,company:input.company,status:input.status,link:input.link});
+    case'update_project': return P.updateProject({id:input.id||input.name,progress:input.progress});
   }
 }
 
