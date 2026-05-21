@@ -695,6 +695,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
         <div id="dash-tasks"></div>
         <div class="irow">
           <input class="inp" style="flex:1" id="qt" placeholder="משימה מהירה..." onkeydown="if(event.key==='Enter')qTask()">
+          <button class="btn bs bsm" onclick="dictate('qt',this)" title="הכתבה קולית">🎙</button>
           <select class="inp" id="qt-cat" style="padding:6px 8px">
             <option value="work">💼</option><option value="health">💪</option>
             <option value="family">👨‍👩‍👧</option><option value="project">🚀</option><option value="home">🏡</option>
@@ -1422,6 +1423,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
       <div class="irow" style="margin-top:8px">
         <button class="btn bp bsm" onclick="saveJournal()">💾 שמור</button>
         <button class="btn bs bsm" onclick="analyzeJournal()">✨ נתח AI</button>
+        <button class="btn bs bsm" onclick="dictate('jtext',this)" title="הכתבה קולית">🎙 הכתב</button>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
@@ -3382,6 +3384,12 @@ window.POS = (function(){
       if(!S.jobs)S.jobs=[];
       S.jobs.unshift({title,company:a.company||'',cat:a.cat||'',status:a.status||'waiting',match:a.match||0,date:new Date().toLocaleDateString('he-IL'),link:a.link||''});
       save();refresh();return'נוספה משרה: '+title+(a.company?' ב-'+a.company:'');},
+    // ───── MEALS ─────
+    addMeal(a){a=a||{};const name=(a.name||a.text||'').trim();
+      if(!name)return'חסר תיאור לארוחה';
+      if(!S.meals)S.meals=[];
+      S.meals.push({name,kcal:Number(a.kcal)||0,protein:Number(a.protein)||0,carb:Number(a.carb)||0,time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
+      save();refresh();return'נרשמה ארוחה: '+name;},
     // ───── PROJECTS ─────
     updateProject(a){a=a||{};const q=norm(a.id||a.name);
       const p=(S.projects||[]).find(x=>norm(x.id)===q||norm(x.name).includes(q));
@@ -3574,10 +3582,10 @@ function renderUserProfile(){
   const el=document.getElementById('user-email-lbl');
   const pl=document.getElementById('user-photo');
   const av=document.getElementById('ava');
-  if(nl)nl.textContent='Roei';
+  if(nl)nl.textContent='רואי קליין';
   if(el){el.textContent='';el.style.display='none';}
   if(pl&&currentUser.picture){pl.src=currentUser.picture;pl.style.display='block';}
-  if(av)av.textContent='R';
+  if(av)av.textContent='ר';
   document.getElementById('user-info-bar').classList.add('visible');
   document.getElementById('gsignin-wrap').style.display='none';
 }
@@ -4149,6 +4157,85 @@ if(S.workspace)document.getElementById('workspace').value=S.workspace;
     makeCollapsible('dash-news-content','news',true);
   },350);
 })();
+
+// ─── VOICE DICTATION — speak to fill any text field ─────────────────────────
+(function(){
+  const ds=document.createElement('style');
+  ds.textContent='.dictating{background:var(--red)!important;color:#fff!important;animation:dictpulse 1s ease-in-out infinite}'+
+    '@keyframes dictpulse{0%,100%{opacity:1}50%{opacity:.5}}';
+  document.head.appendChild(ds);
+})();
+function dictate(targetId,btn){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){showNotif('הדפדפן לא תומך בזיהוי קולי');return;}
+  const el=document.getElementById(targetId);
+  if(!el)return;
+  if(btn&&btn._rec){try{btn._rec.stop();}catch(e){}return;}
+  const r=new SR();
+  r.lang='he-IL';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
+  const base=el.value?el.value.replace(/\s*$/,'')+' ':'';
+  if(btn){btn._rec=r;btn.classList.add('dictating');}
+  r.onresult=e=>{
+    let txt='';
+    for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript;
+    el.value=base+txt;
+    try{el.dispatchEvent(new Event('input'));}catch(e){}
+  };
+  const done=()=>{if(btn){btn.classList.remove('dictating');btn._rec=null;}};
+  r.onend=done;r.onerror=done;
+  try{r.start();showNotif('🎙 מקשיב — דבר עכשיו');}catch(e){done();}
+}
+
+// ─── SEED WEEKLY SCHEDULE into the native week grid (runs once) ─────────────
+function seedSchedule(force){
+  const FLAG='pos_sched_seeded_v1';
+  if(!force&&localStorage.getItem(FLAG))return;
+  const C={planning:'#0d9488',deep:'#6c63ff',buffer:'#94a3b8',meeting:'#e11d48',
+    food:'#f59e0b',uni:'#2563eb',train:'#dc2626',walk:'#16a34a',recovery:'#7c3aed',
+    reminder:'#ca8a04',light:'#0ea5e9',family:'#ea580c'};
+  const BLOCKS=[
+    [0,'10:30','פתיחת שבוע','planning'],[0,'11:00','Upselles — עבודה עמוקה','deep'],
+    [0,'13:00','באפר / מנוחה','buffer'],[0,'13:30','פגישה עם בלה','meeting'],
+    [0,'14:30','צהריים','food'],[0,'15:30','אוניברסיטה — לימוד עצמי','uni'],
+    [0,'16:45','באפר / סידורים','buffer'],[0,'18:00','פגישה עם רונית','meeting'],
+    [0,'19:15','אימון כוח','train'],[0,'21:00','ארוחת ערב','food'],[0,'22:00','תזכורת: הפשרת עוף/בשר','reminder'],
+    [1,'07:00','נסיעה לאוניברסיטה','buffer'],[1,'08:00','אוניברסיטה — יום מלא','uni'],
+    [1,'19:30','חזרה הביתה','buffer'],[1,'20:15','התאוששות','recovery'],
+    [1,'21:00','סיכום — אוניברסיטה','light'],[1,'22:00','תזכורת: הפשרת עוף/בשר','reminder'],
+    [2,'10:30','פתיחת יום','planning'],[2,'11:00','אוניברסיטה — לימוד עמוק','deep'],
+    [2,'13:00','צהריים','food'],[2,'14:00','Upselles — עבודה עמוקה','deep'],
+    [2,'16:00','הליכה / סידורים','walk'],[2,'18:30','אימון כוח','train'],
+    [2,'20:15','ארוחת ערב','food'],[2,'21:15','קורס Anthropic','light'],[2,'22:00','תזכורת: הפשרת עוף/בשר','reminder'],
+    [3,'10:30','פתיחת יום','planning'],[3,'11:00','אוניברסיטה — לימוד עמוק','deep'],
+    [3,'13:00','צהריים','food'],[3,'14:00','חיפוש דירה','light'],
+    [3,'15:30','פגישה עם תמר','meeting'],[3,'17:30','הליכה','walk'],
+    [3,'19:00','ארוחת ערב','food'],[3,'20:00','חיפוש עבודה','light'],[3,'22:00','תזכורת: הפשרת עוף/בשר','reminder'],
+    [4,'10:30','פתיחת יום','planning'],[4,'11:00','Upselles — עבודה עמוקה','deep'],
+    [4,'13:00','צהריים','food'],[4,'14:00','אוניברסיטה — מטלה','uni'],
+    [4,'16:00','הליכה / סידורים','walk'],[4,'18:30','אימון כוח','train'],
+    [4,'20:15','ארוחת ערב','food'],[4,'21:15','עדכון שבועי','planning'],[4,'22:00','תזכורת: הפשרת עוף/בשר','reminder'],
+    [5,'10:30','פתיחת יום','planning'],[5,'11:00','חיפוש עבודה','light'],
+    [5,'12:15','סידורים / בית','light'],[5,'13:00','צהריים','food'],
+    [5,'14:00','חיפוש דירה','light'],[5,'15:15','מנוחה / התארגנות','recovery'],
+    [5,'18:00','ארוחת שישי — משפחה','family'],
+    [6,'14:00','השלמות (אופציונלי)','buffer'],[6,'16:30','הליכה','walk'],
+    [6,'18:00','Weekly Review','planning']
+  ];
+  if(!S.weekEvents)S.weekEvents={};
+  Object.keys(S.weekEvents).forEach(k=>{
+    S.weekEvents[k]=(S.weekEvents[k]||[]).filter(e=>!e.sched);
+    if(!S.weekEvents[k].length)delete S.weekEvents[k];
+  });
+  BLOCKS.forEach(b=>{
+    const key=b[0]+'-'+b[1].slice(0,2)+':00';
+    if(!S.weekEvents[key])S.weekEvents[key]=[];
+    S.weekEvents[key].push({id:Date.now()+Math.floor(Math.random()*99999),text:b[1]+' '+b[2],color:C[b[3]]||'#6c63ff',sched:true});
+  });
+  save();
+  localStorage.setItem(FLAG,'1');
+  if(typeof buildWeekGrid==='function')buildWeekGrid();
+}
+seedSchedule();
 // Request notification permission
 if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
 // Check due reminders — each fires at most once (r.notified guard)
