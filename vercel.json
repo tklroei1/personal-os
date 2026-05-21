@@ -23,6 +23,7 @@
     { "src": "/sw.js", "dest": "/sw.js" },
     { "src": "/icon.svg", "dest": "/icon.svg" },
 { "src": "/jarvis.js", "dest": "/jarvis.js" },
+    { "src": "/agent.js", "dest": "/agent.js" },
             { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

@@ -595,6 +595,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   <nav class="nav">
     <div class="nav-sec">ראשי</div>
     <div class="ni active" onclick="goPage('dashboard',this)"><span class="ni-icon">🏠</span>דשבורד<span class="nbadge" id="nb">0</span></div>
+    <div class="ni" onclick="goPage('agent',this)"><span class="ni-icon">🛰️</span>מרכז הפיקוד<span class="ntag" style="background:var(--blue-bg);color:var(--blue)">AI</span></div>
     <div class="ni" onclick="goPage('agenda',this)"><span class="ni-icon">📅</span>לוז שבועי</div>
     <div class="ni" onclick="goPage('tasks',this)"><span class="ni-icon">✅</span>משימות</div>
     <div class="ni" onclick="goPage('reminders',this)"><span class="ni-icon">🔔</span>תזכורות</div>
@@ -1588,6 +1589,9 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   </div>
 </div>
 
+<!-- AGENT COMMAND CENTER (Phase 1 — rendered by agent.js) -->
+<div class="page" id="page-agent"><div id="agent-root"></div></div>
+
 </main>
 </div>
 
@@ -2007,13 +2011,14 @@ function goPage(p,el){
   document.getElementById('page-'+p).classList.add('active');
   document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
   if(el)el.classList.add('active');
-  const T={dashboard:'דשבורד',agenda:'לוז שבועי',tasks:'משימות',reminders:'תזכורות',jobs:'חיפוש עבודה',upselles:'Upselles',health:'כושר ותזונה',apartment:'מציאת דירה',family:'זמן משפחתי',ideas:'רעיונות',journal:'יומן',goals:'מטרות',finance:'פיננסים',notes:'פתקים',inbox:'תיבת כניסה',news:'חדשות','ds-ai':'🧠 דאטה סיינס & AI'};
+  const T={dashboard:'דשבורד',agent:'🛰️ מרכז הפיקוד',agenda:'לוז שבועי',tasks:'משימות',reminders:'תזכורות',jobs:'חיפוש עבודה',upselles:'Upselles',health:'כושר ותזונה',apartment:'מציאת דירה',family:'זמן משפחתי',ideas:'רעיונות',journal:'יומן',goals:'מטרות',finance:'פיננסים',notes:'פתקים',inbox:'תיבת כניסה',news:'חדשות','ds-ai':'🧠 דאטה סיינס & AI'};
   document.getElementById('pt').textContent=T[p]||p;
   if(p==='agenda')buildWeekGrid();
   if(p==='jobs'&&typeof renderKanban==='function')setTimeout(renderKanban,50);
   if(p==='finance')renderFinance();
   if(p==='notes')renderNotes();
   if(p==='inbox')renderInbox();
+  if(p==='agent'&&window.AgentRuntime)window.AgentRuntime.renderUI();
   if(p==='ds-ai')renderDSPage();
 }
 
@@ -5849,5 +5854,6 @@ function deleteDSExam(id){
 </script>
 
 <script src="/jarvis.js" defer></script>
+<script src="/agent.js" defer></script>
 </body>
 </html>
