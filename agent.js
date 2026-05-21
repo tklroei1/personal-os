@@ -147,19 +147,20 @@
       dryRun:a => 'ייווצר הרגל: "' + (a.name||'') + '"',
       run:a => P().addHabit(a)
     },
-    // ── Level 2 — modify existing (preview + approval required) ──
+    // ── Level 1 — reversible toggle/append (runs automatically) ──
     complete_task: {
-      label:'סימון משימה כבוצעה', riskLevel:2, area:'משימות',
+      label:'סימון משימה כבוצעה', riskLevel:1, area:'משימות',
       schema:{ query:{type:'string',required:true} },
       dryRun:a => 'תסומן כבוצעה המשימה התואמת ל-"' + (a.query||'') + '"',
       run:a => P().completeTask(a)
     },
     log_habit: {
-      label:'תיעוד הרגל', riskLevel:2, area:'הרגלים',
+      label:'תיעוד הרגל', riskLevel:1, area:'הרגלים',
       schema:{ name:{type:'string',required:true} },
       dryRun:a => 'יתועד ההרגל "' + (a.name||'') + '" כבוצע היום',
       run:a => P().logHabit(a)
     },
+    // ── Level 2 — overwrites existing data (preview + approval required) ──
     update_project: {
       label:'עדכון התקדמות פרויקט', riskLevel:2, area:'פרויקטים',
       schema:{ id:{type:'string',required:true}, progress:{type:'number',required:true} },
@@ -190,10 +191,28 @@
   };
 
   const RISK = {
-    0:{ label:'מיידי',   color:'#7c8aa0' },
-    1:{ label:'Level 1', color:'#42e695' },
-    2:{ label:'Level 2 — דורש אישור', color:'#ffb454' },
-    3:{ label:'Level 3 — חסום', color:'#ff5d6c' }
+    0:{ label:'מיידי',          color:'#7c8aa0' },
+    1:{ label:'בוצע אוטומטית',  color:'#42e695' },
+    2:{ label:'דורש אישור',     color:'#ffb454' },
+    3:{ label:'חסום',           color:'#ff5d6c' }
+  };
+
+  // Tolerant aliases — if the model uses a slightly different tool name
+  // (e.g. add_task instead of create_task) it still maps correctly
+  // instead of being wrongly shown as "blocked".
+  const TOOL_ALIASES = {
+    add_task:'create_task', new_task:'create_task',
+    add_reminder:'create_reminder', new_reminder:'create_reminder',
+    add_event:'create_schedule_block', create_event:'create_schedule_block',
+    add_schedule_block:'create_schedule_block', schedule_block:'create_schedule_block',
+    add_note:'create_note', new_note:'create_note',
+    add_goal:'create_goal', new_goal:'create_goal',
+    add_idea:'create_idea', new_idea:'create_idea',
+    add_journal:'create_journal', journal_entry:'create_journal',
+    add_job:'create_job_opportunity', add_job_opportunity:'create_job_opportunity',
+    add_habit:'create_habit', new_habit:'create_habit',
+    task_complete:'complete_task', mark_complete:'complete_task', mark_done:'complete_task',
+    go_to:'navigate', open_page:'navigate'
   };
 
   function validateAction(act) {
@@ -282,7 +301,7 @@
       .map(k => '- ' + k + ' (' + TOOLS[k].label + ', ' + (RISK[TOOLS[k].riskLevel].label) + ')').join('\n');
 
     return 'אתה ה-Agent Runtime של Personal OS — מרכז הפיקוד החכם של Roei (רואי קליין).\n' +
-      'תפקידך: להבין פקודה, לסווג אותה, ולהציע פעולות מובנות — לא לבצע אותן. רואי מאשר.\n' +
+      'תפקידך: להבין פקודה, לסווג אותה, ולהציע פעולות מובנות. פעולות יצירה קלות ירוצו אוטומטית; פעולות שמשנות נתונים קיימים ימתינו לאישור של רואי.\n' +
       'הסוכן שנבחר: ' + ag.label + ' — ' + ag.purpose + '.\n' +
       'תאריך היום: ' + today + '. תמיד המר תאריכים יחסיים (מחר/שישי) ל-YYYY-MM-DD.\n\n' +
       'הקשר נוכחי (אל תמציא נתונים מעבר לזה):\n' + JSON.stringify(ctx) + '\n\n' +
@@ -344,16 +363,28 @@
     // normalize + re-classify risk from the registry (never trust the model on risk)
     const rawActions = Array.isArray(j.proposed_actions) ? j.proposed_actions.slice(0, 12) : [];
     const actions = rawActions.map(a => {
-      const tool = TOOLS[a.tool];
+      const toolName = TOOL_ALIASES[a.tool] || a.tool;
+      const tool = TOOLS[toolName];
       const risk = tool ? tool.riskLevel : 3;
-      return {
-        tool: a.tool, args: a.args || {}, reason: a.reason || '',
+      const isBlocked = !tool || !!tool.blocked || risk >= 3;
+      const act = {
+        tool: toolName, args: a.args || {}, reason: a.reason || '',
         riskLevel: risk,
         area: tool ? tool.area : '—',
-        blocked: !tool || !!tool.blocked || risk >= 3,
-        preview: previewAction(a),
-        status: (!tool || !!tool.blocked || risk >= 3) ? 'blocked' : 'pending'
+        blocked: isBlocked,
+        status: isBlocked ? 'blocked' : 'pending'
       };
+      act.preview = previewAction(act);
+      return act;
+    });
+    // Approval model: Level 0-1 run automatically · Level 2 waits for the
+    // approve click · Level 3 stays blocked. Only real overwrites need a click.
+    actions.forEach(a => {
+      if (!a.blocked && a.riskLevel <= 1) {
+        const res = executeApprovedAction(a);
+        a.status = res.ok ? 'done' : 'pending';
+        a.resultMsg = res.msg;
+      }
     });
     return {
       ok:true,
