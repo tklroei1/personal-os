@@ -1278,7 +1278,12 @@
   function startListening(hard=false) {
     if (!settings().voiceOn) return;
     if (!recog) { recog = makeRecognizer(); wireRecognition(); }
-    if (!recog) { hud.toast('זיהוי דיבור לא נתמך בדפדפן הזה.', 'error'); return; }
+    if (!recog) {
+      conversationMode = false;
+      hud.toast('אין זיהוי דיבור בדפדפן הזה (קורה באייפון) — דבר דרך כפתור המיקרופון של מקלדת המכשיר בתוך תיבת הכתיבה של זורו.', 'error');
+      if (panel) panel.classList.add('show');
+      return;
+    }
     listeningHard = hard;
     _recogStarted = true;
     if (recogActive) return;
