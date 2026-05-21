@@ -194,7 +194,7 @@ function buildSystemPrompt(agentId, userContext) {
     'main': 'עוזר אישי ראשי בהשראת JARVIS. נהל משימות, לוז, פרויקטים ומטרות. בצע, אל תסביר יותר מדי.',
   };
 
-  return `אתה סוכן AI אישי של Roei (רועי קליין) — חלק מ-Personal OS שלו, בהשראת JARVIS של איירון מן.
+  return `אתה סוכן AI אישי של רואי קליין — חלק מ-Personal OS שלו, בהשראת JARVIS של איירון מן.
 היום: ${dateStr} | שעה: ${timeStr}
 
 **תפקידך:** ${agentPersonas[agentId] || agentPersonas['main']}

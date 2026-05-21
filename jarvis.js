@@ -1066,6 +1066,11 @@
         title:{type:'string'}, company:{type:'string'},
         status:{type:'string',description:'waiting/interview/offer/rejected'}, link:{type:'string'} },
         required:['title'] } },
+    { name:'log_meal', description:'רשום ארוחה שרואי אכל, כולל קלוריות וחלבון אם ידועים',
+      input_schema:{ type:'object', properties:{
+        name:{type:'string',description:'תיאור הארוחה'},
+        kcal:{type:'number'}, protein:{type:'number'}, carb:{type:'number'} },
+        required:['name'] } },
     { name:'update_project', description:'עדכן אחוז התקדמות של פרויקט',
       input_schema:{ type:'object', properties:{ id:{type:'string'}, progress:{type:'number'} }, required:['id','progress'] } },
     { name:'update_schedule_block', description:'עדכן סטטוס של בלוק בלוז היום',
@@ -1135,6 +1140,7 @@
         case 'add_idea':       return P.addIdea(input);
         case 'add_journal':    return P.addJournal(input);
         case 'add_job':        return P.addJob(input);
+        case 'log_meal':       return P.addMeal(input);
         case 'update_project': return P.updateProject(input);
         case 'navigate':       return P.navigate(input.page);
         case 'get_data':       return JSON.stringify(zoroContext());
