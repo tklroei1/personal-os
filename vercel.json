@@ -25,6 +25,7 @@
 { "src": "/jarvis.js", "dest": "/jarvis.js" },
     { "src": "/agent.js", "dest": "/agent.js" },
     { "src": "/assistant.js", "dest": "/assistant.js" },
+    { "src": "/voice.js", "dest": "/voice.js" },
             { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
