@@ -1100,6 +1100,8 @@
     return `אתה זורו — העוזר האישי ומאמן הביצועים של רואי, בהשראת JARVIS של איירון מן.
 אופי: רגוע, חכם, חם וישיר. מכיר את רואי, דוחף אותו קדימה בעדינות, וחוגג איתו הצלחות.
 
+אתה עוזר קולי אמיתי: רואי מדבר אליך דרך המיקרופון ואתה עונה לו בקול רם. אתה גם שומע וגם מדבר. אם רואי שואל אם אתה שומע אותו — התשובה היא כן, בוודאי, אני שומע אותך. לעולם אל תגיד שאתה "רק קורא טקסט" או שאתה לא שומע — זה לא נכון.
+
 סגנון דיבור — קריטי:
 - אתה מ-ד-ב-ר, לא כותב. נסח כמו בשיחה קולית אמיתית וזורמת, כמו חבר חכם.
 - בלי אימוג'ים, בלי כוכביות, בלי מרקדאון, בלי רשימות עם מקפים. רק משפטים טבעיים.
@@ -1258,7 +1260,8 @@
   //  7. VOICE — recognition + synthesis
   // ────────────────────────────────────────────────────────────────────────
   let recog = null, recogActive = false, listeningHard = false;
-  let zoroSpeaking = false; // true while TTS is talking — mutes the mic
+  let zoroSpeaking = false;     // true while Zoro is thinking/speaking — mutes the mic
+  let conversationMode = false; // hands-free continuous voice conversation
 
   function makeRecognizer() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1274,8 +1277,8 @@
   let _recogStarted = false; // track if user has ever started recognition
   function startListening(hard=false) {
     if (!settings().voiceOn) return;
-    if (!recog) recog = makeRecognizer();
-    if (!recog) { speak('Speech recognition is not available in this browser.'); return; }
+    if (!recog) { recog = makeRecognizer(); wireRecognition(); }
+    if (!recog) { hud.toast('זיהוי דיבור לא נתמך בדפדפן הזה.', 'error'); return; }
     listeningHard = hard;
     _recogStarted = true;
     if (recogActive) return;
@@ -1286,28 +1289,41 @@
     _recogStarted = false;
     if (recog) try { recog.stop(); } catch (e) {}
   }
-  function bindRecog() {
+  // Single source of truth for all SpeechRecognition handlers.
+  function wireRecognition() {
     if (!recog) return;
-    recog.onstart = () => { recogActive = true; hud.setState('listening'); };
-    recog.onend   = () => {
+    recog.onstart = () => { recogActive = true; hud.setState(zoroSpeaking ? 'speaking' : 'listening'); };
+    recog.onend = () => {
       recogActive = false;
+      if (conversationMode) {
+        // keep the conversation alive — resume listening once Zoro is idle
+        if (!zoroSpeaking) {
+          hud.setState('listening');
+          setTimeout(() => {
+            if (conversationMode && !recogActive && !zoroSpeaking) startListening(true);
+          }, 350);
+        }
+        return;
+      }
       hud.setState('idle');
-      // Only auto-restart if user explicitly started recognition AND wake-word mode is on
       if (_recogStarted && settings().wakeWordOn && !listeningHard) {
         setTimeout(() => { if (_recogStarted) startListening(false); }, 1000);
       }
     };
     recog.onerror = (e) => {
-      hud.setState('idle');
-      if (e.error === 'not-allowed') {
-        _recogStarted = false;
-        hud.toast('Microphone access denied. Enable it in browser settings.', 'error');
-      } else if (e.error === 'no-speech' || e.error === 'audio-capture') {
-        // silent — just stop
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        _recogStarted = false; conversationMode = false;
+        hud.setState('idle');
+        hud.toast('אין גישה למיקרופון — אפשר אותה בהגדרות הדפדפן.', 'error');
+      } else if (e.error === 'audio-capture') {
+        conversationMode = false;
+        hud.setState('idle');
+        hud.toast('לא נמצא מיקרופון.', 'error');
       }
+      // no-speech / aborted / network — onend handles the restart
     };
     recog.onresult = async (ev) => {
-      if (zoroSpeaking) return; // ignore mic input while Zoro is talking
+      if (zoroSpeaking) return; // ignore input while Zoro is thinking or talking
       let interim = '', final = '';
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
         const r = ev.results[i];
@@ -1315,39 +1331,51 @@
         else interim += r[0].transcript;
       }
       hud.setHeard((final || interim).trim());
-
-      if (final) {
-        const text = final.trim();
-        // wake word handling
-        if (settings().wakeWordOn && !listeningHard) {
-          const wake = WAKE_WORDS.find(w => text.toLowerCase().includes(w.toLowerCase()));
-          if (!wake) return;
-          let cmd = text;
-          for (const w of WAKE_WORDS) cmd = cmd.replace(new RegExp(w, 'gi'), '').trim();
-          if (!cmd) { speak('Yes, Roei? I\'m listening.'); listeningHard = true; return; }
-          await processSpoken(cmd);
-        } else {
-          await processSpoken(text);
-        }
+      if (!final) return;
+      const text = final.trim();
+      if (!text) return;
+      // Conversation mode — talk freely, no wake word needed
+      if (conversationMode) { await processSpoken(text); return; }
+      // Background wake-word mode
+      if (settings().wakeWordOn && !listeningHard) {
+        const wake = WAKE_WORDS.find(w => text.toLowerCase().includes(w.toLowerCase()));
+        if (!wake) return;
+        let cmd = text;
+        for (const w of WAKE_WORDS) cmd = cmd.replace(new RegExp(w, 'gi'), '').trim();
+        conversationMode = true; // wake word → open a full hands-free conversation
+        if (!cmd) { speak('כן רואי, אני מקשיב.'); return; }
+        await processSpoken(cmd);
+      } else {
+        await processSpoken(text);
       }
     };
   }
+  function bindRecog() { wireRecognition(); }
   async function processSpoken(text) {
+    text = (text || '').trim();
+    if (!text) return;
+    zoroSpeaking = true;                               // mark busy — mutes the mic
+    if (recog) { try { recog.stop(); } catch (e) {} }  // stop capturing while we think
     hud.appendChat('user', text);
-    hud.setHeard(text);
+    hud.setHeard('');
     hud.setState('thinking');
     const typing = hud.showTyping();
+    let reply = '';
     try {
-      const reply = await handle(text);
-      if (typing) typing.remove();
-      if (reply) { hud.appendChat('bot', reply); speak(reply); }
+      reply = await handle(text);
     } catch (e) {
-      if (typing) typing.remove();
       hud.toast('שגיאה: ' + e.message, 'error');
-    } finally {
+    }
+    if (typing) typing.remove();
+    if (reply) {
+      hud.appendChat('bot', reply);
+      speak(reply);   // speak() clears the busy flag + resumes listening when done
+    } else {
+      zoroSpeaking = false;
       hud.setState('idle');
-      hud.setHeard('');
-      listeningHard = false;
+      if (conversationMode) {
+        setTimeout(() => { if (conversationMode && !recogActive) startListening(true); }, 300);
+      }
     }
   }
 
@@ -1396,8 +1424,14 @@
       zoroSpeaking = true; // mute the mic so Zoro never hears itself
       const finish = () => {
         hud.setState('idle');
-        // release the guard a beat after the audio tail clears
-        setTimeout(() => { zoroSpeaking = false; }, 350);
+        // release the guard a beat after the audio tail clears,
+        // then resume listening so Roei can just keep talking (hands-free)
+        setTimeout(() => {
+          zoroSpeaking = false;
+          if (conversationMode && !recogActive) {
+            try { startListening(true); } catch (e) {}
+          }
+        }, 350);
       };
       u.onend   = finish;
       u.onerror = finish;
@@ -2048,8 +2082,19 @@ section, .row, [class*="row-"], [class*="-row"] {
     }
 
     function toggleListen() {
-      if (recogActive) stopListening();
-      else { panel.classList.add('show'); startListening(true); }
+      if (conversationMode || recogActive) {
+        // end the conversation
+        conversationMode = false;
+        stopListening();
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+        zoroSpeaking = false;
+        hud.setState('idle');
+      } else {
+        // start a hands-free voice conversation
+        conversationMode = true;
+        if (panel) panel.classList.add('show');
+        startListening(true);
+      }
     }
 
     function setState(s) {
@@ -3486,39 +3531,7 @@ section, .row, [class*="row-"], [class*="-row"] {
     bindRecog = function(){}; // no-op
     if (recog) bindRecogHandlers();
   }
-  function bindRecogHandlers() {
-    recog.onstart = () => { recogActive = true; hud.setState('listening'); };
-    recog.onend   = () => {
-      recogActive = false; hud.setState('idle');
-      if (_recogStarted && settings().wakeWordOn && !listeningHard) setTimeout(()=>{ if(_recogStarted) startListening(false); }, 1000);
-    };
-    recog.onerror = (e) => {
-      hud.setState('idle');
-      if (e.error === 'not-allowed') { _recogStarted = false; hud.toast('Microphone access denied. Enable in browser settings.', 'error'); }
-    };
-    recog.onresult = async (ev) => {
-      if (zoroSpeaking) return; // ignore mic input while Zoro is talking
-      let interim = '', final = '';
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        const r = ev.results[i];
-        if (r.isFinal) final += r[0].transcript; else interim += r[0].transcript;
-      }
-      hud.setHeard((final || interim).trim());
-      if (final) {
-        const text = final.trim();
-        if (settings().wakeWordOn && !listeningHard) {
-          const wake = WAKE_WORDS.find(w => text.toLowerCase().includes(w.toLowerCase()));
-          if (!wake) return;
-          let cmd = text;
-          for (const w of WAKE_WORDS) cmd = cmd.replace(new RegExp(w,'gi'),'').trim();
-          if (!cmd) { speak('Yes, Roei? I\'m listening.'); listeningHard = true; return; }
-          await processSpoken(cmd);
-        } else {
-          await processSpoken(text);
-        }
-      }
-    };
-  }
+  function bindRecogHandlers() { wireRecognition(); }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
