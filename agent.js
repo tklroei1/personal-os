@@ -439,7 +439,8 @@
     s.id = 'agent-css';
     s.textContent = `
 #agent-root{--ac:#00d4ff;--ag-bg:#0f1318;--ag-card:#181d26;--ag-bd:#2a3140;
-  --ag-t:#e8edf4;--ag-t2:#94a3b8;font-family:inherit;color:var(--ag-t);direction:rtl}
+  --ag-t:#e8edf4;--ag-t2:#94a3b8;font-family:inherit;color:var(--ag-t);direction:rtl;
+  background:var(--ag-bg);padding:16px;border-radius:16px;min-height:72vh}
 #agent-root *{box-sizing:border-box}
 #agent-root .ag-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:900px){#agent-root .ag-grid{grid-template-columns:1fr}}
