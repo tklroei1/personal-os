@@ -4107,6 +4107,48 @@ function saveJobFromSearch(idx){
 // INIT
 init();
 if(S.workspace)document.getElementById('workspace').value=S.workspace;
+
+// ─── DASHBOARD DECLUTTER — collapsible secondary cards ──────────────────────
+(function(){
+  const CK='pos_dash_collapsed';
+  let collapsed={};
+  try{collapsed=JSON.parse(localStorage.getItem(CK)||'{}');}catch(e){}
+  const st=document.createElement('style');
+  st.textContent='.card.jv-collapsible .ch{cursor:pointer;user-select:none}'+
+    '.jv-chev{display:inline-block;transition:transform .2s;font-size:9px;margin-left:4px;color:var(--text3)}'+
+    '.card.jv-collapsed .jv-chev{transform:rotate(-90deg)}'+
+    '.card.jv-collapsed .jv-card-body{display:none}'+
+    '.card.jv-collapsed{padding-bottom:16px}';
+  document.head.appendChild(st);
+  function makeCollapsible(innerId,key,defaultCollapsed){
+    const inner=document.getElementById(innerId);
+    if(!inner)return;
+    const card=inner.closest('.card');
+    if(!card||card.classList.contains('jv-collapsible'))return;
+    const ch=card.querySelector('.ch');
+    if(!ch)return;
+    const body=document.createElement('div');
+    body.className='jv-card-body';
+    let n=ch.nextSibling;
+    while(n){const next=n.nextSibling;body.appendChild(n);n=next;}
+    card.appendChild(body);
+    card.classList.add('jv-collapsible');
+    const ct=ch.querySelector('.ct');
+    if(ct){const chev=document.createElement('span');chev.className='jv-chev';chev.textContent='▾';ct.appendChild(chev);}
+    const isCol=key in collapsed?collapsed[key]:defaultCollapsed;
+    if(isCol)card.classList.add('jv-collapsed');
+    ch.addEventListener('click',e=>{
+      if(e.target.closest('.ca,button'))return;
+      card.classList.toggle('jv-collapsed');
+      collapsed[key]=card.classList.contains('jv-collapsed');
+      try{localStorage.setItem(CK,JSON.stringify(collapsed));}catch(e){}
+    });
+  }
+  setTimeout(()=>{
+    makeCollapsible('dash-agent-summary','agent',true);
+    makeCollapsible('dash-news-content','news',true);
+  },350);
+})();
 // Request notification permission
 if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
 // Check due reminders — each fires at most once (r.notified guard)
