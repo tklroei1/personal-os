@@ -238,9 +238,9 @@
     if (!clean) return;
     setState('speaking');
     try {
-      const res = await fetch('/api/speak', {
+      const res = await fetch('/api/claude', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: clean })
+        body: JSON.stringify({ mode: 'speak', text: clean })
       });
       const ct = res.headers.get('content-type') || '';
       if (res.ok && ct.includes('audio')) {
@@ -321,9 +321,9 @@
     try {
       const b64 = await blobToBase64(blob);
       if (!b64) return '';
-      const res = await fetch('/api/transcribe', {
+      const res = await fetch('/api/claude', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audio: b64, mime: blob.type || 'audio/webm', language: 'he' })
+        body: JSON.stringify({ mode: 'transcribe', audio: b64, mime: blob.type || 'audio/webm', language: 'he' })
       });
       const data = await res.json().catch(() => ({}));
       if (data.error === 'no_key') {

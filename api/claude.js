@@ -232,10 +232,15 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
+  const body = req.body || {};
+
+  // Voice modes — STT / TTS via OpenAI. Folded into this function to stay
+  // under the Vercel Hobby 12-serverless-function limit.
+  if (body.mode === 'transcribe') return handleTranscribe(res, body);
+  if (body.mode === 'speak')      return handleSpeak(res, body);
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'No API key' });
-
-  const body = req.body || {};
 
   // Agent mode: real tool_use loop
   if (body.agentMode) {
@@ -434,4 +439,69 @@ async function executeSearch(query, tavilyKey) {
     } catch {}
   }
   return 'Search unavailable — no TAVILY_API_KEY configured';
+}
+
+// ─── VOICE: speech-to-text (OpenAI Whisper) ──────────────────────────────────
+async function handleTranscribe(res, body) {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) {
+    return res.status(200).json({ error: 'no_key', text: '',
+      message: 'חסר OPENAI_API_KEY ב-Vercel — קול לא יעבוד עד שיוגדר.' });
+  }
+  try {
+    const b64 = (body.audio || '').replace(/^data:[^,]*,/, '');
+    if (!b64) return res.status(400).json({ error: 'no_audio', text: '' });
+    const buf = Buffer.from(b64, 'base64');
+    if (buf.length < 800) return res.status(200).json({ text: '' });
+
+    const mime = body.mime || 'audio/webm';
+    const ext  = mime.includes('mp4') ? 'mp4' : mime.includes('ogg') ? 'ogg' : 'webm';
+    const form = new FormData();
+    form.append('file', new Blob([buf], { type: mime }), 'audio.' + ext);
+    form.append('model', 'whisper-1');
+    form.append('language', body.language || 'he');
+
+    const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: form
+    });
+    if (!r.ok) {
+      const err = await r.text().catch(() => '');
+      return res.status(200).json({ error: 'stt_failed', text: '',
+        message: 'שגיאת תמלול (' + r.status + ')', detail: err.slice(0, 200) });
+    }
+    const data = await r.json();
+    return res.status(200).json({ text: (data.text || '').trim() });
+  } catch (e) {
+    return res.status(200).json({ error: 'exception', text: '', message: e.message });
+  }
+}
+
+// ─── VOICE: text-to-speech (OpenAI TTS) ──────────────────────────────────────
+async function handleSpeak(res, body) {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return res.status(503).json({ error: 'no_key' });
+  try {
+    let text = (body.text || '').toString().trim();
+    if (!text) return res.status(400).json({ error: 'no_text' });
+    if (text.length > 1200) text = text.slice(0, 1200);
+
+    const r = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'tts-1', input: text, voice: body.voice || 'nova',
+        response_format: 'mp3', speed: body.speed || 1.0
+      })
+    });
+    if (!r.ok) {
+      const err = await r.text().catch(() => '');
+      return res.status(502).json({ error: 'tts_failed', detail: err.slice(0, 200) });
+    }
+    const audio = Buffer.from(await r.arrayBuffer());
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).send(audio);
+  } catch (e) {
+    return res.status(500).json({ error: 'exception', message: e.message });
+  }
 }
