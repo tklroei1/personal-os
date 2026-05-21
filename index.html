@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Personal OS — רואי קליין</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="manifest" href="/manifest.json">
@@ -4109,13 +4109,17 @@ init();
 if(S.workspace)document.getElementById('workspace').value=S.workspace;
 // Request notification permission
 if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
-// Check due reminders
+// Check due reminders — each fires at most once (r.notified guard)
 setInterval(()=>{
   const now=new Date();
-  S.reminders.filter(r=>!r.done).forEach(r=>{
+  (S.reminders||[]).filter(r=>!r.done&&!r.notified).forEach(r=>{
     const rd=new Date(r.date+'T'+r.time);
-    if(Math.abs(rd-now)<60000&&'Notification'in window&&Notification.permission==='granted'){
-      new Notification('⏰ Personal OS',{body:r.text});
+    if(rd<=now&&(now-rd)<300000){
+      if('Notification'in window&&Notification.permission==='granted'){
+        new Notification('⏰ Personal OS',{body:r.text,icon:'/icon.svg'});
+      }
+      if(typeof showNotif==='function')showNotif('⏰ '+r.text);
+      r.notified=true;save();
     }
   });
 },60000);
@@ -4136,6 +4140,21 @@ if('serviceWorker'in navigator){
   }).catch(()=>{});
   navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
 }
+// iOS "Add to Home Screen" hint — shown once for iPhone Safari users
+(function(){
+  try{
+    const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    const standalone=window.navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches;
+    if(!isIOS||standalone||localStorage.getItem('pos_ios_hint'))return;
+    setTimeout(()=>{
+      const b=document.createElement('div');
+      b.style.cssText='position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));left:14px;right:14px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:12px 14px;z-index:99999;box-shadow:0 10px 34px rgba(0,0,0,.22);font-size:13px;display:flex;align-items:center;gap:10px';
+      b.innerHTML='<span style="font-size:20px">📲</span><span style="flex:1;color:var(--text);line-height:1.4">להתקנה כאפליקציה: הקש על <b>שיתוף</b> ואז <b>"הוסף למסך הבית"</b></span><button style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-size:12px;cursor:pointer;white-space:nowrap">הבנתי</button>';
+      b.querySelector('button').onclick=()=>{b.remove();localStorage.setItem('pos_ios_hint','1');};
+      document.body.appendChild(b);
+    },4500);
+  }catch(e){}
+})();
 // WEBHOOK POLLING — poll every 30 seconds for remote commands
 setInterval(pollWebhook,30000);
 
