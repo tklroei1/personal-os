@@ -1,4 +1,4 @@
-const CACHE = 'personal-os-v5';
+const CACHE = 'personal-os-v6';
 const ASSETS = ['/', '/index.html', '/manifest.json', '/icon.svg'];
 
 self.addEventListener('install', e => {
@@ -22,8 +22,10 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (url.pathname.startsWith('/api/')) return;
 
-  // Network-first for HTML navigation — always serve the freshest app shell
-  if (e.request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
+  // Network-first for HTML navigation AND JavaScript — always serve the
+  // freshest app shell and code (so jarvis.js / app updates reach the user)
+  if (e.request.mode === 'navigate' || url.pathname === '/' ||
+      url.pathname.endsWith('.html') || url.pathname.endsWith('.js')) {
     e.respondWith(
       fetch(e.request).then(res => {
         if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
