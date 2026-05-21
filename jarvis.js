@@ -27,7 +27,7 @@
   // ────────────────────────────────────────────────────────────────────────
   //  0. CONFIG
   // ────────────────────────────────────────────────────────────────────────
-  const VERSION       = '5.2.0';
+  const VERSION       = '5.3.0';
   const STATE_KEY     = 'pos3';
   const LOG_KEY       = 'pos3_jarvis_log';
   const SCHED_KEY     = 'pos3_jarvis_schedule';
@@ -1092,23 +1092,30 @@
   }
 
   function zoroSystemPrompt(ctx) {
-    return `אתה זורו — העוזר האישי החכם של Roei ב-Personal OS, בהשראת JARVIS של איירון מן.
-אישיות: רגוע, חד, יעיל וחם. מדבר עברית טבעית, קצר וענייני. פונה ל-Roei בשמו.
+    return `אתה זורו — העוזר האישי ומאמן הביצועים של רואי, בהשראת JARVIS של איירון מן.
+אופי: רגוע, חכם, חם וישיר. מכיר את רואי, דוחף אותו קדימה בעדינות, וחוגג איתו הצלחות.
+
+סגנון דיבור — קריטי:
+- אתה מ-ד-ב-ר, לא כותב. נסח כמו בשיחה קולית אמיתית וזורמת, כמו חבר חכם.
+- בלי אימוג'ים, בלי כוכביות, בלי מרקדאון, בלי רשימות עם מקפים. רק משפטים טבעיים.
+- קצר: משפט עד שניים. לא הרצאות.
+- פנה לרואי בשמו מדי פעם, בחום.
+
 תאריך היום: ${ctx.date || ''}.
 
 מצב נוכחי:
-- משימות פתוחות: ${(ctx.openTasks||[]).map(t=>t.text).join(' | ') || 'אין'}
-- אירועים קרובים: ${(ctx.upcomingEvents||[]).map(e=>e.date+' '+e.text).join(' | ') || 'אין'}
-- לוז היום: ${(ctx.todaySchedule||[]).map(b=>b.start+' '+b.title+' ['+b.status+']').join(' | ') || 'לא נטען'}
-- פרויקטים: ${(ctx.projects||[]).map(p=>p.name+' '+p.progress+'%').join(' | ') || 'אין'}
+- משימות פתוחות: ${(ctx.openTasks||[]).map(t=>t.text).join(', ') || 'אין'}
+- אירועים קרובים: ${(ctx.upcomingEvents||[]).map(e=>e.date+' '+e.text).join(', ') || 'אין'}
+- לוז היום: ${(ctx.todaySchedule||[]).map(b=>b.start+' '+b.title).join(', ') || 'לא נטען'}
+- פרויקטים: ${(ctx.projects||[]).map(p=>p.name+' '+p.progress+'%').join(', ') || 'אין'}
 - חוב שבועי: ${(ctx.projectDebt||[]).join(', ') || 'אין'}
 
 עקרונות:
-1. כשמבקשים לבצע משהו (להוסיף, לסמן, לעדכן, לנווט) — בצע מיד עם הכלי המתאים, בלי לשאול אישור.
-2. תמיד דווח בקצרה מה עשית. אם רק שאלו שאלה — ענה ישירות בלי כלים.
-3. אל תמציא נתונים. אם חסר לך מידע עדכני — השתמש ב-get_data.
-4. ענה תמיד בעברית, משפט-שניים, בלי רשימות ארוכות אלא אם ביקשו במפורש.
-5. מותר להפעיל כמה כלים ברצף כדי להשלים בקשה מורכבת.`;
+1. כשרואי מבקש לבצע משהו — בצע מיד עם הכלי המתאים, בלי לשאול אישור, ואז דווח במשפט טבעי קצר.
+2. אם רק שאלו אותך — ענה ישירות, בלי כלים.
+3. כמאמן ביצועים: כשרלוונטי, הוסף דחיפה קטנה או תובנה — אבל בקצרה ובטון תומך.
+4. אל תמציא נתונים. חסר לך מידע עדכני? השתמש ב-get_data.
+5. ענה תמיד בעברית טבעית ומדוברת. מותר להפעיל כמה כלים ברצף לבקשה מורכבת.`;
   }
 
   function executeZoroTool(name, input) {
@@ -1342,28 +1349,40 @@
   function pickVoice() {
     const v = window.speechSynthesis?.getVoices() || [];
     voicesCache = v;
-    // Priority: en-US high-quality → en-GB → any en → fallback
+    // Roei speaks Hebrew — prefer a natural Hebrew voice
     const prefer = [
-      v.find(x => x.lang==='en-US' && /samantha|zira|google us english|microsoft zira|ava|aria/i.test(x.name)),
-      v.find(x => x.lang==='en-US' && !x.localService),   // cloud/premium en-US
-      v.find(x => x.lang==='en-US' && x.localService),    // local en-US
-      v.find(x => x.lang==='en-GB'),
-      v.find(x => x.lang?.startsWith('en')),
+      v.find(x => x.lang==='he-IL' && /natural|neural|google|carmit/i.test(x.name)),
+      v.find(x => x.lang==='he-IL' && !x.localService),   // cloud/premium Hebrew
       v.find(x => x.lang==='he-IL'),
+      v.find(x => x.lang && x.lang.startsWith('he')),
+      v.find(x => x.lang==='en-US' && !x.localService),
+      v.find(x => x.lang && x.lang.startsWith('en')),
       v[0],
     ];
     return prefer.find(Boolean) || null;
   }
+  // Strip emoji + markdown so TTS reads natural speech, not symbol names
+  function cleanForSpeech(text) {
+    return (text || '')
+      .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, '')
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/[*_`~#>|]+/g, '')
+      .replace(/^\s*[-•]\s*/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
   function speak(text) {
     if (!settings().voiceOn) return;
     if (!window.speechSynthesis) return;
+    const spoken = cleanForSpeech(text);
+    if (!spoken) return;
     window.speechSynthesis.cancel(); // stop any ongoing speech
     // wait for voices to load if needed
     const doSpeak = () => {
-      const u = new SpeechSynthesisUtterance(text);
+      const u = new SpeechSynthesisUtterance(spoken);
       const v = pickVoice();
       if (v) u.voice = v;
-      u.lang = v?.lang || 'en-US';
+      u.lang = v?.lang || 'he-IL';
       u.rate   = Math.min(1.1, Math.max(0.85, settings().rate || 0.95));
       u.volume = settings().volume ?? 1.0;
       u.pitch  = 1.0;
@@ -1402,11 +1421,11 @@
   function getCurrentUser() { return sessionStorage.getItem(SESSION_USER) || null; }
   function getCurrentUserDisplay() {
     const u = getCurrentUser();
-    if (!u) return 'Roei';
+    if (!u) return 'רואי';
     const acc = getAccounts()[u];
     const name = acc?.displayName || u;
-    // Never show the email address as a name — fall back to Roei.
-    if (!name || name.includes('@')) return 'Roei';
+    // Never show the email address as a name — fall back to רואי.
+    if (!name || name.includes('@')) return 'רואי';
     return name;
   }
 
@@ -3228,8 +3247,10 @@ section, .row, [class*="row-"], [class*="-row"] {
   };
 
   function injectScheduleIntoGrid() {
-    // The app grid: cells are id="wc-{dayIdx}-{rowIdx}"
-    // dayIdx: 0=Sun...6=Sat, rowIdx: 0=06:00, 1=07:00, ... 16=22:00
+    // Disabled in v5.3 — the weekly schedule now lives natively inside the
+    // app's own week grid (S.weekEvents), seeded by seedSchedule() in index.html.
+    return;
+    // eslint-disable-next-line no-unreachable
     const GRID_START_HOUR = 6;
     const today = new Date();
     const wk = isoWeekKey(today);
@@ -3345,12 +3366,34 @@ section, .row, [class*="row-"], [class*="-row"] {
     try { localStorage.setItem(SCHED_KEY, JSON.stringify(sched)); } catch(e) {}
   }
 
+  // Minimal palette for the Zoro HUD only — the app keeps its own (light)
+  // theme. The old full-page dark override caused unreadable contrast.
+  function injectZoroVars() {
+    if (document.getElementById('jv-zoro-vars')) return;
+    const s = document.createElement('style');
+    s.id = 'jv-zoro-vars';
+    s.textContent = `
+:root {
+  --jv-bg:#000; --jv-bg2:#0a0a0a; --jv-bg3:#111;
+  --jv-surface:rgba(28,28,30,.94); --jv-surface2:rgba(44,44,46,.9);
+  --jv-border:rgba(255,255,255,.12);
+  --jv-accent:#00d4ff; --jv-accent2:#0071e3;
+  --jv-text:#f5f5f7; --jv-text2:rgba(245,245,247,.66); --jv-text3:rgba(245,245,247,.4);
+  --jv-red:#ff375f; --jv-green:#34c759; --jv-yellow:#ffd60a;
+  --jv-radius:14px;
+}
+.jv-panel { background:rgba(10,10,12,.97) !important; border-color:rgba(0,212,255,.25) !important; }
+.jv-dock  { background:rgba(10,10,12,.97) !important; border-color:rgba(0,212,255,.20) !important; }
+`;
+    document.head.appendChild(s);
+  }
+
   // ────────────────────────────────────────────────────────────────────────
   // 12. BOOT
   // ────────────────────────────────────────────────────────────────────────
   function boot() {
-    // 1. Inject theme immediately
-    injectAppleTheme();
+    // 1. Inject Zoro's scoped palette — does NOT override the app theme
+    injectZoroVars();
 
     // 2. Account system — show login screen if no active session
     const doInit = () => {
@@ -3421,7 +3464,7 @@ section, .row, [class*="row-"], [class*="-row"] {
         }
       });
       _gridObserver.observe(document.body, { childList: true, subtree: true });
-      console.log('%cזורו v5.2 online — real tool-use AI agent, POS bridge, full data access.', 'color:#00d4ff;font-weight:bold;font-size:14px');
+      console.log('%cזורו v5.3 online — natural speech, app-native theme, native schedule.', 'color:#00d4ff;font-weight:bold;font-size:14px');
     };
 
     // If already logged in this session → go directly
