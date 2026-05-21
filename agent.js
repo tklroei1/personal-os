@@ -418,6 +418,13 @@
   //  7. STATE
   // ──────────────────────────────────────────────────────────────────────
   const state = { busy:false, result:null };
+  // Persist the latest result + pending actions so they survive navigation
+  // and reload (uses the personal_os_agent_pending_actions key from spec).
+  function saveState() { try { lsSet(PENDING_KEY, state.result); } catch (e) {} }
+  function loadState() {
+    const r = lsGet(PENDING_KEY, null);
+    if (r && typeof r === 'object' && Array.isArray(r.actions)) state.result = r;
+  }
 
   // ──────────────────────────────────────────────────────────────────────
   //  8. UI
@@ -488,7 +495,7 @@
       esc(WORKFLOWS[k].label) + '</button>').join('');
     return '<div class="ag-card">' +
       '<h3>🛰️ מרכז הפיקוד — מה תרצה ש-Personal OS יעשה?</h3>' +
-      '<textarea class="ag-ta" id="ag-input" placeholder="לדוגמה: תכנן לי את היום · הפוך הערות למשימות · מה הצעד הבא ב-Upselles"></textarea>' +
+      '<textarea class="ag-ta" id="ag-input" placeholder="לדוגמה: תכנן לי את היום · הפוך הערות למשימות · מה הצעד הבא ב-Upselles &#10;(Ctrl+Enter להפעלה)" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key===\'Enter\'){event.preventDefault();AgentRuntime.runCommand();}"></textarea>' +
       '<div class="ag-flex" style="margin-top:10px">' +
         '<button class="ag-btn" id="ag-run" onclick="AgentRuntime.runCommand()">▶ הפעל</button>' +
         '<span class="ag-mut" id="ag-status-line"></span>' +
@@ -544,6 +551,8 @@
           '<span class="ag-badge" style="background:' + risk.color + '22;color:' + risk.color + '">' + risk.label + '</span>' +
         '</div>' +
         '<div style="font-size:13px;margin:6px 0">' + esc(a.preview) + '</div>' +
+        (a.status === 'done' && a.resultMsg ? '<div class="ag-mut" style="color:#42e695;margin:-2px 0 6px">✓ ' + esc(a.resultMsg) + '</div>' : '') +
+        (a.status === 'pending' && a.resultMsg ? '<div class="ag-mut" style="color:#ff8da0;margin:-2px 0 6px">' + esc(a.resultMsg) + '</div>' : '') +
         '<div class="ag-flex" style="justify-content:space-between">' +
           '<span class="ag-mut">תחום: ' + esc(a.area) + (a.reason ? ' · ' + esc(a.reason) : '') + '</span>' +
           '<span class="ag-flex">' + ctrls + '</span>' +
@@ -634,6 +643,7 @@
     state.busy = false;
     if (btn) btn.disabled = false;
     setStatusLine('');
+    saveState();
     renderUI();
   }
 
@@ -658,6 +668,7 @@
     r.actions[i].status = res.ok ? 'done' : 'pending';
     r.actions[i].resultMsg = res.msg;
     if (!res.ok && window.POS) try { window.POS.notify('הפעולה נכשלה: ' + res.msg); } catch (e) {}
+    saveState();
     renderUI();
   }
   function reject(i) {
@@ -665,6 +676,7 @@
     if (!r || !r.actions[i] || r.actions[i].status !== 'pending') return;
     r.actions[i].status = 'rejected';
     audit({ type:'reject', tool:r.actions[i].tool });
+    saveState();
     renderUI();
   }
   function approveAll() {
@@ -675,6 +687,7 @@
       a.status = res.ok ? 'done' : 'pending';
       a.resultMsg = res.msg;
     }});
+    saveState();
     renderUI();
   }
   function removeMemoryUI(type, idx) { removeMemory(type, idx); renderUI(); }
@@ -701,7 +714,7 @@
   };
 
   // initial render once the DOM is ready (page is hidden until navigated)
-  function boot() { if (root()) renderUI(); }
+  function boot() { loadState(); if (root()) renderUI(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 
