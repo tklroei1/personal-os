@@ -10,7 +10,8 @@
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <link rel="apple-touch-icon" href="/icon.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Personal OS">
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -1027,8 +1028,9 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 <!-- REMINDERS -->
 <div class="page" id="page-reminders">
   <div class="card">
-    <div class="ch"><div class="ct">🔔 תזכורות מתוזמנות</div><button class="btn bp bsm" onclick="addReminder()">+ תזכורת</button></div>
+    <div class="ch"><div class="ct">🔔 תזכורות מתוזמנות</div><div style="display:flex;gap:6px"><button class="btn bs bsm" onclick="enableNotifications()">🔔 הפעל התראות</button><button class="btn bp bsm" onclick="addReminder()">+ תזכורת</button></div></div>
     <div id="reminders-list"></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5">💡 כדי לקבל התראות אמת באייפון — התקן את האפליקציה למסך הבית והפעל התראות.</div>
   </div>
 </div>
 
@@ -2897,12 +2899,11 @@ function addReminder(){
   const rep=prompt('חזרה? (daily/weekly/ריק):','');
   S.reminders.push({id:Date.now(),text,date:date||'',time:time||'09:00',done:false,repeat:rep||''});
   save();renderReminders();renderDashReminders();showNotif('✓ תזכורת נוספה');
-  // Browser notification
-  if('Notification'in window&&Notification.permission==='granted'){
-    const d=new Date(date+'T'+time);
-    const diff=d.getTime()-Date.now();
-    if(diff>0)setTimeout(()=>new Notification('Personal OS',{body:text,icon:''}),diff);
-  }else if('Notification'in window){Notification.requestPermission();}
+  // The 60-second reminder checker fires the notification when it comes due.
+  // Offer to turn on notifications if we haven't asked yet.
+  if('Notification'in window&&Notification.permission==='default'){
+    if(typeof enableNotifications==='function')enableNotifications();
+  }
 }
 function doneRem(i){S.reminders[i].done=!S.reminders[i].done;save();renderReminders();renderDashReminders();}
 function delRem(i){S.reminders.splice(i,1);save();renderReminders();renderDashReminders();}
@@ -4345,21 +4346,67 @@ function seedSchedule(force){
   if(typeof buildWeekGrid==='function')buildWeekGrid();
 }
 seedSchedule();
-// Request notification permission
-if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
+// ───── NOTIFICATIONS ─────
+// Fire a notification through the service worker (works inside an iOS PWA,
+// where the bare Notification constructor is unavailable) with a graceful
+// fallback to the constructor on desktop browsers.
+async function posNotify(title,body,data){
+  if(!('Notification'in window)||Notification.permission!=='granted')return false;
+  const opts={body:body||'',icon:'/icon.svg',badge:'/icon.svg',dir:'rtl',lang:'he',
+    tag:'pos-reminder-'+Date.now(),renotify:true,vibrate:[130,70,130],
+    data:Object.assign({url:'/?page=reminders'},data||{})};
+  try{
+    if('serviceWorker'in navigator){
+      const reg=await navigator.serviceWorker.ready;
+      await reg.showNotification(title,opts);
+      return true;
+    }
+  }catch(e){}
+  try{new Notification(title,opts);return true;}catch(e){}
+  return false;
+}
+// Request notification permission — MUST run from a user gesture, because
+// iOS Safari silently rejects requests made automatically on page load.
+async function enableNotifications(){
+  if(!('Notification'in window)){
+    if(typeof showNotif==='function')showNotif('הדפדפן לא תומך בהתראות');
+    return false;
+  }
+  if(Notification.permission==='granted'){
+    if(typeof showNotif==='function')showNotif('✓ התראות כבר פעילות');
+    posNotify('Personal OS','התראות פעילות — תקבל כאן תזכורות 🔔');
+    return true;
+  }
+  if(Notification.permission==='denied'){
+    alert('ההתראות חסומות.\nכדי להפעיל: הגדרות הדפדפן ← אתר זה ← התראות ← אפשר.\nבאייפון: הגדרות ← Personal OS ← התראות.');
+    return false;
+  }
+  let res='denied';
+  try{res=await Notification.requestPermission();}catch(e){}
+  if(res==='granted'){
+    if(typeof showNotif==='function')showNotif('✓ ההתראות הופעלו');
+    posNotify('Personal OS','מעולה! מעכשיו תקבל תזכורות 🔔');
+    return true;
+  }
+  if(typeof showNotif==='function')showNotif('ההתראות לא אושרו');
+  return false;
+}
+window.enableNotifications=enableNotifications;
+window.posNotify=posNotify;
 // Check due reminders — each fires at most once (r.notified guard)
 setInterval(()=>{
   const now=new Date();
+  let changed=false;
   (S.reminders||[]).filter(r=>!r.done&&!r.notified).forEach(r=>{
-    const rd=new Date(r.date+'T'+r.time);
+    if(!r.date)return;
+    const rd=new Date(r.date+'T'+(r.time||'09:00'));
     if(rd<=now&&(now-rd)<300000){
-      if('Notification'in window&&Notification.permission==='granted'){
-        new Notification('⏰ Personal OS',{body:r.text,icon:'/icon.svg'});
-      }
+      posNotify('⏰ תזכורת',r.text);
       if(typeof showNotif==='function')showNotif('⏰ '+r.text);
-      r.notified=true;save();
+      r.notified=true;changed=true;
     }
   });
+  if(changed)save();
 },60000);
 
 // SERVICE WORKER (PWA offline support)
@@ -4378,20 +4425,84 @@ if('serviceWorker'in navigator){
   }).catch(()=>{});
   navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
 }
-// iOS "Add to Home Screen" hint — shown once for iPhone Safari users
+// ───── PWA INSTALL (iOS hint + Android/Chrome prompt) ─────
 (function(){
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||
+    (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const standalone=window.navigator.standalone===true||
+    window.matchMedia('(display-mode: standalone)').matches;
+  let deferred=null;
+
+  // slide-up keyframes
   try{
-    const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-    const standalone=window.navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches;
-    if(!isIOS||standalone||localStorage.getItem('pos_ios_hint'))return;
-    setTimeout(()=>{
-      const b=document.createElement('div');
-      b.style.cssText='position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));left:14px;right:14px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:12px 14px;z-index:99999;box-shadow:0 10px 34px rgba(0,0,0,.22);font-size:13px;display:flex;align-items:center;gap:10px';
-      b.innerHTML='<span style="font-size:20px">📲</span><span style="flex:1;color:var(--text);line-height:1.4">להתקנה כאפליקציה: הקש על <b>שיתוף</b> ואז <b>"הוסף למסך הבית"</b></span><button style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-size:12px;cursor:pointer;white-space:nowrap">הבנתי</button>';
-      b.querySelector('button').onclick=()=>{b.remove();localStorage.setItem('pos_ios_hint','1');};
-      document.body.appendChild(b);
-    },4500);
+    const st=document.createElement('style');
+    st.textContent='@keyframes posSlideUp{from{transform:translateY(140%);opacity:0}to{transform:translateY(0);opacity:1}}';
+    document.head.appendChild(st);
   }catch(e){}
+
+  function banner(inner){
+    if(document.getElementById('pos-install-banner'))return null;
+    const b=document.createElement('div');
+    b.id='pos-install-banner';
+    b.style.cssText='position:fixed;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:99999;background:linear-gradient(135deg,#6c63ff,#7c3aed);color:#fff;border-radius:16px;padding:13px 15px;box-shadow:0 12px 38px rgba(108,99,255,.5);display:flex;align-items:center;gap:11px;font-family:Heebo,sans-serif;direction:rtl;animation:posSlideUp .38s cubic-bezier(.2,.9,.3,1)';
+    b.innerHTML=inner;
+    document.body.appendChild(b);
+    const c=b.querySelector('[data-close]');
+    if(c)c.onclick=()=>{b.remove();localStorage.setItem('pos_install_dismissed',Date.now());};
+    return b;
+  }
+  function closeBtn(){
+    return '<button data-close style="background:rgba(255,255,255,.18);border:0;color:#fff;font-size:18px;line-height:1;cursor:pointer;width:28px;height:28px;border-radius:50%;flex-shrink:0">×</button>';
+  }
+  // re-show only after 7 days from last dismissal
+  function dismissedRecently(){
+    const t=+localStorage.getItem('pos_install_dismissed')||0;
+    return t&&(Date.now()-t)<7*864e5;
+  }
+
+  // Android / desktop Chrome — native install prompt
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault();deferred=e;
+    if(standalone||dismissedRecently())return;
+    setTimeout(()=>{
+      const b=banner(
+        '<span style="font-size:24px">📲</span>'+
+        '<div style="flex:1;line-height:1.35"><div style="font-weight:700;font-size:14px">התקן את Personal OS</div>'+
+        '<div style="font-size:12px;opacity:.88">גישה מהירה ישירות ממסך הבית</div></div>'+
+        '<button data-act style="background:#fff;color:#6c63ff;border:0;border-radius:10px;padding:9px 16px;font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;flex-shrink:0">התקן</button>'+
+        closeBtn()
+      );
+      if(b)b.querySelector('[data-act]').onclick=async()=>{
+        b.remove();deferred.prompt();
+        try{await deferred.userChoice;}catch(e){}
+        deferred=null;
+      };
+    },3500);
+  });
+  window.addEventListener('appinstalled',()=>{
+    const b=document.getElementById('pos-install-banner');if(b)b.remove();
+    deferred=null;
+  });
+
+  // iOS Safari — no native prompt, show manual instructions
+  if(isIOS&&!standalone&&!dismissedRecently()){
+    setTimeout(()=>{
+      banner(
+        '<span style="font-size:24px">📲</span>'+
+        '<div style="flex:1;line-height:1.4"><div style="font-weight:700;font-size:14px">התקן באייפון</div>'+
+        '<div style="font-size:12px;opacity:.92">הקש <b>שיתוף</b> <span style="font-size:14px">⬆️</span> ואז <b>"הוסף למסך הבית"</b></div></div>'+
+        closeBtn()
+      );
+    },4000);
+  }
+
+  // manual trigger — usable from a button anywhere in the app
+  window.posInstall=function(){
+    if(standalone){if(typeof showNotif==='function')showNotif('האפליקציה כבר מותקנת ✓');return;}
+    if(deferred){deferred.prompt();deferred.userChoice.then(()=>deferred=null);return;}
+    if(isIOS){alert('להתקנה כאפליקציה באייפון:\n\n1️⃣ הקש על כפתור השיתוף ⬆️ בתחתית הדפדפן\n2️⃣ גלול ובחר "הוסף למסך הבית"\n3️⃣ הקש "הוסף"');return;}
+    if(typeof showNotif==='function')showNotif('פתח את תפריט הדפדפן ובחר "התקן אפליקציה"');
+  };
 })();
 // WEBHOOK POLLING — poll every 30 seconds for remote commands
 setInterval(pollWebhook,30000);
