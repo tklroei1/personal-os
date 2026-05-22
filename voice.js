@@ -409,7 +409,7 @@
   // ──────────────────────────────────────────────────────────────────────
   //  UI — red-sun orb
   // ──────────────────────────────────────────────────────────────────────
-  let rootEl, orbEl, statusEl, stateEl, transcriptEl, inputEl;
+  let rootEl, orbEl, statusEl, stateEl, transcriptEl, inputEl, floatEl;
 
   function injectStyles(){
     if (document.getElementById('voice-css')) return;
@@ -468,8 +468,38 @@
   border-radius:11px;cursor:pointer;font-size:14px;padding:0 15px;height:42px}
 #v-row button:hover,#v-clear:hover{border-color:#ff8a3d}
 #v-clear{font-size:12px;padding:7px 14px;height:auto}
+/* ── floating red-sun orb — appears on every page ── */
+#v-float{position:fixed;left:24px;bottom:104px;z-index:999998;width:56px;height:56px;
+  border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 38% 30%,#ffe7a0 0%,#ff9a2e 36%,#ef2b00 74%,#7a0d00 100%);
+  box-shadow:0 0 24px #ff5a1eaa,0 6px 20px rgba(0,0,0,.5);transition:transform .2s}
+#v-float:hover{transform:scale(1.1)}
+#v-float .v-core{width:16px;height:16px}
+#v-float::before{content:'';position:absolute;inset:-9px;border-radius:50%;z-index:-1;
+  background:repeating-conic-gradient(from 0deg,#ff7a1edd 0deg 7deg,transparent 7deg 21deg);
+  -webkit-mask:radial-gradient(circle,transparent 56%,#000 58%,#000 84%,transparent 86%);
+          mask:radial-gradient(circle,transparent 56%,#000 58%,#000 84%,transparent 86%);
+  animation:v-rays 24s linear infinite;opacity:.6}
+#v-float.active{box-shadow:0 0 42px #ff5a1e,0 6px 20px rgba(0,0,0,.5)}
+#v-float.active::before{animation-duration:7s;opacity:.95}
+#v-float.active .v-core{animation:v-core 1s ease-in-out infinite}
 `;
     document.head.appendChild(s);
+  }
+
+  function buildFloatingOrb(){
+    if (document.getElementById('v-float')) return;
+    const f = document.createElement('div');
+    f.id = 'v-float';
+    f.title = 'שיחה קולית עם זורו';
+    f.innerHTML = '<div class="v-core"></div>';
+    f.addEventListener('click', () => {
+      unlockAudio();
+      try { if (window.goPage) window.goPage('voice'); } catch (e) {}
+      setTimeout(() => { if (!conversing) startConversation(); }, 180);
+    });
+    document.body.appendChild(f);
+    floatEl = f;
   }
 
   function render(){
@@ -527,6 +557,7 @@
       stateEl.className = s;
       stateEl.textContent = { idle:'', listening:'מקשיב…', thinking:'חושב…', speaking:'מדבר…' }[s] || '';
     }
+    if (floatEl) floatEl.classList.toggle('active', conversing);
   }
   function setStatus(msg, kind){
     if (!statusEl) return;
@@ -560,6 +591,8 @@
   };
 
   loadMem();
+  injectStyles();      // make voice styles available app-wide (for the floating orb)
+  buildFloatingOrb();  // a red-sun orb on every page
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && conversing) stopConversation();
   });

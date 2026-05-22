@@ -3348,12 +3348,21 @@ window.POS = (function(){
       S.reminders.unshift({id:uid(),text,date:a.date||new Date().toISOString().split('T')[0],time:a.time||'09:00',done:false,repeat:a.repeat||''});
       save();refresh();return'נוספה תזכורת: '+text+(a.date?' ל-'+a.date:'');},
     // ───── EVENTS ─────
-    addEvent(a){a=a||{};const title=(a.title||a.text||'').trim();const date=a.date;
-      if(!title||!date)return'צריך כותרת ותאריך לאירוע';
+    addEvent(a){a=a||{};const title=(a.title||a.text||'').trim();
+      if(!title)return'צריך כותרת לאירוע';
       if(!S.weekEvents)S.weekEvents={};
-      if(!S.weekEvents[date])S.weekEvents[date]=[];
-      S.weekEvents[date].push({id:uid(),text:title+(a.time?' '+a.time:''),time:a.time||'',color:'#6c63ff'});
-      save();refresh();return'נוסף אירוע: '+title+' ב-'+date;},
+      // The weekly grid is keyed by "<dayIndex>-HH:00". Convert the event's
+      // date+time to that key so it actually appears in the לוז (was being
+      // saved under a date string the grid never reads -> invisible).
+      let d=a.date?new Date(a.date):new Date(); if(isNaN(d))d=new Date();
+      let h=9; if(a.time&&/^\d{1,2}:/.test(a.time))h=parseInt(a.time,10);
+      h=Math.max(6,Math.min(22,h||9));
+      const key=d.getDay()+'-'+('0'+h).slice(-2)+':00';
+      if(!S.weekEvents[key])S.weekEvents[key]=[];
+      S.weekEvents[key].push({id:uid(),text:title+(a.time?' '+a.time:''),time:a.time||'',color:'#ff8a3d'});
+      save();refresh();
+      try{if(typeof buildWeekGrid==='function')buildWeekGrid();}catch(e){}
+      return'נוסף אירוע ללוז: '+title+(a.time?' בשעה '+a.time:'');},
     // ───── HABITS ─────
     addHabit(a){a=a||{};const name=(a.name||a.text||'').trim();
       if(!name)return'חסר שם להרגל';
