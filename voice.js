@@ -677,6 +677,26 @@
 #v-float.active{box-shadow:0 0 48px rgba(255,55,75,.95),0 8px 26px rgba(0,0,0,.6)}
 #v-float.active::before{animation-duration:7s}
 #v-float.active .v-core{animation:v-pulse 1s ease-in-out infinite}
+#v-float{touch-action:none;-webkit-user-select:none;user-select:none}
+#v-float.dragging{transition:none;transform:scale(1.12);cursor:grabbing}
+/* radial action menu — voice / text chat / hide */
+#v-menu{position:fixed;z-index:999999;display:none;flex-direction:column;gap:6px;
+  background:rgba(22,8,12,.97);border:1px solid rgba(255,75,95,.35);border-radius:14px;
+  padding:8px;box-shadow:0 14px 40px rgba(0,0,0,.62),0 0 30px rgba(255,40,60,.22);
+  font-family:'Heebo',sans-serif;direction:rtl}
+#v-menu.show{display:flex;animation:v-menu-in .16s ease}
+@keyframes v-menu-in{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+#v-menu button{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.09);color:#f1e7e9;border-radius:10px;padding:10px 14px;
+  font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;transition:all .14s}
+#v-menu button:hover{background:rgba(255,40,60,.18);border-color:rgba(255,75,95,.5);color:#fff}
+#v-menu button .vm-i{font-size:16px}
+/* edge tab to bring the orb back after hiding */
+#v-restore{position:fixed;left:0;bottom:118px;z-index:999998;width:28px;height:52px;
+  border-radius:0 13px 13px 0;cursor:pointer;display:none;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 62% 40%,#ff7a7a,#9e0c1c 68%,#26060b);
+  box-shadow:0 4px 18px rgba(0,0,0,.5),0 0 18px rgba(255,40,60,.5);font-size:15px}
+#v-restore.show{display:flex}
 @media(max-width:560px){
   #voice-root{padding:20px 12px 26px;border-radius:16px;gap:11px}
   #v-orb{width:170px;height:170px;margin-top:8px}
@@ -693,16 +713,127 @@
     if (document.getElementById('v-float')) return;
     const f = document.createElement('div');
     f.id = 'v-float';
-    f.title = 'זורו — הקש לשיחה';
+    f.title = 'זורו — גרור להזזה · הקש לתפריט';
     f.innerHTML = '<div class="v-core"></div>';
-    f.addEventListener('click', () => {
-      unlockAudio();
-      if (conversing || speaking) { fullStop(true); return; }   // tap while active = stop
-      try { if (window.goPage) window.goPage('voice'); } catch (e) {}
-      setTimeout(() => { if (!conversing) startConversation(); }, 180);
-    });
     document.body.appendChild(f);
     floatEl = f;
+
+    // ── action menu: voice · text chat · hide ──
+    const menu = document.createElement('div');
+    menu.id = 'v-menu';
+    menu.innerHTML =
+      '<button data-act="voice"><span class="vm-i">🎤</span>שיחה קולית</button>' +
+      '<button data-act="chat"><span class="vm-i">⌨️</span>צ\'אט בכתב</button>' +
+      '<button data-act="hide"><span class="vm-i">🙈</span>הסתר את זורו</button>';
+    document.body.appendChild(menu);
+
+    // ── edge tab to restore the orb after hiding ──
+    const restore = document.createElement('div');
+    restore.id = 'v-restore';
+    restore.textContent = '☀';
+    restore.title = 'החזר את זורו';
+    document.body.appendChild(restore);
+
+    function hideMenu(){ menu.classList.remove('show'); }
+    function showMenu(){
+      const r = f.getBoundingClientRect();
+      menu.style.visibility = 'hidden';
+      menu.classList.add('show');
+      const mw = menu.offsetWidth, mh = menu.offsetHeight;
+      let left = r.left + r.width / 2 - mw / 2;
+      let top  = r.top - mh - 10;
+      if (top < 8) top = r.bottom + 10;                       // flip below if no room
+      left = Math.max(8, Math.min(left, innerWidth - mw - 8));
+      top  = Math.max(8, Math.min(top,  innerHeight - mh - 8));
+      menu.style.left = left + 'px';
+      menu.style.top  = top + 'px';
+      menu.style.visibility = 'visible';
+    }
+    menu.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      hideMenu();
+      const act = b.dataset.act;
+      if (act === 'voice'){
+        unlockAudio();
+        try { if (window.goPage) window.goPage('voice'); } catch (e) {}
+        setTimeout(() => { if (!conversing) startConversation(); }, 180);
+      } else if (act === 'chat'){
+        try { if (window.Assistant && window.Assistant.open) window.Assistant.open(); } catch (e) {}
+      } else if (act === 'hide'){
+        f.style.display = 'none';
+        restore.classList.add('show');
+        try { localStorage.setItem('pos_orb_hidden', '1'); } catch (e) {}
+      }
+    });
+    document.addEventListener('click', e => {
+      if (menu.classList.contains('show') && !menu.contains(e.target) && e.target !== f)
+        hideMenu();
+    });
+    restore.addEventListener('click', () => {
+      f.style.display = '';
+      restore.classList.remove('show');
+      try { localStorage.removeItem('pos_orb_hidden'); } catch (e) {}
+    });
+
+    // ── drag (move anywhere) + tap (open menu) ──
+    let dragging = false, moved = false, sx = 0, sy = 0, ox = 0, oy = 0;
+    function applyPos(x, y){
+      const m = 8, w = f.offsetWidth || 66, h = f.offsetHeight || 66;
+      x = Math.max(m, Math.min(x, innerWidth  - w - m));
+      y = Math.max(m, Math.min(y, innerHeight - h - m));
+      f.style.left = x + 'px';  f.style.top = y + 'px';
+      f.style.right = 'auto';   f.style.bottom = 'auto';
+    }
+    function savePos(){
+      try {
+        localStorage.setItem('pos_orb_pos',
+          JSON.stringify({ x: parseFloat(f.style.left), y: parseFloat(f.style.top) }));
+      } catch (e) {}
+    }
+    function onDown(e){
+      const p = e.touches ? e.touches[0] : e;
+      dragging = true; moved = false;
+      sx = p.clientX; sy = p.clientY;
+      const r = f.getBoundingClientRect(); ox = r.left; oy = r.top;
+      f.classList.add('dragging');
+    }
+    function onMove(e){
+      if (!dragging) return;
+      const p = e.touches ? e.touches[0] : e;
+      const dx = p.clientX - sx, dy = p.clientY - sy;
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
+      if (moved){ applyPos(ox + dx, oy + dy); if (e.cancelable) e.preventDefault(); }
+    }
+    function onUp(){
+      if (!dragging) return;
+      dragging = false;
+      f.classList.remove('dragging');
+      if (moved){ savePos(); return; }
+      // pure tap
+      unlockAudio();
+      if (conversing || speaking){ fullStop(true); hideMenu(); return; }   // tap while active = stop
+      menu.classList.contains('show') ? hideMenu() : showMenu();
+    }
+    f.addEventListener('mousedown', onDown);
+    f.addEventListener('touchstart', onDown, { passive: true });
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchend', onUp);
+
+    // restore saved position / hidden state
+    try {
+      const saved = JSON.parse(localStorage.getItem('pos_orb_pos') || 'null');
+      if (saved && typeof saved.x === 'number') applyPos(saved.x, saved.y);
+      if (localStorage.getItem('pos_orb_hidden') === '1'){
+        f.style.display = 'none';
+        restore.classList.add('show');
+      }
+    } catch (e) {}
+    window.addEventListener('resize', () => {
+      if (f.style.left) applyPos(parseFloat(f.style.left), parseFloat(f.style.top));
+    });
+
     syncWakeUI();
   }
 

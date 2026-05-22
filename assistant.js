@@ -386,7 +386,8 @@
   font-family:-apple-system,Segoe UI,Rubik,Arial,sans-serif}
 #as-orb{width:62px;height:62px;border-radius:50%;cursor:pointer;position:relative;
   background:radial-gradient(circle at 35% 30%,#fff 0%,${ACCENT} 38%,#024 100%);
-  box-shadow:0 6px 24px rgba(0,0,0,.4),0 0 22px ${ACCENT}66;transition:transform .15s}
+  box-shadow:0 6px 24px rgba(0,0,0,.4),0 0 22px ${ACCENT}66;transition:transform .15s;
+  display:none}/* merged into the red Zoro orb — opened via its ⌨️ menu item */
 #as-orb:hover{transform:scale(1.06)}
 #as-orb::after{content:'';position:absolute;inset:-6px;border-radius:50%;
   border:2px solid ${ACCENT};opacity:0}
