@@ -162,11 +162,19 @@
   // ──────────────────────────────────────────────────────────────────────
   //  BRAIN — Claude tool-use loop
   // ──────────────────────────────────────────────────────────────────────
-  async function apiCall(system, messages){
+  // credit-saving: short/simple commands use cheaper Haiku; complex
+  // requests (planning, research, web search) use Sonnet.
+  function pickModel(text){
+    const t = text || '';
+    if (t.length > 170) return MODEL;
+    if (/(תכנן|תוכנית|נתח|נתוח|חקור|חפש|מצא לי|סכם|השווה|כתוב לי|המלצ|רעיון|איך כדאי|plan|research|analyz|summar|search)/i.test(t)) return MODEL;
+    return 'claude-haiku-4-5-20251001';
+  }
+  async function apiCall(system, messages, model){
     try {
       const res = await fetch('/api/claude', {
         method:'POST', headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ model: MODEL, max_tokens: 1024, system, tools: TOOLS, messages })
+        body: JSON.stringify({ model: model || MODEL, max_tokens: 1024, system, tools: TOOLS, messages })
       });
       if (!res.ok) return { _error:'api ' + res.status };
       const data = await res.json();
@@ -179,13 +187,14 @@
     prompt = (prompt || '').trim();
     if (!prompt) return '';
     const system = systemPrompt(context());
+    const model = pickModel(prompt);
     memory.push({ role:'user', content: prompt });
-    let messages = memory.slice(-16).map(m => ({ role:m.role, content:m.content }));
+    let messages = memory.slice(-12).map(m => ({ role:m.role, content:m.content }));
     while (messages.length && messages[0].role !== 'user') messages.shift();
 
     let loops = 0;
     while (loops++ < 7) {
-      const data = await apiCall(system, messages);
+      const data = await apiCall(system, messages, model);
       if (data._error) { memory.pop(); return 'לא הצלחתי להתחבר כרגע. ננסה שוב.'; }
       const blocks   = Array.isArray(data.content) ? data.content : [];
       const toolUses = blocks.filter(b => b.type === 'tool_use');
@@ -460,7 +469,7 @@
   }
 
   // ── shared: one conversational turn ──
-  async function handleUtterance(text){
+  async function handleUtterance(text, source){
     if (speaking) return;
     text = (text || '').trim();
     if (!text) return;
@@ -472,7 +481,7 @@
     const reply = await think(text);
     addLine('bot', reply);
     setState('speaking');
-    speak(reply, () => {
+    const done = () => {
       speaking = false;
       if (stopRequested) { fullStop(true); return; }   // user said "עצור" mid-action
       if (conversing || wakeArmed) {
@@ -481,7 +490,11 @@
       } else {
         setState('idle');
       }
-    });
+    };
+    // typed/chip input uses the free browser voice (saves TTS credits);
+    // spoken input gets the premium neural voice
+    if (source === 'text') browserSpeak(reply, done);
+    else speak(reply, done);
   }
 
   // ──────────────────────────────────────────────────────────────────────
@@ -664,6 +677,14 @@
 #v-float.active{box-shadow:0 0 48px rgba(255,55,75,.95),0 8px 26px rgba(0,0,0,.6)}
 #v-float.active::before{animation-duration:7s}
 #v-float.active .v-core{animation:v-pulse 1s ease-in-out infinite}
+@media(max-width:560px){
+  #voice-root{padding:20px 12px 26px;border-radius:16px;gap:11px}
+  #v-orb{width:170px;height:170px;margin-top:8px}
+  #v-orb .v-core{width:46px;height:46px}
+  #v-transcript{max-height:30vh}
+  #v-float{left:16px;bottom:90px;width:60px;height:60px}
+  #v-row{flex-wrap:wrap}
+}
 `;
     document.head.appendChild(s);
   }
@@ -728,7 +749,7 @@
       const g = SUGGESTIONS[+ch.dataset.g], it = g && g.items[+ch.dataset.i];
       if (!it) return;
       unlockAudio();
-      if (it.run) { handleUtterance(it.t.trim()); }
+      if (it.run) { handleUtterance(it.t.trim(), 'text'); }
       else { inputEl.value = it.t; inputEl.focus(); }
     }));
 
@@ -742,7 +763,7 @@
     const v = inputEl.value.trim();
     inputEl.value = '';
     unlockAudio();
-    handleUtterance(v);
+    handleUtterance(v, 'text');
   }
 
   function setState(s){

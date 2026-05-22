@@ -290,6 +290,18 @@ select.inp{cursor:pointer}
 .user-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Heebo',system-ui,sans-serif}
 .user-email{font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gsignin-wrap{margin-bottom:8px}
+#login-screen{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse 130% 80% at 50% 0%,#3a0a16 0%,#12060a 45%,#070305 100%);
+  direction:rtl;font-family:-apple-system,Segoe UI,Rubik,Arial,sans-serif;padding:20px}
+.login-card{text-align:center;padding:42px 30px;max-width:380px;width:100%;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:24px;
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 24px 70px rgba(0,0,0,.6)}
+.login-logo{font-size:44px;color:#ff5a6e;text-shadow:0 0 30px rgba(255,60,80,.7);line-height:1}
+.login-card h1{margin:8px 0 0;font-size:25px;font-weight:700;color:#f5eef0;letter-spacing:1px}
+.login-tag{margin-top:7px;font-size:14px;color:#ff8a93}
+.login-sub{margin:20px 0 16px;font-size:13px;color:#9a8b90;line-height:1.55}
+#login-gbtn{display:flex;justify-content:center;min-height:46px}
+.login-foot{margin-top:22px;font-size:11px;color:#6a5b60}
 #webhook-badge{position:fixed;top:14px;right:50%;transform:translateX(50%);background:var(--teal);color:#fff;padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;z-index:1000;opacity:0;transition:opacity 0.3s;pointer-events:none}
 #webhook-badge.show{opacity:1}
 /* JOB FILTER CHIPS */
@@ -1597,6 +1609,18 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 <div class="page" id="page-voice"><div id="voice-root"></div></div>
 
 </main>
+</div>
+
+<!-- WELCOME / LOGIN SCREEN (shown full-screen when signed out — works on mobile) -->
+<div id="login-screen" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">◆</div>
+    <h1>Personal OS</h1>
+    <div class="login-tag">העוזר האישי החכם שלך — זורו</div>
+    <div class="login-sub">התחבר עם חשבון Google כדי להיכנס למערכת</div>
+    <div id="login-gbtn"></div>
+    <div class="login-foot">המידע שלך נשמר מקומית במכשיר שלך</div>
+  </div>
 </div>
 
 <!-- MOBILE BOTTOM NAV -->
@@ -3632,12 +3656,34 @@ function signOut(){
   localStorage.removeItem('pos_user');
   location.reload();
 }
+function showLoginScreen(){
+  var ls=document.getElementById('login-screen'); if(!ls)return;
+  ls.style.display='flex';
+  var n=0;
+  (function tryRender(){
+    if(window.google&&google.accounts&&google.accounts.id){
+      var el=document.getElementById('login-gbtn');
+      if(el&&!el.getAttribute('data-done')){
+        try{
+          google.accounts.id.renderButton(el,{theme:'filled_black',size:'large',
+            text:'signin_with',shape:'pill',locale:'he',width:280});
+          el.setAttribute('data-done','1');
+        }catch(e){}
+      }
+    } else if(n++<60){ setTimeout(tryRender,150); }
+  })();
+}
+function hideLoginScreen(){
+  var ls=document.getElementById('login-screen'); if(ls)ls.style.display='none';
+}
 function renderUserProfile(){
   if(!currentUser){
     document.getElementById('user-info-bar').classList.remove('visible');
     document.getElementById('gsignin-wrap').style.display='block';
+    showLoginScreen();
     return;
   }
+  hideLoginScreen();
   const nl=document.getElementById('user-name-lbl');
   const el=document.getElementById('user-email-lbl');
   const pl=document.getElementById('user-photo');

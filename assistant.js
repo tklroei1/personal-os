@@ -167,12 +167,19 @@
   // ──────────────────────────────────────────────────────────────────────
   //  4. BRAIN — Claude tool-use loop
   // ──────────────────────────────────────────────────────────────────────
-  async function apiCall(system, messages) {
+  // credit-saving: short/simple commands use cheaper Haiku, complex use Sonnet
+  function pickModel(text){
+    const t = text || '';
+    if (t.length > 170) return MODEL;
+    if (/(תכנן|תוכנית|נתח|נתוח|חקור|חפש|מצא לי|סכם|השווה|כתוב לי|המלצ|רעיון|איך כדאי|plan|research|analyz|summar|search)/i.test(t)) return MODEL;
+    return 'claude-haiku-4-5-20251001';
+  }
+  async function apiCall(system, messages, model) {
     try {
       const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: MODEL, max_tokens: 1024, system, tools: TOOLS, messages })
+        body: JSON.stringify({ model: model || MODEL, max_tokens: 1024, system, tools: TOOLS, messages })
       });
       if (!res.ok) return { _error: 'api ' + res.status };
       const data = await res.json();
@@ -187,13 +194,14 @@
     const ctx = context();
     const system = systemPrompt(ctx);
 
+    const model = pickModel(prompt);
     memory.push({ role: 'user', content: prompt });
-    let messages = memory.slice(-16).map(m => ({ role: m.role, content: m.content }));
+    let messages = memory.slice(-12).map(m => ({ role: m.role, content: m.content }));
     while (messages.length && messages[0].role !== 'user') messages.shift();
 
     let loops = 0;
     while (loops++ < 6) {
-      const data = await apiCall(system, messages);
+      const data = await apiCall(system, messages, model);
       if (data._error) {
         memory.pop();
         return 'לא הצלחתי להתחבר כרגע (' + data._error + '). נסה שוב בעוד רגע.';
@@ -538,7 +546,7 @@
     if (typing) typing.remove();
     if (reply) {
       addBubble('bot', reply);
-      speak(reply);
+      browserSpeak(reply);   // free browser voice — saves TTS credits on the chat orb
     } else {
       setState('idle');
     }
