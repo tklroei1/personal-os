@@ -277,7 +277,28 @@
   // free conversation) · speaking (busy) · awaitingCommand (heard the bare
   // name, next utterance is the command).
   let wakeArmed = false, conversing = false, speaking = false, awaitingCommand = false;
+  let stopRequested = false;
   let recog = null, recogOn = false;
+
+  // "זורו עצור" / "עצור" / "stop" — stop listening + acting (after the
+  // current action finishes).
+  const STOP_WORDS = ['עצור', 'סטופ', 'תעצור', 'לעצור', 'תפסיק', 'להפסיק', 'stop'];
+  function isStopCommand(text){
+    const words = (text||'').toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (!words.length || words.length > 4) return false;
+    const core = ' ' + words.filter(w => !WAKE_WORDS.some(ww => w.indexOf(ww.toLowerCase()) >= 0)).join(' ') + ' ';
+    return STOP_WORDS.some(sw => core.indexOf(sw) >= 0);
+  }
+  function fullStop(){
+    const wasActive = conversing || wakeArmed || speaking;
+    stopRequested = false; conversing = false; speaking = false; awaitingCommand = false;
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+    try { if (audioEl) audioEl.pause(); } catch (e) {}
+    stopRecorder();
+    if (wakeArmed) disarmWake(); else stopSR();
+    setState('idle'); syncWakeUI();
+    if (wasActive) addLine('sys', 'זורו הופסק. הקש על השמש או הפעל "האזנה" כדי להתחיל שוב.');
+  }
 
   function wakeMatch(text){
     const low = ' ' + (text||'').toLowerCase() + ' ';
@@ -294,8 +315,9 @@
     r.onstart = () => { recogOn = true; if (conversing && !speaking) setState('listening'); };
     r.onend   = () => {
       recogOn = false;
-      if ((conversing || wakeArmed) && !speaking) {
-        setTimeout(() => { if ((conversing || wakeArmed) && !speaking && !recogOn) startSR(); }, 250);
+      // keep listening alive even while speaking, so "עצור" can be caught mid-action
+      if (conversing || wakeArmed) {
+        setTimeout(() => { if ((conversing || wakeArmed) && !recogOn) startSR(); }, 250);
       }
     };
     r.onerror = (e) => {
@@ -306,15 +328,21 @@
       }
     };
     r.onresult = (ev) => {
-      if (speaking) return;
       let interim = '', final = '';
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
         const res = ev.results[i];
         if (res.isFinal) final += res[0].transcript;
         else interim += res[0].transcript;
       }
-      if (interim.trim() && (conversing || awaitingCommand)) setStatus('🎙 ' + interim.trim(), '');
       const T = final.trim();
+      // stop command — caught even mid-action; if Zoro is busy, finish first
+      if (T && isStopCommand(T)) {
+        if (speaking) stopRequested = true;
+        else fullStop();
+        return;
+      }
+      if (speaking) return;
+      if (interim.trim() && (conversing || awaitingCommand)) setStatus('🎙 ' + interim.trim(), '');
       if (!T) return;
       if (conversing)              { handleUtterance(T); return; }
       if (awaitingCommand)         { awaitingCommand = false; handleUtterance(T); return; }
@@ -433,8 +461,10 @@
   // ── shared: one conversational turn ──
   async function handleUtterance(text){
     if (speaking) return;
+    text = (text || '').trim();
+    if (!text) return;
+    if (isStopCommand(text)) { fullStop(); return; }
     speaking = true;
-    if (SR) stopSR();
     setStatus('', '');
     addLine('user', text);
     setState('thinking');
@@ -443,6 +473,7 @@
     setState('speaking');
     speak(reply, () => {
       speaking = false;
+      if (stopRequested) { fullStop(); return; }   // user said "עצור" mid-action
       if (conversing || wakeArmed) {
         setState(conversing ? 'listening' : 'idle');
         if (SR) startSR(); else if (conversing) recLoop();

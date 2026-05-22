@@ -3401,9 +3401,29 @@ window.POS = (function(){
     // ───── JOBS ─────
     addJob(a){a=a||{};const title=(a.title||'').trim();
       if(!title)return'חסר תפקיד';
+      // The job-search project (Kanban) renders S.jobsV2 — write there so the
+      // job physically appears in the project, not just into the legacy array.
+      try{if(typeof getJobsV2==='function')getJobsV2();}catch(e){}
+      if(!S.jobsV2)S.jobsV2=[];
+      const now=new Date().toISOString();
+      const sm={waiting:'saved',saved:'saved',applied:'applied',interview:'interview',offer:'offer',rejected:'archive'};
+      const stage=sm[a.status]||'saved';
+      S.jobsV2.unshift({
+        id:'job_'+Date.now()+'_'+Math.floor(Math.random()*1000),
+        userId:(typeof currentUser!=='undefined'&&currentUser&&currentUser.email)||'',
+        title:title,company:a.company||'',location:a.location||'ישראל',url:a.link||'',
+        source:a.source||'other',source_label:'אחר',
+        description_summary:a.notes||a.description||'',description_full:null,
+        match_score:Number(a.match)||0,match_breakdown:null,match_explanation:'',
+        matched_keywords:[],missing_keywords:[],
+        stage:stage,stage_history:[{stage:stage,at:now}],
+        applied_at:null,applied_method:null,follow_ups:[],interviews:[],offer:null,
+        created_at:now,updated_at:now,archived_reason:null,user_notes:''
+      });
       if(!S.jobs)S.jobs=[];
-      S.jobs.unshift({title,company:a.company||'',cat:a.cat||'',status:a.status||'waiting',match:a.match||0,date:new Date().toLocaleDateString('he-IL'),link:a.link||''});
-      save();refresh();return'נוספה משרה: '+title+(a.company?' ב-'+a.company:'');},
+      S.jobs.unshift({title:title,company:a.company||'',cat:a.cat||'',status:a.status||'waiting',match:Number(a.match)||0,date:new Date().toLocaleDateString('he-IL'),link:a.link||''});
+      save();refresh();
+      return'נוספה משרה לפרויקט חיפוש העבודה: '+title+(a.company?' ב-'+a.company:'');},
     // ───── APARTMENTS ─────
     addApartment(a){a=a||{};const title=(a.title||a.address||a.text||'').trim();
       if(!title)return'חסר כתובת/תיאור לדירה';
