@@ -523,85 +523,110 @@
     const s = document.createElement('style');
     s.id = 'voice-css';
     s.textContent = `
-#voice-root{direction:rtl;color:#f3ece6;
-  background:radial-gradient(ellipse at 50% 0%,#2a1206 0%,#120a06 60%);
-  border-radius:18px;padding:22px 18px 26px;min-height:78vh;
-  display:flex;flex-direction:column;align-items:center;gap:13px;
-  font-family:-apple-system,Segoe UI,Rubik,Arial,sans-serif}
-#voice-root h2{margin:0;font-size:17px;color:#ff8a3d;letter-spacing:.5px}
-#voice-root .v-sub{font-size:12px;color:#b89a86;margin-top:-7px;text-align:center}
-#v-orb{width:150px;height:150px;border-radius:50%;cursor:pointer;position:relative;
-  margin-top:12px;display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(circle at 38% 30%,#ffe7a0 0%,#ff9a2e 36%,#ef2b00 74%,#7a0d00 100%);
-  box-shadow:0 0 60px #ff5a1e88,0 0 120px #ff2d0044,inset -10px -16px 44px #6e0b00cc;
-  transition:transform .28s ease,box-shadow .28s ease}
-#v-orb::before{content:'';position:absolute;inset:-30px;border-radius:50%;z-index:-1;
-  background:repeating-conic-gradient(from 0deg,#ff7a1edd 0deg 6deg,transparent 6deg 17deg);
-  -webkit-mask:radial-gradient(circle,transparent 58%,#000 60%,#000 82%,transparent 84%);
-          mask:radial-gradient(circle,transparent 58%,#000 60%,#000 82%,transparent 84%);
-  animation:v-rays 26s linear infinite;opacity:.5}
-@keyframes v-rays{to{transform:rotate(360deg)}}
-#v-orb .v-core{width:46px;height:46px;border-radius:50%;
-  background:radial-gradient(circle,#fff 0%,#ffe1a8 55%,#ff9a3c 100%);
-  box-shadow:0 0 26px #fff,0 0 50px #ffb86b}
-#voice-root.listening #v-orb,#voice-root.thinking #v-orb,#voice-root.speaking #v-orb{
-  transform:scale(1.16);
-  box-shadow:0 0 100px #ff5a1edd,0 0 180px #ff2d0077,inset -10px -16px 44px #6e0b00cc}
-#voice-root.listening #v-orb::before{animation-duration:9s;opacity:.85}
-#voice-root.thinking  #v-orb::before{animation-duration:5s;opacity:.7}
-#voice-root.speaking  #v-orb::before{animation-duration:3.4s;opacity:1}
-#voice-root.listening #v-orb .v-core{animation:v-core 1.05s ease-in-out infinite}
-#voice-root.thinking  #v-orb .v-core{animation:v-core .85s ease-in-out infinite}
-#voice-root.speaking  #v-orb .v-core{animation:v-core .5s ease-in-out infinite}
-@keyframes v-core{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.5);opacity:1}}
-#v-state{font-size:14px;font-weight:700;height:19px}
-#v-state.listening{color:#ffb454}#v-state.thinking{color:#ffd84d}#v-state.speaking{color:#ff7a3d}
-#v-status{font-size:12px;min-height:15px;text-align:center;color:#b89a86}
+#voice-root{direction:rtl;color:#f3eef0;position:relative;overflow:hidden;
+  background:radial-gradient(ellipse 130% 78% at 50% -8%,#3a0a16 0%,#1a070d 42%,#070305 100%);
+  border-radius:22px;padding:26px 20px 30px;min-height:80vh;
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  font-family:-apple-system,'SF Pro Display',Segoe UI,Rubik,Arial,sans-serif}
+#voice-root::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(255,60,80,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,60,80,.045) 1px,transparent 1px);
+  background-size:46px 46px;
+  -webkit-mask:radial-gradient(ellipse at 50% 28%,#000 0%,transparent 78%);
+          mask:radial-gradient(ellipse at 50% 28%,#000 0%,transparent 78%)}
+#voice-root>*{position:relative;z-index:1}
+#voice-root h2{margin:0;font-size:15px;font-weight:600;letter-spacing:5px;
+  color:#ff6470;text-shadow:0 0 20px rgba(255,60,80,.6)}
+#voice-root .v-sub{font-size:12px;color:#9a8b90;margin-top:-8px;text-align:center;letter-spacing:.3px}
+@keyframes v-rot{to{transform:rotate(360deg)}}
+@keyframes v-rotr{to{transform:rotate(-360deg)}}
+@keyframes v-pulse{0%,100%{transform:scale(1);opacity:.92}50%{transform:scale(1.5);opacity:1}}
+#v-orb{width:208px;height:208px;border-radius:50%;cursor:pointer;position:relative;
+  margin-top:16px;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 42% 34%,#ff8585 0%,#ff2438 16%,#c20f24 34%,#6e0a16 56%,#26060b 78%,#070203 100%);
+  box-shadow:0 0 80px rgba(255,40,60,.55),0 0 170px rgba(255,20,40,.32),inset -16px -22px 64px rgba(0,0,0,.78),inset 16px 18px 48px rgba(255,120,120,.16);
+  transition:transform .4s cubic-bezier(.2,.8,.2,1),box-shadow .4s ease}
+#v-orb::after{content:'';position:absolute;top:10%;left:23%;width:44%;height:32%;border-radius:50%;
+  background:radial-gradient(circle at 42% 42%,rgba(255,255,255,.55),transparent 70%);filter:blur(3px);pointer-events:none}
+#v-orb::before{content:'';position:absolute;inset:-28px;border-radius:50%;z-index:-1;
+  background:repeating-conic-gradient(from 0deg,rgba(255,75,95,.92) 0deg 2.2deg,transparent 2.2deg 13deg);
+  -webkit-mask:radial-gradient(circle,transparent 62%,#000 64%,#000 70%,transparent 72%);
+          mask:radial-gradient(circle,transparent 62%,#000 64%,#000 70%,transparent 72%);
+  animation:v-rot 32s linear infinite}
+#v-orb .v-ring{position:absolute;border-radius:50%;pointer-events:none}
+#v-orb .v-ring-a{inset:13px;border:1.5px dashed rgba(255,90,105,.5);animation:v-rot 20s linear infinite}
+#v-orb .v-ring-b{inset:36px;border:1.5px solid rgba(255,150,150,.28);
+  border-top-color:rgba(255,95,95,.95);border-right-color:rgba(255,95,95,.6);animation:v-rotr 10s linear infinite}
+#v-orb .v-core{width:56px;height:56px;border-radius:50%;
+  background:radial-gradient(circle,#fff 0%,#ffd2ca 36%,#ff4a4a 76%,#c81022 100%);
+  box-shadow:0 0 32px #fff,0 0 76px #ff5e5e,0 0 120px rgba(255,40,60,.65)}
+#voice-root.listening #v-orb,#voice-root.thinking #v-orb,#voice-root.speaking #v-orb{transform:scale(1.1)}
+#voice-root.listening #v-orb{box-shadow:0 0 120px rgba(255,40,60,.82),0 0 240px rgba(255,20,40,.5),inset -16px -22px 64px rgba(0,0,0,.78),inset 16px 18px 48px rgba(255,120,120,.24)}
+#voice-root.speaking #v-orb{box-shadow:0 0 140px rgba(255,60,80,.95),0 0 260px rgba(255,30,50,.6),inset -16px -22px 64px rgba(0,0,0,.78),inset 16px 18px 48px rgba(255,140,140,.3)}
+#voice-root.listening #v-orb::before{animation-duration:11s}
+#voice-root.speaking #v-orb::before{animation-duration:4.5s}
+#voice-root.thinking #v-orb .v-ring-a{animation-duration:3.5s}
+#voice-root.speaking #v-orb .v-ring-b{animation-duration:4s}
+#voice-root.listening #v-orb .v-core{animation:v-pulse 1.2s ease-in-out infinite}
+#voice-root.thinking #v-orb .v-core{animation:v-pulse .9s ease-in-out infinite}
+#voice-root.speaking #v-orb .v-core{animation:v-pulse .5s ease-in-out infinite}
+#v-state{font-size:11px;font-weight:700;height:16px;letter-spacing:3px;text-transform:uppercase}
+#v-state.listening{color:#ff7a86}#v-state.thinking{color:#ffb24d}#v-state.speaking{color:#ff5566}
+#v-status{font-size:12px;min-height:15px;text-align:center;color:#9a8b90}
 #v-status.err{color:#ff8da0}
-#v-wake{display:flex;align-items:center;gap:8px;background:#241509;border:1px solid #4a3120;
-  border-radius:20px;padding:7px 14px;font-size:12.5px;color:#f3ece6;cursor:pointer}
-#v-wake.on{border-color:#ff8a3d;background:#3a1f0c}
-#v-wake .v-dot{width:9px;height:9px;border-radius:50%;background:#5a4636}
-#v-wake.on .v-dot{background:#42e695;box-shadow:0 0 8px #42e695;animation:v-core 1.4s ease-in-out infinite}
-#v-transcript{width:100%;max-width:540px;overflow-y:auto;max-height:28vh;
-  display:flex;flex-direction:column;gap:7px;padding:2px}
-.v-line{padding:8px 12px;border-radius:12px;font-size:13.5px;line-height:1.5;max-width:88%;
+#v-wake{display:flex;align-items:center;gap:9px;cursor:pointer;border-radius:22px;
+  padding:8px 16px;font-size:12.5px;color:#f3eef0;transition:all .2s;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+#v-wake.on{border-color:rgba(255,60,80,.55);background:rgba(255,40,60,.12);box-shadow:0 0 22px rgba(255,40,60,.22)}
+#v-wake .v-dot{width:9px;height:9px;border-radius:50%;background:#5a4044}
+#v-wake.on .v-dot{background:#ff4d5e;box-shadow:0 0 10px #ff4d5e;animation:v-pulse 1.5s ease-in-out infinite}
+#v-transcript{width:100%;max-width:560px;overflow-y:auto;max-height:26vh;
+  display:flex;flex-direction:column;gap:8px;padding:4px}
+.v-line{padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.55;max-width:88%;
   white-space:pre-wrap;word-break:break-word}
-.v-line.user{background:#ff8a3d;color:#2a1000;align-self:flex-start;border-bottom-right-radius:3px}
-.v-line.bot{background:#2c1d12;color:#f3ece6;align-self:flex-end;border-bottom-left-radius:3px}
-.v-line.sys{background:none;color:#b89a86;font-size:12px;align-self:center}
-#v-row{width:100%;max-width:540px;display:flex;gap:8px}
-#v-input{flex:1;background:#16202e00;background:#241509;border:1px solid #4a3120;border-radius:11px;
-  color:#f3ece6;padding:10px 13px;font-size:14px;font-family:inherit;direction:rtl}
-#v-input:focus{outline:none;border-color:#ff8a3d}
-#v-row button,#v-clear{background:#2c1d12;border:1px solid #4a3120;color:#f3ece6;
-  border-radius:11px;cursor:pointer;font-size:14px;padding:0 15px;height:42px}
-#v-row button:hover,#v-clear:hover{border-color:#ff8a3d}
-#v-clear{font-size:12px;padding:6px 13px;height:auto}
-#v-suggest{width:100%;max-width:540px;background:#1c120899;border:1px solid #3a2614;
-  border-radius:13px;padding:12px 13px}
-#v-suggest h3{margin:0 0 8px;font-size:13px;color:#ff8a3d}
-#v-suggest .v-grp{font-size:11px;color:#b89a86;margin:9px 0 5px;font-weight:700}
-#v-suggest .v-chips{display:flex;flex-wrap:wrap;gap:6px}
-#v-suggest .v-chip{background:#2c1d12;border:1px solid #4a3120;color:#f3ece6;border-radius:9px;
-  padding:6px 10px;font-size:12px;cursor:pointer}
-#v-suggest .v-chip:hover{border-color:#ff8a3d;background:#3a2614}
-/* floating red-sun orb on every page */
-#v-float{position:fixed;left:24px;bottom:104px;z-index:999998;width:56px;height:56px;
+.v-line.user{background:linear-gradient(135deg,#ff3b4d,#bf1527);color:#fff;align-self:flex-start;
+  border-bottom-right-radius:4px;box-shadow:0 4px 16px rgba(255,40,60,.3)}
+.v-line.bot{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);color:#f3eef0;
+  align-self:flex-end;border-bottom-left-radius:4px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.v-line.sys{background:none;color:#9a8b90;font-size:12px;align-self:center}
+#v-row{width:100%;max-width:560px;display:flex;gap:9px}
+#v-input{flex:1;border-radius:14px;color:#f3eef0;padding:12px 15px;font-size:14px;font-family:inherit;direction:rtl;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+#v-input:focus{outline:none;border-color:rgba(255,60,80,.7);box-shadow:0 0 20px rgba(255,40,60,.22)}
+#v-row button{border:none;color:#fff;border-radius:14px;cursor:pointer;font-size:14px;font-weight:600;
+  padding:0 18px;height:46px;background:linear-gradient(135deg,#ff3b4d,#bf1527);
+  box-shadow:0 4px 18px rgba(255,40,60,.35);transition:transform .15s}
+#v-row button:hover{transform:translateY(-1px)}
+#v-clear{cursor:pointer;font-size:12px;padding:7px 15px;border-radius:11px;color:#9a8b90;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+#v-clear:hover{color:#f3eef0;border-color:rgba(255,60,80,.5)}
+#v-suggest{width:100%;max-width:560px;border-radius:18px;padding:15px 16px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+#v-suggest h3{margin:0 0 4px;font-size:13px;font-weight:600;color:#ff6470}
+#v-suggest .v-grp{font-size:10px;color:#9a8b90;margin:11px 0 6px;font-weight:700;letter-spacing:1.5px}
+#v-suggest .v-chips{display:flex;flex-wrap:wrap;gap:7px}
+#v-suggest .v-chip{border-radius:11px;padding:7px 12px;font-size:12px;cursor:pointer;color:#e8dde0;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);transition:all .15s}
+#v-suggest .v-chip:hover{border-color:rgba(255,60,80,.6);background:rgba(255,40,60,.14);color:#fff;transform:translateY(-1px)}
+/* floating arc-reactor orb on every page */
+#v-float{position:fixed;left:24px;bottom:104px;z-index:999998;width:66px;height:66px;
   border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(circle at 38% 30%,#ffe7a0 0%,#ff9a2e 36%,#ef2b00 74%,#7a0d00 100%);
-  box-shadow:0 0 24px #ff5a1eaa,0 6px 20px rgba(0,0,0,.5);transition:transform .2s}
+  background:radial-gradient(circle at 42% 34%,#ff8585 0%,#ff2438 18%,#9e0c1c 48%,#26060b 78%,#070203 100%);
+  box-shadow:0 0 30px rgba(255,40,60,.6),0 8px 26px rgba(0,0,0,.6);transition:transform .2s}
 #v-float:hover{transform:scale(1.1)}
-#v-float .v-core{width:16px;height:16px}
-#v-float::before{content:'';position:absolute;inset:-9px;border-radius:50%;z-index:-1;
-  background:repeating-conic-gradient(from 0deg,#ff7a1edd 0deg 7deg,transparent 7deg 21deg);
-  -webkit-mask:radial-gradient(circle,transparent 56%,#000 58%,#000 84%,transparent 86%);
-          mask:radial-gradient(circle,transparent 56%,#000 58%,#000 84%,transparent 86%);
-  animation:v-rays 24s linear infinite;opacity:.6}
-#v-float.armed{box-shadow:0 0 22px #ff5a1eaa,0 6px 20px rgba(0,0,0,.5),0 0 0 2px #42e69566}
-#v-float.active{box-shadow:0 0 42px #ff5a1e,0 6px 20px rgba(0,0,0,.5)}
-#v-float.active::before{animation-duration:7s;opacity:.95}
-#v-float.active .v-core{animation:v-core 1s ease-in-out infinite}
+#v-float .v-core{width:18px;height:18px;border-radius:50%;
+  background:radial-gradient(circle,#fff,#ffd2ca 45%,#ff4a4a 100%);box-shadow:0 0 16px #fff,0 0 30px #ff5e5e}
+#v-float::before{content:'';position:absolute;inset:-7px;border-radius:50%;z-index:-1;
+  background:repeating-conic-gradient(from 0deg,rgba(255,75,95,.92) 0deg 3deg,transparent 3deg 15deg);
+  -webkit-mask:radial-gradient(circle,transparent 58%,#000 60%,#000 80%,transparent 82%);
+          mask:radial-gradient(circle,transparent 58%,#000 60%,#000 80%,transparent 82%);
+  animation:v-rot 26s linear infinite}
+#v-float.armed{box-shadow:0 0 30px rgba(255,40,60,.6),0 8px 26px rgba(0,0,0,.6),0 0 0 2px rgba(255,75,95,.6)}
+#v-float.active{box-shadow:0 0 48px rgba(255,55,75,.95),0 8px 26px rgba(0,0,0,.6)}
+#v-float.active::before{animation-duration:7s}
+#v-float.active .v-core{animation:v-pulse 1s ease-in-out infinite}
 `;
     document.head.appendChild(s);
   }
@@ -633,9 +658,9 @@
         esc(it.t.trim()) + (it.run?'':' …') + '</span>').join('') + '</div>'
     ).join('');
     host.innerHTML =
-      '<h2>🔆 זורו — שיחה קולית</h2>' +
+      '<h2>◆ זורו ◆</h2>' +
       '<div class="v-sub">הקש על השמש ודבר — או הפעל "האזנה לשם" ופשוט קרא לי בשם "זורו".</div>' +
-      '<div id="v-orb" title="הקש כדי להתחיל / לעצור"><div class="v-core"></div></div>' +
+      '<div id="v-orb" title="הקש כדי להתחיל / לעצור"><span class="v-ring v-ring-a"></span><span class="v-ring v-ring-b"></span><div class="v-core"></div></div>' +
       '<div id="v-state"></div>' +
       '<div id="v-status"></div>' +
       '<div id="v-wake"><span class="v-dot"></span><span id="v-wake-lbl">האזנה לשם "זורו"</span></div>' +
