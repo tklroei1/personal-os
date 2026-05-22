@@ -3405,6 +3405,9 @@ window.POS = (function(){
       // job physically appears in the project, not just into the legacy array.
       try{if(typeof getJobsV2==='function')getJobsV2();}catch(e){}
       if(!S.jobsV2)S.jobsV2=[];
+      const _co=(a.company||'').trim().toLowerCase();
+      if(S.jobsV2.some(j=>(j.title||'').trim().toLowerCase()===title.toLowerCase()&&(j.company||'').trim().toLowerCase()===_co))
+        return'המשרה כבר קיימת במעקב: '+title;
       const now=new Date().toISOString();
       const sm={waiting:'saved',saved:'saved',applied:'applied',interview:'interview',offer:'offer',rejected:'archive'};
       const stage=sm[a.status]||'saved';
@@ -3444,8 +3447,19 @@ window.POS = (function(){
       save();refresh();return'עודכן פרויקט '+p.name;},
     // ───── NAV / UI ─────
     navigate(page){if(!page)return'חסר עמוד';
-      try{goPage(page);}catch(e){return'לא הצלחתי לנווט';}
-      return'נפתח: '+page;},
+      const al={'jobs':'jobs','job':'jobs','jobsearch':'jobs','חיפוש עבודה':'jobs','עבודה':'jobs','משרות':'jobs',
+        'apartment':'apartment','apartments':'apartment','apt':'apartment','דירה':'apartment','מציאת דירה':'apartment','דירות':'apartment',
+        'agenda':'agenda','schedule':'agenda','calendar':'agenda','לוז':'agenda','לוז שבועי':'agenda',
+        'tasks':'tasks','משימות':'tasks','reminders':'reminders','תזכורות':'reminders',
+        'dashboard':'dashboard','home':'dashboard','בית':'dashboard','דשבורד':'dashboard','projects':'dashboard','פרויקטים':'dashboard',
+        'upselles':'upselles','health':'health','כושר':'health','family':'family','ideas':'ideas','רעיונות':'ideas',
+        'journal':'journal','יומן':'journal','goals':'goals','מטרות':'goals','finance':'finance','כספים':'finance',
+        'notes':'notes','פתקים':'notes','news':'news','חדשות':'news'};
+      const k=String(page).toLowerCase().trim();
+      const p=al[k]||al[String(page).trim()]||k;
+      if(!document.getElementById('page-'+p))return'אין עמוד בשם "'+page+'". עמודים: jobs, apartment, agenda, tasks, reminders, dashboard';
+      try{goPage(p);}catch(e){return'לא הצלחתי לנווט';}
+      return'נפתח העמוד: '+p;},
     notify(msg){try{showNotif(msg);}catch(e){}return'ok';},
     refresh
   };
@@ -3923,8 +3937,11 @@ function renderKanban(){
 
   const filtered=jobs.filter(j=>{
     if((j.match_score||0)<minMatch)return false;
-    // Source filter: if any chips are ON, show only those sources; if none ON, show all
-    if(activeSources.size>0&&!activeSources.has(j.source||'other')&&!activeSources.has('other'))return false;
+    // Source filter — only the specific job-board sources are filtered.
+    // Manually/agent-added jobs (source 'other') always show, so saved jobs
+    // never silently vanish.
+    if(activeSources.size>0){var _SP=['linkedin','alljobs','comeet','drushim','wellfound'];
+      if(_SP.indexOf(j.source)>=0&&!activeSources.has(j.source))return false;}
     return true;
   });
 

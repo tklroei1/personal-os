@@ -114,7 +114,7 @@
       input_schema:{ type:'object', properties:{ id:{type:'string'}, progress:{type:'number'} }, required:['id','progress'] } },
     { name:'web_search', description:'חפש באינטרנט מידע עדכני — משרות, דירות, מחירים, חדשות, כל דבר',
       input_schema:{ type:'object', properties:{ query:{type:'string'} }, required:['query'] } },
-    { name:'navigate', description:'נווט לעמוד באפליקציה',
+    { name:'navigate', description:'נווט לעמוד ספציפי. ערכי page חוקיים: dashboard, agenda (לוז שבועי), tasks (משימות), reminders (תזכורות), jobs (חיפוש עבודה), apartment (מציאת דירה), upselles, health, family, ideas, journal, goals, finance, notes, news',
       input_schema:{ type:'object', properties:{ page:{type:'string'} }, required:['page'] } },
     { name:'get_data', description:'קבל תמונת מצב עדכנית של הנתונים', input_schema:{ type:'object', properties:{} } }
   ];
@@ -289,7 +289,7 @@
     const core = ' ' + words.filter(w => !WAKE_WORDS.some(ww => w.indexOf(ww.toLowerCase()) >= 0)).join(' ') + ' ';
     return STOP_WORDS.some(sw => core.indexOf(sw) >= 0);
   }
-  function fullStop(){
+  function fullStop(announce){
     const wasActive = conversing || wakeArmed || speaking;
     stopRequested = false; conversing = false; speaking = false; awaitingCommand = false;
     try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
@@ -297,7 +297,8 @@
     stopRecorder();
     if (wakeArmed) disarmWake(); else stopSR();
     setState('idle'); syncWakeUI();
-    if (wasActive) addLine('sys', 'זורו הופסק. הקש על השמש או הפעל "האזנה" כדי להתחיל שוב.');
+    addLine('sys', 'זורו הופסק. הקש על השמש או הפעל "האזנה" כדי להתחיל שוב.');
+    if (announce) setTimeout(function(){ speak('בסדר רואי, אני מפסיק לעבוד. קרא לי כשתצטרך אותי.'); }, 130);
   }
 
   function wakeMatch(text){
@@ -338,7 +339,7 @@
       // stop command — caught even mid-action; if Zoro is busy, finish first
       if (T && isStopCommand(T)) {
         if (speaking) stopRequested = true;
-        else fullStop();
+        else fullStop(true);
         return;
       }
       if (speaking) return;
@@ -463,7 +464,7 @@
     if (speaking) return;
     text = (text || '').trim();
     if (!text) return;
-    if (isStopCommand(text)) { fullStop(); return; }
+    if (isStopCommand(text)) { fullStop(true); return; }
     speaking = true;
     setStatus('', '');
     addLine('user', text);
@@ -473,7 +474,7 @@
     setState('speaking');
     speak(reply, () => {
       speaking = false;
-      if (stopRequested) { fullStop(); return; }   // user said "עצור" mid-action
+      if (stopRequested) { fullStop(true); return; }   // user said "עצור" mid-action
       if (conversing || wakeArmed) {
         setState(conversing ? 'listening' : 'idle');
         if (SR) startSR(); else if (conversing) recLoop();
@@ -611,6 +612,11 @@
 #v-wake.on{border-color:rgba(255,60,80,.55);background:rgba(255,40,60,.12);box-shadow:0 0 22px rgba(255,40,60,.22)}
 #v-wake .v-dot{width:9px;height:9px;border-radius:50%;background:#5a4044}
 #v-wake.on .v-dot{background:#ff4d5e;box-shadow:0 0 10px #ff4d5e;animation:v-pulse 1.5s ease-in-out infinite}
+#v-ctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+#v-stop{border:none;color:#fff;border-radius:22px;cursor:pointer;font-size:12.5px;font-weight:700;
+  padding:9px 18px;letter-spacing:.5px;background:linear-gradient(135deg,#ff2d4a,#9a0f1f);
+  box-shadow:0 4px 18px rgba(255,40,60,.4);transition:transform .15s}
+#v-stop:hover{transform:translateY(-1px)}
 #v-transcript{width:100%;max-width:560px;overflow-y:auto;max-height:26vh;
   display:flex;flex-direction:column;gap:8px;padding:4px}
 .v-line{padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.55;max-width:88%;
@@ -670,6 +676,7 @@
     f.innerHTML = '<div class="v-core"></div>';
     f.addEventListener('click', () => {
       unlockAudio();
+      if (conversing || speaking) { fullStop(true); return; }   // tap while active = stop
       try { if (window.goPage) window.goPage('voice'); } catch (e) {}
       setTimeout(() => { if (!conversing) startConversation(); }, 180);
     });
@@ -694,7 +701,8 @@
       '<div id="v-orb" title="הקש כדי להתחיל / לעצור"><span class="v-ring v-ring-a"></span><span class="v-ring v-ring-b"></span><div class="v-core"></div></div>' +
       '<div id="v-state"></div>' +
       '<div id="v-status"></div>' +
-      '<div id="v-wake"><span class="v-dot"></span><span id="v-wake-lbl">האזנה לשם "זורו"</span></div>' +
+      '<div id="v-ctl"><div id="v-wake"><span class="v-dot"></span><span id="v-wake-lbl">האזנה לשם "זורו"</span></div>' +
+      '<button id="v-stop">⛔ עצור את זורו</button></div>' +
       '<div id="v-transcript"></div>' +
       '<div id="v-row">' +
         '<input id="v-input" placeholder="או כתוב כאן…" />' +
@@ -712,6 +720,7 @@
 
     orbEl.addEventListener('click', () => { unlockAudio(); toggleConversation(); });
     wakeBtn.addEventListener('click', () => { unlockAudio(); toggleWake(); });
+    host.querySelector('#v-stop').addEventListener('click', () => fullStop(true));
     host.querySelector('#v-send').addEventListener('click', sendTyped);
     host.querySelector('#v-clear').addEventListener('click', clearMem);
     inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') sendTyped(); });
