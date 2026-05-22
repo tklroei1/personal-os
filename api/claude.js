@@ -491,9 +491,9 @@ async function handleSpeak(res, body) {
       body: JSON.stringify({
         model: 'gpt-4o-mini-tts',
         input: text,
-        voice: body.voice || 'onyx',  // deep, calm male voice — JARVIS-style
+        voice: body.voice || 'fable',  // British-leaning male voice — JARVIS-style
         instructions: body.instructions ||
-          'Speak in a calm, composed, refined and warm manner — like JARVIS, a sophisticated and intelligent personal AI assistant. Measured, confident, articulate and friendly; never rushed or robotic.',
+          'Speak with a refined British accent and the calm, composed, articulate manner of JARVIS — Tony Stark\'s sophisticated AI butler. Measured and unhurried, subtly formal yet warm, intelligent and quietly reassuring. Crisp diction, never robotic or rushed.',
         response_format: 'mp3'
       })
     });

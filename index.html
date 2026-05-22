@@ -3404,6 +3404,12 @@ window.POS = (function(){
       if(!S.jobs)S.jobs=[];
       S.jobs.unshift({title,company:a.company||'',cat:a.cat||'',status:a.status||'waiting',match:a.match||0,date:new Date().toLocaleDateString('he-IL'),link:a.link||''});
       save();refresh();return'נוספה משרה: '+title+(a.company?' ב-'+a.company:'');},
+    // ───── APARTMENTS ─────
+    addApartment(a){a=a||{};const title=(a.title||a.address||a.text||'').trim();
+      if(!title)return'חסר כתובת/תיאור לדירה';
+      if(!S.apts)S.apts=[];
+      S.apts.push({title,price:a.price||'',area:a.area||'',link:a.link||'',notes:a.notes||'',status:'active'});
+      save();refresh();return'נוספה דירה למעקב: '+title;},
     // ───── MEALS ─────
     addMeal(a){a=a||{};const name=(a.name||a.text||'').trim();
       if(!name)return'חסר תיאור לארוחה';

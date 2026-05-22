@@ -114,6 +114,10 @@
       input_schema:{ type:'object', properties:{ description:{type:'string'} }, required:['description'] } },
     { name:'update_project', description:'עדכן אחוז התקדמות של פרויקט',
       input_schema:{ type:'object', properties:{ id:{type:'string'}, progress:{type:'number'} }, required:['id','progress'] } },
+    { name:'add_apartment', description:'הוסף דירה למעקב חיפוש הדירה',
+      input_schema:{ type:'object', properties:{ title:{type:'string'}, price:{type:'string'}, area:{type:'string'}, link:{type:'string'} }, required:['title'] } },
+    { name:'web_search', description:'חפש באינטרנט מידע עדכני — משרות, דירות, מחירים, חדשות',
+      input_schema:{ type:'object', properties:{ query:{type:'string'} }, required:['query'] } },
     { name:'navigate', description:'נווט לעמוד באפליקציה',
       input_schema:{ type:'object', properties:{ page:{type:'string',
         description:'dashboard/agent/agenda/tasks/reminders/jobs/upselles/health/apartment/family/ideas/journal/goals/finance/notes/news/ds-ai'} }, required:['page'] } },
@@ -121,9 +125,21 @@
       input_schema:{ type:'object', properties:{} } }
   ];
 
-  function execTool(name, input) {
+  async function webSearch(query){
+    try{
+      const res = await fetch('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ query:query, count:6 })});
+      const d = await res.json().catch(()=>({}));
+      const results = (d.results||[]).slice(0,6);
+      if(!results.length) return 'לא נמצאו תוצאות.';
+      return results.map((r,i)=>(i+1)+'. '+(r.title||'')+' — '+
+        ((r.content||r.snippet||'').toString().slice(0,170))+(r.url?' ['+r.url+']':'')).join('\n');
+    }catch(e){ return 'שגיאת חיפוש: '+e.message; }
+  }
+  async function execTool(name, input) {
     const P = window.POS;
     input = input || {};
+    if (name === 'web_search') return await webSearch(input.query||'');
     if (!P) return 'המערכת עוד נטענת, נסה שוב';
     try {
       switch (name) {
@@ -138,6 +154,7 @@
         case 'add_idea':       return P.addIdea(input);
         case 'add_journal':    return P.addJournal(input);
         case 'add_job':        return P.addJob(input);
+        case 'add_apartment':  return P.addApartment ? P.addApartment(input) : 'מעקב דירות לא זמין';
         case 'log_meal':       return P.addMeal ? P.addMeal(input) : 'תיעוד ארוחות לא זמין';
         case 'update_project': return P.updateProject(input);
         case 'navigate':       return P.navigate(input.page);
@@ -191,9 +208,13 @@
         return textOut || 'בוצע.';
       }
       messages.push({ role: 'assistant', content: blocks });
-      const results = toolUses.map(tu => ({
-        type: 'tool_result', tool_use_id: tu.id, content: String(execTool(tu.name, tu.input))
-      }));
+      const results = [];
+      for (const tu of toolUses) {
+        let out;
+        try { out = await execTool(tu.name, tu.input); }
+        catch (e) { out = 'שגיאה: ' + e.message; }
+        results.push({ type:'tool_result', tool_use_id: tu.id, content: String(out) });
+      }
       messages.push({ role: 'user', content: results });
     }
     saveMemory();

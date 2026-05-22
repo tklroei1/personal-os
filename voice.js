@@ -1,16 +1,15 @@
 /* ============================================================================
  * voice.js — Personal OS · Voice Mode (standalone side feature)
  * ----------------------------------------------------------------------------
- * A dedicated hands-free voice-conversation page (#page-voice). Independent of
- * assistant.js / agent.js — shares only window.POS and /api/claude.
+ * A dedicated hands-free voice assistant page (#page-voice) + a floating
+ * red-sun orb on every page. Independent of assistant.js / agent.js —
+ * shares only window.POS and /api/claude.
  *
- * Speech-to-text strategy (so it works WITH NO API KEY on desktop):
- *   1. Browser Web Speech API (SpeechRecognition) — free, instant, no key.
- *      Used on desktop Chrome/Edge.
- *   2. Fallback: MediaRecorder -> /api/claude transcribe (OpenAI Whisper) —
- *      for iOS Safari, which has no SpeechRecognition. Needs OPENAI_API_KEY.
- * Text-to-speech: OpenAI neural voice if a key exists, else the free browser
- * voice. Either way Zoro always speaks.
+ *   • Wake word — say "זורו" from anywhere; no need to press a button
+ *   • Brain     — Claude tool-use loop via /api/claude (Claude stays the brain)
+ *   • Tools     — full system access via window.POS + live web search
+ *   • Voice     — browser SpeechRecognition (free, no key) for STT;
+ *                 OpenAI neural voice for TTS (browser-voice fallback)
  *
  * Architecture inspired by the OpenJarvis 5-primitive model (Apache-2.0,
  * reference only — no open-source code copied).
@@ -20,11 +19,12 @@
 (function () {
   'use strict';
 
-  const VERSION = '2.0.0';
-  const MODEL   = 'claude-sonnet-4-6';
-  const MEM_KEY = 'pos_voice_memory';
-
+  const VERSION  = '3.0.0';
+  const MODEL    = 'claude-sonnet-4-6';
+  const MEM_KEY  = 'pos_voice_memory';
+  const WAKE_KEY = 'pos_voice_wake';
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const WAKE_WORDS = ['זורו', 'זרו', 'זורוו', 'zoro', "ג'ארוויס", 'גארוויס', 'גרוויס', 'jarvis'];
 
   // MediaRecorder-fallback silence tuning (iOS path only)
   const SILENCE_RMS = 0.018, SILENCE_MS = 1400, NOSPEECH_MS = 7000, MAX_TURN_MS = 30000;
@@ -57,24 +57,31 @@
 דיוק זמנים — קריטי:
 - "בעוד שעתיים" / "בעוד 30 דקות" — חשב מהשעה הנוכחית (${timeStr}) ותן שעה מדויקת.
 - "מחר" = יום אחד אחרי ${iso}. תמיד המר תאריך יחסי ל-YYYY-MM-DD מדויק.
-- כשאתה קובע תזכורת או אירוע — אמור בקול את השעה והתאריך המדויקים שחישבת, כדי שרואי יוכל לאמת.
+- כשאתה קובע תזכורת או אירוע — אמור בקול את השעה והתאריך המדויקים שחישבת.
+
+אתה מחובר לאינטרנט:
+- השתמש ב-web_search כדי למצוא מידע עדכני — משרות, דירות, מחירים, חדשות.
+- חיפוש עבודה: חפש משרות, ואז שמור את הטובות עם add_job (כותרת, חברה, קישור).
+- חיפוש דירה: חפש דירות, ואז שמור עם add_apartment (כתובת, מחיר, אזור, קישור).
+- עבוד לפי מה שרואי מבקש; שמור תוצאות במבנה של המערכת.
 
 איפה דברים נשמרים (אתה יודע את זה — לעולם אל תגיד "אני לא יודע איך האפליקציה בנויה"):
 - אירועים → הלוז השבועי. משימות → עמוד המשימות. תזכורות → עמוד התזכורות.
-- אם רואי לא מוצא משהו — הפעל את הכלי navigate כדי לקחת אותו לעמוד הנכון (navigate ל-agenda פותח את הלוז).
+- משרות → עמוד חיפוש עבודה. דירות → עמוד מציאת דירה.
+- אם רואי לא מוצא משהו — הפעל את הכלי navigate כדי לקחת אותו לעמוד הנכון.
 
 חוקים לשיחה קולית:
 - תשובות קצרות מאוד — משפט, אולי שניים. בלי רשימות, בלי מרקדאון, בלי אימוג'ים.
 - טבעי, חם וזורם. פנה לרואי בשמו מדי פעם.
 - כשרואי מבקש משהו — בצע מיד עם הכלי המתאים ודווח במשפט קצר עם הפרטים המדויקים.
-- אם רק שאלו אותך — ענה ישר בלי כלים. אל תמציא נתונים; חסר מידע? get_data.
+- אם רק שאלו אותך — ענה ישר בלי כלים. אל תמציא נתונים; חסר מידע? get_data או web_search.
 
 משימות פתוחות: ${(ctx.openTasks||[]).map(t=>t.text).join(', ')||'אין'}
 פרויקטים: ${(ctx.projects||[]).map(p=>p.name+' '+p.progress+'%').join(', ')||'אין'}`;
   }
 
   // ──────────────────────────────────────────────────────────────────────
-  //  TOOLS — full system access via window.POS
+  //  TOOLS — full system access via window.POS + live web search
   // ──────────────────────────────────────────────────────────────────────
   const TOOLS = [
     { name:'add_task', description:'הוסף משימה',
@@ -83,7 +90,7 @@
       input_schema:{ type:'object', properties:{ query:{type:'string'} }, required:['query'] } },
     { name:'add_reminder', description:'הוסף תזכורת',
       input_schema:{ type:'object', properties:{ text:{type:'string'}, date:{type:'string'}, time:{type:'string'} }, required:['text'] } },
-    { name:'add_event', description:'הוסף אירוע ליומן',
+    { name:'add_event', description:'הוסף אירוע ללוז',
       input_schema:{ type:'object', properties:{ title:{type:'string'}, date:{type:'string'}, time:{type:'string'} }, required:['title','date'] } },
     { name:'add_habit', description:'הוסף הרגל',
       input_schema:{ type:'object', properties:{ name:{type:'string'} }, required:['name'] } },
@@ -97,19 +104,37 @@
       input_schema:{ type:'object', properties:{ text:{type:'string'} }, required:['text'] } },
     { name:'add_journal', description:'הוסף רשומת יומן',
       input_schema:{ type:'object', properties:{ text:{type:'string'} }, required:['text'] } },
-    { name:'add_job', description:'הוסף משרה למעקב',
-      input_schema:{ type:'object', properties:{ title:{type:'string'}, company:{type:'string'}, status:{type:'string'} }, required:['title'] } },
+    { name:'add_job', description:'הוסף משרה למעקב חיפוש העבודה',
+      input_schema:{ type:'object', properties:{ title:{type:'string'}, company:{type:'string'}, status:{type:'string'}, link:{type:'string'} }, required:['title'] } },
+    { name:'add_apartment', description:'הוסף דירה למעקב חיפוש הדירה',
+      input_schema:{ type:'object', properties:{ title:{type:'string',description:'כתובת/תיאור'}, price:{type:'string'}, area:{type:'string'}, link:{type:'string'}, notes:{type:'string'} }, required:['title'] } },
     { name:'log_meal', description:'תעד ארוחה',
       input_schema:{ type:'object', properties:{ description:{type:'string'} }, required:['description'] } },
     { name:'update_project', description:'עדכן אחוז התקדמות פרויקט',
       input_schema:{ type:'object', properties:{ id:{type:'string'}, progress:{type:'number'} }, required:['id','progress'] } },
-    { name:'navigate', description:'נווט לעמוד',
+    { name:'web_search', description:'חפש באינטרנט מידע עדכני — משרות, דירות, מחירים, חדשות, כל דבר',
+      input_schema:{ type:'object', properties:{ query:{type:'string'} }, required:['query'] } },
+    { name:'navigate', description:'נווט לעמוד באפליקציה',
       input_schema:{ type:'object', properties:{ page:{type:'string'} }, required:['page'] } },
-    { name:'get_data', description:'קבל תמונת מצב עדכנית', input_schema:{ type:'object', properties:{} } }
+    { name:'get_data', description:'קבל תמונת מצב עדכנית של הנתונים', input_schema:{ type:'object', properties:{} } }
   ];
 
-  function execTool(name, input){
+  async function webSearch(query){
+    try{
+      const res = await fetch('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ query:query, count:6 })});
+      const d = await res.json().catch(()=>({}));
+      const results = (d.results||[]).slice(0,6);
+      if(!results.length) return 'לא נמצאו תוצאות לחיפוש: '+query;
+      return results.map((r,i)=>(i+1)+'. '+(r.title||'ללא כותרת')+' — '+
+        ((r.content||r.snippet||r.description||'').toString().slice(0,170))+
+        (r.url?' ['+r.url+']':'')).join('\n');
+    }catch(e){ return 'שגיאת חיפוש: '+e.message; }
+  }
+
+  async function execTool(name, input){
     const P = window.POS; input = input || {};
+    if (name === 'web_search') return await webSearch(input.query||'');
     if (!P) return 'המערכת עוד נטענת';
     try {
       switch (name) {
@@ -124,6 +149,7 @@
         case 'add_idea':       return P.addIdea(input);
         case 'add_journal':    return P.addJournal(input);
         case 'add_job':        return P.addJob(input);
+        case 'add_apartment':  return P.addApartment ? P.addApartment(input) : 'מעקב דירות לא זמין';
         case 'log_meal':       return P.addMeal ? P.addMeal(input) : 'תיעוד ארוחות לא זמין';
         case 'update_project': return P.updateProject(input);
         case 'navigate':       return P.navigate(input.page);
@@ -140,7 +166,7 @@
     try {
       const res = await fetch('/api/claude', {
         method:'POST', headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ model: MODEL, max_tokens: 900, system, tools: TOOLS, messages })
+        body: JSON.stringify({ model: MODEL, max_tokens: 1024, system, tools: TOOLS, messages })
       });
       if (!res.ok) return { _error:'api ' + res.status };
       const data = await res.json();
@@ -158,7 +184,7 @@
     while (messages.length && messages[0].role !== 'user') messages.shift();
 
     let loops = 0;
-    while (loops++ < 6) {
+    while (loops++ < 7) {
       const data = await apiCall(system, messages);
       if (data._error) { memory.pop(); return 'לא הצלחתי להתחבר כרגע. ננסה שוב.'; }
       const blocks   = Array.isArray(data.content) ? data.content : [];
@@ -170,9 +196,14 @@
         return textOut || 'בוצע.';
       }
       messages.push({ role:'assistant', content: blocks });
-      messages.push({ role:'user', content: toolUses.map(tu => ({
-        type:'tool_result', tool_use_id: tu.id, content: String(execTool(tu.name, tu.input))
-      })) });
+      const results = [];
+      for (const tu of toolUses) {
+        let out;
+        try { out = await execTool(tu.name, tu.input); }
+        catch (e) { out = 'שגיאה: ' + e.message; }
+        results.push({ type:'tool_result', tool_use_id: tu.id, content: String(out) });
+      }
+      messages.push({ role:'user', content: results });
     }
     saveMem();
     return 'הבקשה מורכבת מדי, ננסה לפצל.';
@@ -182,7 +213,6 @@
   //  TEXT-TO-SPEECH
   // ──────────────────────────────────────────────────────────────────────
   let audioCtx = null, audioEl = null, audioUnlocked = false, ttsApiDead = false;
-
   function unlockAudio(){
     if (audioUnlocked) return;
     audioUnlocked = true;
@@ -235,34 +265,45 @@
         if (p && p.catch) p.catch(() => browserSpeak(clean, onDone));
         return;
       }
-      ttsApiDead = true;            // no key / unavailable — stop trying the API
+      ttsApiDead = true;
       browserSpeak(clean, onDone);
     } catch (e) { browserSpeak(clean, onDone); }
   }
 
   // ──────────────────────────────────────────────────────────────────────
-  //  SPEECH-TO-TEXT
+  //  SPEECH-TO-TEXT  — wake word + conversation, unified
   // ──────────────────────────────────────────────────────────────────────
-  let conversing = false, speaking = false;
-
-  // ── Engine A: browser SpeechRecognition (free, no key) ──
+  // State: wakeArmed (always-listen for "זורו") · conversing (tap-to-talk
+  // free conversation) · speaking (busy) · awaitingCommand (heard the bare
+  // name, next utterance is the command).
+  let wakeArmed = false, conversing = false, speaking = false, awaitingCommand = false;
   let recog = null, recogOn = false;
+
+  function wakeMatch(text){
+    const low = ' ' + (text||'').toLowerCase() + ' ';
+    for (const w of WAKE_WORDS){
+      const i = low.indexOf(w.toLowerCase());
+      if (i >= 0) return (text || '').slice(Math.max(0, i - 1 + w.length)).trim();
+    }
+    return null; // null = no wake word at all
+  }
+
   function makeRecog(){
     const r = new SR();
     r.lang = 'he-IL'; r.continuous = true; r.interimResults = true; r.maxAlternatives = 1;
-    r.onstart  = () => { recogOn = true; if (conversing && !speaking) setState('listening'); };
-    r.onend    = () => {
+    r.onstart = () => { recogOn = true; if (conversing && !speaking) setState('listening'); };
+    r.onend   = () => {
       recogOn = false;
-      if (conversing && !speaking) setTimeout(() => {
-        if (conversing && !speaking && !recogOn) startSR();
-      }, 250);
-    };
-    r.onerror  = (e) => {
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-        setStatus('אין גישה למיקרופון — אפשר אותה בהגדרות הדפדפן', 'err');
-        stopConversation();
+      if ((conversing || wakeArmed) && !speaking) {
+        setTimeout(() => { if ((conversing || wakeArmed) && !speaking && !recogOn) startSR(); }, 250);
       }
-      // no-speech / aborted / network — onend restarts
+    };
+    r.onerror = (e) => {
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        wakeArmed = false; conversing = false;
+        setStatus('אין גישה למיקרופון — אפשר אותה בהגדרות הדפדפן', 'err');
+        syncWakeUI();
+      }
     };
     r.onresult = (ev) => {
       if (speaking) return;
@@ -272,12 +313,26 @@
         if (res.isFinal) final += res[0].transcript;
         else interim += res[0].transcript;
       }
-      if (interim.trim()) setStatus('🎙 ' + interim.trim(), '');
-      if (final.trim()) handleUtterance(final.trim());
+      if (interim.trim() && (conversing || awaitingCommand)) setStatus('🎙 ' + interim.trim(), '');
+      const T = final.trim();
+      if (!T) return;
+      if (conversing)              { handleUtterance(T); return; }
+      if (awaitingCommand)         { awaitingCommand = false; handleUtterance(T); return; }
+      if (wakeArmed) {
+        const cmd = wakeMatch(T);
+        if (cmd === null) return;            // no wake word — ignore
+        if (cmd) { handleUtterance(cmd); }   // "זורו <command>"
+        else {                               // just the name
+          awaitingCommand = true;
+          speaking = true; stopSR();
+          speak('כן רואי?', () => { speaking = false; if (wakeArmed || conversing) startSR(); });
+        }
+      }
     };
     return r;
   }
   function startSR(){
+    if (!SR) return;
     if (!recog) recog = makeRecog();
     if (recogOn) return;
     try { recog.start(); } catch (e) {}
@@ -287,7 +342,7 @@
     recogOn = false;
   }
 
-  // ── Engine B: MediaRecorder -> /api/claude transcribe (iOS fallback) ──
+  // ── MediaRecorder fallback (iOS — no SpeechRecognition) ──
   let stream = null, recorder = null, recChunks = [], analyser = null, rafId = 0, turnActive = false;
   function blobToB64(blob){
     return new Promise(resolve => {
@@ -303,8 +358,7 @@
       try { stream = await navigator.mediaDevices.getUserMedia({ audio:true }); }
       catch (e) { setStatus('אין גישה למיקרופון', 'err'); stopConversation(); return; }
     }
-    turnActive = true;
-    setState('listening');
+    turnActive = true; setState('listening');
     try {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') await audioCtx.resume();
@@ -378,26 +432,28 @@
 
   // ── shared: one conversational turn ──
   async function handleUtterance(text){
-    if (!conversing || speaking) return;
-    speaking = true;                 // mute the mic while we think + speak
+    if (speaking) return;
+    speaking = true;
     if (SR) stopSR();
     setStatus('', '');
     addLine('user', text);
     setState('thinking');
     const reply = await think(text);
-    if (!conversing) { speaking = false; return; }
     addLine('bot', reply);
     setState('speaking');
     speak(reply, () => {
       speaking = false;
-      if (!conversing) { setState('idle'); return; }
-      setState('listening');
-      if (SR) startSR(); else recLoop();
+      if (conversing || wakeArmed) {
+        setState(conversing ? 'listening' : 'idle');
+        if (SR) startSR(); else if (conversing) recLoop();
+      } else {
+        setState('idle');
+      }
     });
   }
 
   // ──────────────────────────────────────────────────────────────────────
-  //  CONVERSATION CONTROL
+  //  CONVERSATION + WAKE CONTROL
   // ──────────────────────────────────────────────────────────────────────
   function startConversation(){
     if (conversing) return;
@@ -410,19 +466,57 @@
     if (SR) startSR(); else recLoop();
   }
   function stopConversation(){
-    conversing = false; speaking = false;
-    stopSR();
+    conversing = false; speaking = false; awaitingCommand = false;
     stopRecorder();
     try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
     try { if (audioEl) audioEl.pause(); } catch (e) {}
-    setState('idle');
+    if (wakeArmed && SR) { setState('idle'); startSR(); }   // fall back to wake listening
+    else { stopSR(); setState('idle'); }
   }
   function toggleConversation(){ conversing ? stopConversation() : startConversation(); }
 
+  function armWake(){
+    if (!SR || wakeArmed) { syncWakeUI(); return; }
+    wakeArmed = true;
+    try { localStorage.setItem(WAKE_KEY, '1'); } catch (e) {}
+    syncWakeUI();
+    if (!speaking) startSR();
+  }
+  function disarmWake(){
+    wakeArmed = false;
+    try { localStorage.setItem(WAKE_KEY, '0'); } catch (e) {}
+    syncWakeUI();
+    if (!conversing) stopSR();
+  }
+  function toggleWake(){ wakeArmed ? disarmWake() : armWake(); }
+
   // ──────────────────────────────────────────────────────────────────────
-  //  UI — red-sun orb
+  //  USAGE SUGGESTIONS — what Zoro can do for Roei
   // ──────────────────────────────────────────────────────────────────────
-  let rootEl, orbEl, statusEl, stateEl, transcriptEl, inputEl, floatEl;
+  const SUGGESTIONS = [
+    { group:'יומיום', items:[
+      { t:'מה יש לי היום?', run:true },
+      { t:'תכנן לי את היום', run:true },
+      { t:'מה הכי דחוף לעשות עכשיו?', run:true },
+      { t:'סכם לי את השבוע', run:true } ] },
+    { group:'משימות וזמן', items:[
+      { t:'תוסיף משימה ', run:false },
+      { t:'תזכיר לי בעוד שעה ', run:false },
+      { t:'תוסיף אירוע מחר בשעה ', run:false } ] },
+    { group:'פרויקטים + אינטרנט', items:[
+      { t:'חפש לי משרות AI בתל אביב', run:true },
+      { t:'חפש דירות 3 חדרים בתל אביב עד 6000 שקל', run:true },
+      { t:'מה הסטטוס של חיפוש העבודה?', run:true },
+      { t:'מה הצעד הבא ב-Upselles?', run:true } ] },
+    { group:'מאמן אישי', items:[
+      { t:'תן לי דחיפה למוטיבציה', run:true },
+      { t:'מה אני שוכח לעשות?', run:true } ] }
+  ];
+
+  // ──────────────────────────────────────────────────────────────────────
+  //  UI
+  // ──────────────────────────────────────────────────────────────────────
+  let rootEl, orbEl, statusEl, stateEl, transcriptEl, inputEl, floatEl, wakeBtn;
 
   function injectStyles(){
     if (document.getElementById('voice-css')) return;
@@ -431,14 +525,13 @@
     s.textContent = `
 #voice-root{direction:rtl;color:#f3ece6;
   background:radial-gradient(ellipse at 50% 0%,#2a1206 0%,#120a06 60%);
-  border-radius:18px;padding:24px 18px 28px;min-height:78vh;
-  display:flex;flex-direction:column;align-items:center;gap:15px;
+  border-radius:18px;padding:22px 18px 26px;min-height:78vh;
+  display:flex;flex-direction:column;align-items:center;gap:13px;
   font-family:-apple-system,Segoe UI,Rubik,Arial,sans-serif}
 #voice-root h2{margin:0;font-size:17px;color:#ff8a3d;letter-spacing:.5px}
-#voice-root .v-sub{font-size:12px;color:#b89a86;margin-top:-8px;text-align:center}
-/* ── the sun ── */
-#v-orb{width:158px;height:158px;border-radius:50%;cursor:pointer;position:relative;
-  margin-top:14px;display:flex;align-items:center;justify-content:center;
+#voice-root .v-sub{font-size:12px;color:#b89a86;margin-top:-7px;text-align:center}
+#v-orb{width:150px;height:150px;border-radius:50%;cursor:pointer;position:relative;
+  margin-top:12px;display:flex;align-items:center;justify-content:center;
   background:radial-gradient(circle at 38% 30%,#ffe7a0 0%,#ff9a2e 36%,#ef2b00 74%,#7a0d00 100%);
   box-shadow:0 0 60px #ff5a1e88,0 0 120px #ff2d0044,inset -10px -16px 44px #6e0b00cc;
   transition:transform .28s ease,box-shadow .28s ease}
@@ -451,7 +544,6 @@
 #v-orb .v-core{width:46px;height:46px;border-radius:50%;
   background:radial-gradient(circle,#fff 0%,#ffe1a8 55%,#ff9a3c 100%);
   box-shadow:0 0 26px #fff,0 0 50px #ffb86b}
-/* active / in-action — the sun grows + the core pulses */
 #voice-root.listening #v-orb,#voice-root.thinking #v-orb,#voice-root.speaking #v-orb{
   transform:scale(1.16);
   box-shadow:0 0 100px #ff5a1edd,0 0 180px #ff2d0077,inset -10px -16px 44px #6e0b00cc}
@@ -462,26 +554,39 @@
 #voice-root.thinking  #v-orb .v-core{animation:v-core .85s ease-in-out infinite}
 #voice-root.speaking  #v-orb .v-core{animation:v-core .5s ease-in-out infinite}
 @keyframes v-core{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.5);opacity:1}}
-#v-state{font-size:14px;font-weight:700;height:20px}
+#v-state{font-size:14px;font-weight:700;height:19px}
 #v-state.listening{color:#ffb454}#v-state.thinking{color:#ffd84d}#v-state.speaking{color:#ff7a3d}
-#v-status{font-size:12px;min-height:16px;text-align:center;color:#b89a86}
+#v-status{font-size:12px;min-height:15px;text-align:center;color:#b89a86}
 #v-status.err{color:#ff8da0}
-#v-transcript{width:100%;max-width:520px;flex:1;overflow-y:auto;max-height:36vh;
-  display:flex;flex-direction:column;gap:8px;padding:4px}
-.v-line{padding:9px 13px;border-radius:13px;font-size:14px;line-height:1.55;max-width:88%;
+#v-wake{display:flex;align-items:center;gap:8px;background:#241509;border:1px solid #4a3120;
+  border-radius:20px;padding:7px 14px;font-size:12.5px;color:#f3ece6;cursor:pointer}
+#v-wake.on{border-color:#ff8a3d;background:#3a1f0c}
+#v-wake .v-dot{width:9px;height:9px;border-radius:50%;background:#5a4636}
+#v-wake.on .v-dot{background:#42e695;box-shadow:0 0 8px #42e695;animation:v-core 1.4s ease-in-out infinite}
+#v-transcript{width:100%;max-width:540px;overflow-y:auto;max-height:28vh;
+  display:flex;flex-direction:column;gap:7px;padding:2px}
+.v-line{padding:8px 12px;border-radius:12px;font-size:13.5px;line-height:1.5;max-width:88%;
   white-space:pre-wrap;word-break:break-word}
 .v-line.user{background:#ff8a3d;color:#2a1000;align-self:flex-start;border-bottom-right-radius:3px}
 .v-line.bot{background:#2c1d12;color:#f3ece6;align-self:flex-end;border-bottom-left-radius:3px}
 .v-line.sys{background:none;color:#b89a86;font-size:12px;align-self:center}
-#v-row{width:100%;max-width:520px;display:flex;gap:8px}
-#v-input{flex:1;background:#241509;border:1px solid #4a3120;border-radius:11px;
-  color:#f3ece6;padding:11px 13px;font-size:14px;font-family:inherit;direction:rtl}
+#v-row{width:100%;max-width:540px;display:flex;gap:8px}
+#v-input{flex:1;background:#16202e00;background:#241509;border:1px solid #4a3120;border-radius:11px;
+  color:#f3ece6;padding:10px 13px;font-size:14px;font-family:inherit;direction:rtl}
 #v-input:focus{outline:none;border-color:#ff8a3d}
 #v-row button,#v-clear{background:#2c1d12;border:1px solid #4a3120;color:#f3ece6;
   border-radius:11px;cursor:pointer;font-size:14px;padding:0 15px;height:42px}
 #v-row button:hover,#v-clear:hover{border-color:#ff8a3d}
-#v-clear{font-size:12px;padding:7px 14px;height:auto}
-/* ── floating red-sun orb — appears on every page ── */
+#v-clear{font-size:12px;padding:6px 13px;height:auto}
+#v-suggest{width:100%;max-width:540px;background:#1c120899;border:1px solid #3a2614;
+  border-radius:13px;padding:12px 13px}
+#v-suggest h3{margin:0 0 8px;font-size:13px;color:#ff8a3d}
+#v-suggest .v-grp{font-size:11px;color:#b89a86;margin:9px 0 5px;font-weight:700}
+#v-suggest .v-chips{display:flex;flex-wrap:wrap;gap:6px}
+#v-suggest .v-chip{background:#2c1d12;border:1px solid #4a3120;color:#f3ece6;border-radius:9px;
+  padding:6px 10px;font-size:12px;cursor:pointer}
+#v-suggest .v-chip:hover{border-color:#ff8a3d;background:#3a2614}
+/* floating red-sun orb on every page */
 #v-float{position:fixed;left:24px;bottom:104px;z-index:999998;width:56px;height:56px;
   border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;
   background:radial-gradient(circle at 38% 30%,#ffe7a0 0%,#ff9a2e 36%,#ef2b00 74%,#7a0d00 100%);
@@ -493,6 +598,7 @@
   -webkit-mask:radial-gradient(circle,transparent 56%,#000 58%,#000 84%,transparent 86%);
           mask:radial-gradient(circle,transparent 56%,#000 58%,#000 84%,transparent 86%);
   animation:v-rays 24s linear infinite;opacity:.6}
+#v-float.armed{box-shadow:0 0 22px #ff5a1eaa,0 6px 20px rgba(0,0,0,.5),0 0 0 2px #42e69566}
 #v-float.active{box-shadow:0 0 42px #ff5a1e,0 6px 20px rgba(0,0,0,.5)}
 #v-float.active::before{animation-duration:7s;opacity:.95}
 #v-float.active .v-core{animation:v-core 1s ease-in-out infinite}
@@ -504,7 +610,7 @@
     if (document.getElementById('v-float')) return;
     const f = document.createElement('div');
     f.id = 'v-float';
-    f.title = 'שיחה קולית עם זורו';
+    f.title = 'זורו — הקש לשיחה';
     f.innerHTML = '<div class="v-core"></div>';
     f.addEventListener('click', () => {
       unlockAudio();
@@ -513,6 +619,7 @@
     });
     document.body.appendChild(f);
     floatEl = f;
+    syncWakeUI();
   }
 
   function render(){
@@ -520,32 +627,49 @@
     if (!host) return;
     injectStyles();
     rootEl = host;
+    const sug = SUGGESTIONS.map(g =>
+      '<div class="v-grp">' + esc(g.group) + '</div><div class="v-chips">' +
+      g.items.map((it,ix) => '<span class="v-chip" data-g="'+SUGGESTIONS.indexOf(g)+'" data-i="'+ix+'">' +
+        esc(it.t.trim()) + (it.run?'':' …') + '</span>').join('') + '</div>'
+    ).join('');
     host.innerHTML =
-      '<h2>🔆 שיחה קולית — זורו</h2>' +
-      '<div class="v-sub">הקש על השמש ודבר חופשי. השיחה רציפה — אני מזהה מתי סיימת לדבר.</div>' +
+      '<h2>🔆 זורו — שיחה קולית</h2>' +
+      '<div class="v-sub">הקש על השמש ודבר — או הפעל "האזנה לשם" ופשוט קרא לי בשם "זורו".</div>' +
       '<div id="v-orb" title="הקש כדי להתחיל / לעצור"><div class="v-core"></div></div>' +
       '<div id="v-state"></div>' +
       '<div id="v-status"></div>' +
+      '<div id="v-wake"><span class="v-dot"></span><span id="v-wake-lbl">האזנה לשם "זורו"</span></div>' +
       '<div id="v-transcript"></div>' +
       '<div id="v-row">' +
         '<input id="v-input" placeholder="או כתוב כאן…" />' +
         '<button id="v-send">שלח</button>' +
       '</div>' +
-      '<button id="v-clear">נקה שיחה</button>';
+      '<button id="v-clear">נקה שיחה</button>' +
+      '<div id="v-suggest"><h3>💡 הצעות לשימוש — מה אני יכול לעשות בשבילך</h3>' + sug + '</div>';
 
     orbEl        = host.querySelector('#v-orb');
     stateEl      = host.querySelector('#v-state');
     statusEl     = host.querySelector('#v-status');
     transcriptEl = host.querySelector('#v-transcript');
     inputEl      = host.querySelector('#v-input');
+    wakeBtn      = host.querySelector('#v-wake');
 
     orbEl.addEventListener('click', () => { unlockAudio(); toggleConversation(); });
+    wakeBtn.addEventListener('click', () => { unlockAudio(); toggleWake(); });
     host.querySelector('#v-send').addEventListener('click', sendTyped);
     host.querySelector('#v-clear').addEventListener('click', clearMem);
     inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') sendTyped(); });
+    host.querySelectorAll('.v-chip').forEach(ch => ch.addEventListener('click', () => {
+      const g = SUGGESTIONS[+ch.dataset.g], it = g && g.items[+ch.dataset.i];
+      if (!it) return;
+      unlockAudio();
+      if (it.run) { handleUtterance(it.t.trim()); }
+      else { inputEl.value = it.t; inputEl.focus(); }
+    }));
 
     renderTranscript();
     setState(conversing ? 'listening' : 'idle');
+    syncWakeUI();
   }
 
   async function sendTyped(){
@@ -553,12 +677,7 @@
     const v = inputEl.value.trim();
     inputEl.value = '';
     unlockAudio();
-    addLine('user', v);
-    setState('thinking');
-    const reply = await think(v);
-    addLine('bot', reply);
-    setState('speaking');
-    speak(reply, () => setState(conversing ? 'listening' : 'idle'));
+    handleUtterance(v);
   }
 
   function setState(s){
@@ -570,7 +689,16 @@
       stateEl.className = s;
       stateEl.textContent = { idle:'', listening:'מקשיב…', thinking:'חושב…', speaking:'מדבר…' }[s] || '';
     }
-    if (floatEl) floatEl.classList.toggle('active', conversing);
+    if (floatEl) floatEl.classList.toggle('active', conversing || s === 'thinking' || s === 'speaking');
+  }
+  function syncWakeUI(){
+    if (wakeBtn){
+      wakeBtn.classList.toggle('on', wakeArmed);
+      const lbl = document.getElementById('v-wake-lbl');
+      if (lbl) lbl.textContent = wakeArmed ? 'מקשיב לשם "זורו" — פעיל' : 'האזנה לשם "זורו" — כבוי';
+      if (!SR){ wakeBtn.style.display = 'none'; }
+    }
+    if (floatEl) floatEl.classList.toggle('armed', wakeArmed);
   }
   function setStatus(msg, kind){
     if (!statusEl) return;
@@ -580,7 +708,7 @@
   function renderTranscript(){
     if (!transcriptEl) return;
     transcriptEl.innerHTML = '';
-    if (!memory.length) addLine('sys', 'היי רואי, אני זורו. הקש על השמש ובוא נדבר.');
+    if (!memory.length) addLine('sys', 'היי רואי, אני זורו. הקש על השמש או קרא לי בשם.');
     else memory.slice(-30).forEach(m => addLine(m.role === 'user' ? 'user' : 'bot', m.content));
   }
   function addLine(kind, text){
@@ -591,25 +719,44 @@
     transcriptEl.appendChild(d);
     transcriptEl.scrollTop = transcriptEl.scrollHeight;
   }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
 
   // ──────────────────────────────────────────────────────────────────────
-  //  PUBLIC API
+  //  PUBLIC API + BOOT
   // ──────────────────────────────────────────────────────────────────────
   window.VoiceMode = {
     version: VERSION,
     render: render,
     start: startConversation,
     stop: stopConversation,
+    armWake: armWake,
+    disarmWake: disarmWake,
     clearMemory: clearMem
   };
 
-  loadMem();
-  injectStyles();      // make voice styles available app-wide (for the floating orb)
-  buildFloatingOrb();  // a red-sun orb on every page
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && conversing) stopConversation();
-  });
-  console.log('%cVoice Mode v' + VERSION + ' ready — STT engine: ' +
-    (SR ? 'browser SpeechRecognition (no key needed)' : 'MediaRecorder + API'),
-    'color:#ff8a3d;font-weight:bold');
+  function boot(){
+    loadMem();
+    injectStyles();
+    buildFloatingOrb();
+    // auto-arm the wake word if mic permission is already granted
+    if (SR) {
+      let want = true;
+      try { want = localStorage.getItem(WAKE_KEY) !== '0'; } catch (e) {}
+      if (want && navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name:'microphone' })
+          .then(p => { if (p.state === 'granted') armWake(); })
+          .catch(() => {});
+      }
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && conversing) stopConversation();
+    });
+    console.log('%cVoice Mode v' + VERSION + ' — wake word ' + (SR ? 'available' : 'unavailable (no SpeechRecognition)'),
+      'color:#ff8a3d;font-weight:bold');
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 })();
