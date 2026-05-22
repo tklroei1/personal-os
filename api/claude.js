@@ -489,8 +489,12 @@ async function handleSpeak(res, body) {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'tts-1', input: text, voice: body.voice || 'nova',
-        response_format: 'mp3', speed: body.speed || 1.0
+        model: 'gpt-4o-mini-tts',
+        input: text,
+        voice: body.voice || 'onyx',  // deep, calm male voice — JARVIS-style
+        instructions: body.instructions ||
+          'Speak in a calm, composed, refined and warm manner — like JARVIS, a sophisticated and intelligent personal AI assistant. Measured, confident, articulate and friendly; never rushed or robotic.',
+        response_format: 'mp3'
       })
     });
     if (!r.ok) {
