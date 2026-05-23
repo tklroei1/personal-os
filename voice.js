@@ -310,7 +310,7 @@ ${(() => {
 
   // "זורו עצור" / "עצור" / "stop" — stop listening + acting (after the
   // current action finishes).
-  const STOP_WORDS = ['עצור', 'סטופ', 'תעצור', 'לעצור', 'תפסיק', 'להפסיק', 'stop'];
+  const STOP_WORDS = ['עצור', 'סטופ', 'תעצור', 'לעצור', 'תפסיק', 'להפסיק', 'די', 'מספיק', 'סגור', 'stop', 'enough', 'shut up', 'shutup'];
   function isStopCommand(text){
     const words = (text||'').toLowerCase().trim().split(/\s+/).filter(Boolean);
     if (!words.length || words.length > 4) return false;
