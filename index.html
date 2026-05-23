@@ -2897,8 +2897,15 @@ function addReminder(){
   const date=prompt('תאריך (YYYY-MM-DD):',new Date().toISOString().split('T')[0]);
   const time=prompt('שעה:','09:00');
   const rep=prompt('חזרה? (daily/weekly/ריק):','');
-  S.reminders.push({id:Date.now(),text,date:date||'',time:time||'09:00',done:false,repeat:rep||''});
-  save();renderReminders();renderDashReminders();showNotif('✓ תזכורת נוספה');
+  // route through POS.addReminder so the Google Calendar sync also runs
+  if(window.POS&&typeof POS.addReminder==='function'){
+    POS.addReminder({text,date:date||'',time:time||'09:00',repeat:rep||''});
+  } else {
+    if(!S.reminders)S.reminders=[];
+    S.reminders.push({id:Date.now(),text,date:date||'',time:time||'09:00',done:false,repeat:rep||''});
+    save();
+  }
+  renderReminders();renderDashReminders();showNotif('✓ תזכורת נוספה — סונכרן ל-Calendar');
   // The 60-second reminder checker fires the notification when it comes due.
   // Offer to turn on notifications if we haven't asked yet.
   if('Notification'in window&&Notification.permission==='default'){
@@ -3370,8 +3377,23 @@ window.POS = (function(){
     addReminder(a){a=a||{};const text=(a.text||a.title||'').trim();
       if(!text)return'חסר טקסט לתזכורת';
       if(!S.reminders)S.reminders=[];
-      S.reminders.unshift({id:uid(),text,date:a.date||new Date().toISOString().split('T')[0],time:a.time||'09:00',done:false,repeat:a.repeat||''});
-      save();refresh();return'נוספה תזכורת: '+text+(a.date?' ל-'+a.date:'');},
+      const date=a.date||new Date().toISOString().split('T')[0];
+      const time=a.time||'09:00';
+      const rec={id:uid(),text,date,time,done:false,repeat:a.repeat||''};
+      S.reminders.unshift(rec);
+      save();refresh();
+      // Also create a Google Calendar event with a 0-minute popup — iPhone's
+      // Google Calendar app then fires a native notification at the exact
+      // reminder time, even when the Personal OS PWA is closed.
+      try{
+        if(typeof createCalendarEvent==='function'){
+          createCalendarEvent('⏰ '+text,`${date}T${time}`,'',
+            { durationMins:15, reminderMins:[0] })
+            .then(evId=>{ if(evId){ rec.calId=evId; save(); } })
+            .catch(()=>{});
+        }
+      }catch(e){}
+      return'נוספה תזכורת: '+text+' ל-'+date+' '+time;},
     // ───── EVENTS ─────
     addEvent(a){a=a||{};const title=(a.title||a.text||'').trim();
       if(!title)return'צריך כותרת לאירוע';
