@@ -1916,15 +1916,25 @@ if(!S.inbox)S.inbox=[];
 if(!S.userProfile)S.userProfile={};
 
 // ───── CROSS-DEVICE SYNC ─────
-// Pushes the full S object to a small endpoint on the Railway bot whenever
-// it changes, and pulls the latest version on app boot. This is what makes
-// the schedule/jobs/etc. visible on both the laptop and the iPhone.
+// Pushes the full S object to a small endpoint on the Cloudflare Worker
+// whenever it changes, and pulls the latest version on app boot. This is what
+// makes the schedule/jobs/etc. visible on both the laptop and the iPhone.
+const POS_SYNC_DEFAULTS = {
+  url: 'https://personal-os-mcp.tklroei1.workers.dev',
+  token: 'zoro-mcp-x7Kp2nQ8vR4mL9jH3wD6sF1aB5tY0uC8eN',
+};
 const POS_SYNC = {
-  url   : localStorage.getItem('pos_sync_url')   || '',
-  token : localStorage.getItem('pos_sync_token') || '',
+  url   : localStorage.getItem('pos_sync_url')   || POS_SYNC_DEFAULTS.url,
+  token : localStorage.getItem('pos_sync_token') || POS_SYNC_DEFAULTS.token,
   busy  : false,
   pendingTimer: null,
 };
+// Persist the defaults so save()-time push and boot-time pull both work out of
+// the box with no per-device setup.
+try{
+  if(!localStorage.getItem('pos_sync_url'))   localStorage.setItem('pos_sync_url',   POS_SYNC.url);
+  if(!localStorage.getItem('pos_sync_token')) localStorage.setItem('pos_sync_token', POS_SYNC.token);
+}catch(e){}
 // One-tap "sync now" — opens the setup prompt if not configured yet, otherwise
 // pulls the latest state from the server and re-renders the UI.
 window.posSyncNow = async function(){
@@ -3454,11 +3464,31 @@ window.POS = (function(){
     // ───── READ ─────
     getState(){return S;},
     snapshot(){
-      const today=new Date().toISOString().split('T')[0];
+      const todayDate=new Date();
+      const today=todayDate.toISOString().split('T')[0];
+      const DAYS_HE=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
       const ev=[];
-      Object.keys(S.weekEvents||{}).sort().filter(d=>d>=today).slice(0,10).forEach(d=>{
-        (S.weekEvents[d]||[]).forEach(e=>ev.push({date:d,text:e.text||e.title||''}));
+      // Date-keyed one-off events (e.g. "2026-05-24")
+      Object.keys(S.weekEvents||{}).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)&&k>=today).sort().slice(0,30).forEach(d=>{
+        (S.weekEvents[d]||[]).forEach(e=>ev.push({date:d,time:e.time||'',text:e.text||e.title||''}));
       });
+      // Recurring weekly events keyed as "<dayIdx>-HH:MM" — expand into the next 7 days
+      for(let i=0;i<7;i++){
+        const dt=new Date(todayDate); dt.setDate(todayDate.getDate()+i);
+        const idx=dt.getDay();
+        const iso=dt.toISOString().split('T')[0];
+        const dayLbl=DAYS_HE[idx];
+        Object.keys(S.weekEvents||{}).forEach(key=>{
+          const m=/^(\d)-(\d{1,2}:\d{2})$/.exec(key);
+          if(!m||+m[1]!==idx)return;
+          const time=m[2];
+          (S.weekEvents[key]||[]).forEach(e=>{
+            const text=e.text||e.title||'';
+            if(text)ev.push({date:iso,day:dayLbl,time,text});
+          });
+        });
+      }
+      ev.sort((a,b)=>((a.date+'T'+(a.time||'00:00')).localeCompare(b.date+'T'+(b.time||'00:00'))));
       let userName='Roei';
       try{if(typeof currentUser!=='undefined'&&currentUser&&currentUser.name&&!currentUser.name.includes('@'))userName=currentUser.name;}catch(e){}
       return {

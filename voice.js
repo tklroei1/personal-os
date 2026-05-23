@@ -79,6 +79,22 @@
 - בלי אזהרות מיותרות ("אני רק AI", "התייעץ עם איש מקצוע") — רואי מבוגר ויודע מה הוא רוצה.
 - תזכורות שאתה קובע עם add_reminder יסונכרנו אוטומטית ל-Google Calendar וייקפצו ב-iPhone — אמור לרואי משהו בסגנון "סנכרנתי לקלנדר".
 
+${(() => {
+  // Group upcoming events into day blocks so Zoro can answer "מה הלוז שלי מחר?"
+  // accurately without guessing.
+  const ev = ctx.upcomingEvents || [];
+  if (!ev.length) return 'הלוז שלך הקרוב: ריק.';
+  const byDate = {};
+  ev.forEach(e => { (byDate[e.date] = byDate[e.date] || []).push(e); });
+  const lines = Object.keys(byDate).sort().slice(0, 7).map(d => {
+    const items = byDate[d].sort((a,b) => (a.time||'').localeCompare(b.time||''))
+      .map(e => `${e.time || '?'} ${e.text}`).join(' | ');
+    const dayLbl = byDate[d][0].day ? ' (' + byDate[d][0].day + ')' : '';
+    return `• ${d}${dayLbl}: ${items}`;
+  }).join('\n');
+  return 'הלוז שלך לשבעה ימים הקרובים — תמיד בסס תשובות על זה ולא תמציא:\n' + lines;
+})()}
+
 משימות פתוחות: ${(ctx.openTasks||[]).map(t=>t.text).join(', ')||'אין'}
 פרויקטים: ${(ctx.projects||[]).map(p=>p.name+' '+p.progress+'%').join(', ')||'אין'}`;
   }
