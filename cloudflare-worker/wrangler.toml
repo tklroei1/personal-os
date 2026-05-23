@@ -1,0 +1,14 @@
+name = "personal-os-mcp"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+
+# Environment variables (non-secret). MCP_TOKEN is set separately via:
+#   wrangler secret put MCP_TOKEN
+[vars]
+PERSONAL_OS_URL = "https://personal-os-coral-tau.vercel.app"
+
+# KV namespace for state + reminders. The id below is filled in after running:
+#   wrangler kv namespace create POS_KV
+[[kv_namespaces]]
+binding = "KV"
+id = "d12b5a71d7134920aa818dfe2d12b648"
