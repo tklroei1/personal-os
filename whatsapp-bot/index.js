@@ -529,11 +529,18 @@ async function mcpRunTool(name, args) {
 }
 
 function mcpUnauthorized(res) {
-  res.writeHead(401, { 'Content-Type': 'application/json', 'WWW-Authenticate': 'Bearer' });
+  res.writeHead(401, {
+    'Content-Type': 'application/json',
+    'WWW-Authenticate': 'Bearer',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  });
   res.end(JSON.stringify({ error: 'unauthorized' }));
 }
 
 async function handleMcpPost(req, res, raw) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (MCP_TOKEN) {
     const auth = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
     const qs = new URL(req.url, 'http://x').searchParams.get('token') || '';
@@ -589,6 +596,15 @@ async function handleMcpPost(req, res, raw) {
 
 // ── Personal OS state sync — cross-device storage of the browser's S object ──
 function handleSync(req, res, raw) {
+  // CORS headers FIRST — preflight OPTIONS arrives without the Authorization
+  // header, so handling it before the auth check is essential.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400');
+
+  if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+
   // Auth — reuse MCP_TOKEN (set to enable). When unset, the endpoint is open;
   // OK for a personal use case behind a hard-to-guess Railway domain, but
   // strongly recommended to set MCP_TOKEN in Railway env vars.
@@ -597,12 +613,6 @@ function handleSync(req, res, raw) {
     const qs   = new URL(req.url, 'http://x').searchParams.get('token') || '';
     if (auth !== MCP_TOKEN && qs !== MCP_TOKEN) return mcpUnauthorized(res);
   }
-  // CORS — the browser PWA on Vercel calls this from a different origin
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
 
   if (req.method === 'GET') {
     const stored = readJson(POS_STATE_FILE, null);
@@ -666,6 +676,15 @@ const server = createServer(async (req, res) => {
 
   // MCP endpoint — Claude.ai consumer Connectors / desktop / MCP clients
   if (url.pathname === '/mcp' || url.pathname === '/sse') {
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
+      });
+      return res.end();
+    }
     if (req.method === 'POST') {
       const raw = await readBody(req);
       return handleMcpPost(req, res, raw);
