@@ -491,9 +491,9 @@ async function handleSpeak(res, body) {
       body: JSON.stringify({
         model: 'gpt-4o-mini-tts',
         input: text,
-        voice: body.voice || 'fable',  // British-leaning male voice — JARVIS-style
+        voice: body.voice || 'onyx',  // deep, authoritative male voice — JARVIS-leaning
         instructions: body.instructions ||
-          'Speak with a refined British accent and the calm, composed, articulate manner of JARVIS — Tony Stark\'s sophisticated AI butler. Measured and unhurried, subtly formal yet warm, intelligent and quietly reassuring. Crisp diction, never robotic or rushed.',
+          'Speak as JARVIS from Iron Man — deep, low, composed, and unmistakably intelligent. Subtly British in cadence, never rushed. Add a light dry wit: a faint raised-eyebrow sarcasm that earns the line, never overplayed. Expressive but understated — the calm of someone who has already solved the problem. Crisp diction, warm undertone, confident pacing.',
         response_format: 'mp3'
       })
     });
