@@ -1930,8 +1930,15 @@ window.posSyncSetup = function(){
   POS_SYNC.token = token.trim();
   localStorage.setItem('pos_sync_url',   POS_SYNC.url);
   localStorage.setItem('pos_sync_token', POS_SYNC.token);
-  if (typeof showNotif === 'function') showNotif('✓ סנכרון מוגדר — מושך נתונים…');
-  posSyncPull(true);
+  if (typeof showNotif === 'function') showNotif('✓ סנכרון מוגדר — בודק שרת…');
+  posSyncPull(true).then(d => {
+    if (!d || !d.state) {
+      // Server is empty — first device. Bootstrap by pushing this device's
+      // full state to the server so the next device can pull it down.
+      if (typeof showNotif === 'function') showNotif('🆙 מעלה את הנתונים שלך לשרת…');
+      posSyncPush();
+    }
+  });
 };
 window.posSyncClear = function(){
   POS_SYNC.url = ''; POS_SYNC.token = '';
