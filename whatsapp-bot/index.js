@@ -20,6 +20,7 @@ const REMINDERS_FILE   = `${DATA_DIR}/reminders.json`;
 const STATE_FILE       = `${DATA_DIR}/bot-state.json`;
 const SIG              = ' — מערכת רואי 🤖';
 const TZ               = 'Asia/Jerusalem';
+const MCP_TOKEN        = process.env.MCP_TOKEN || '';   // bearer token for Claude MCP connector — leave empty to disable auth
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -282,6 +283,234 @@ async function handleInbound(from, text) {
   console.log('[OUT]', reply.slice(0, 80));
 }
 
+// ── MCP server — exposes Personal OS tools to Claude.ai via Connectors ───────
+// JSON-RPC 2.0 over Streamable HTTP at POST /mcp (and GET /mcp for SSE stream).
+// Configure in Claude.ai → Settings → Connectors → Add custom connector:
+//   URL:  https://<your-railway-domain>/mcp
+//   Auth: Bearer <MCP_TOKEN>   (only if MCP_TOKEN env var is set)
+
+const MCP_TOOLS = [
+  {
+    name: 'set_reminder',
+    description: 'קובע תזכורת שתישלח לרואי בזמן הנקוב (וגם תופיע ביומן ובטלפון).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'תוכן התזכורת' },
+        datetime: { type: 'string', description: 'מועד בפורמט ISO 8601 מקומי, למשל 2026-05-23T18:00' },
+      },
+      required: ['text', 'datetime'],
+    },
+  },
+  {
+    name: 'list_reminders',
+    description: 'מחזיר את כל התזכורות העתידיות שטרם נשלחו.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'cancel_reminder',
+    description: 'מבטל תזכורת לפי המזהה שלה.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'מזהה התזכורת' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'add_journal_entry',
+    description: 'מוסיף רשומה ליומן האישי של רואי ב-Personal OS.',
+    inputSchema: {
+      type: 'object',
+      properties: { text: { type: 'string', description: 'תוכן הרשומה' } },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'add_expense',
+    description: 'רושם הוצאה ב-Personal OS.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        amount: { type: 'number', description: 'סכום בשקלים' },
+        description: { type: 'string', description: 'תיאור ההוצאה' },
+      },
+      required: ['amount', 'description'],
+    },
+  },
+  {
+    name: 'add_exam',
+    description: 'מוסיף מבחן ל-Personal OS עם תאריך.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'שם הקורס/המבחן' },
+        date: { type: 'string', description: 'תאריך בפורמט YYYY-MM-DD' },
+      },
+      required: ['title', 'date'],
+    },
+  },
+  {
+    name: 'add_homework',
+    description: 'מוסיף שיעורי בית עם דדליין ל-Personal OS.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'תיאור המשימה' },
+        dueDate: { type: 'string', description: 'תאריך אחרון בפורמט YYYY-MM-DD' },
+      },
+      required: ['title', 'dueDate'],
+    },
+  },
+  {
+    name: 'get_deadlines',
+    description: 'מחזיר את כל הדדליינים הקרובים מ-Personal OS (מבחנים ושיעורי בית).',
+    inputSchema: { type: 'object', properties: {} },
+  },
+];
+
+// Forward a write action to the Vercel webhook so the Personal OS PWA picks
+// it up via its existing 30s polling — keeps the app's data in sync.
+async function forwardToVercel(action, params) {
+  try {
+    const r = await fetch(`${API_URL}/api/whatsapp-command`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, params: params || {} }),
+    });
+    const d = await r.json().catch(() => ({}));
+    return d.response || 'בוצע ✓';
+  } catch (e) {
+    return 'שגיאה: ' + e.message;
+  }
+}
+
+async function mcpRunTool(name, args) {
+  args = args || {};
+  let text;
+  let isError = false;
+  try {
+    if (name === 'set_reminder') {
+      if (!args.text || !args.datetime) text = 'חסרים פרטים';
+      else {
+        const rec = addReminderRecord(args.text, args.datetime);
+        text = `נקבעה תזכורת (${rec.id}) ל-${fmtWhen(rec.datetime)}: ${rec.text}`;
+      }
+    } else if (name === 'list_reminders') {
+      const list = loadReminders().filter(r => !r.done);
+      text = list.length
+        ? list.map(r => `• [${r.id}] ${fmtWhen(r.datetime)} — ${r.text}`).join('\n')
+        : 'אין תזכורות עתידיות.';
+    } else if (name === 'cancel_reminder') {
+      const list = loadReminders();
+      const r = list.find(x => x.id === args.id && !x.done);
+      if (!r) { text = 'תזכורת לא נמצאה'; }
+      else { r.done = true; saveReminders(list); text = `בוטלה: ${r.text}`; }
+    } else if (name === 'add_journal_entry') {
+      text = await forwardToVercel('add_journal_entry', { text: args.text || '' });
+    } else if (name === 'add_expense') {
+      text = await forwardToVercel('finance_add_expense', {
+        amount: args.amount, description: args.description || '',
+      });
+    } else if (name === 'add_exam') {
+      text = await forwardToVercel('ds_add_exam', {
+        title: args.title, date: (args.date || '') + 'T09:00', type: 'exam',
+      });
+    } else if (name === 'add_homework') {
+      text = await forwardToVercel('ds_add_hw', {
+        title: args.title, dueDate: args.dueDate,
+      });
+    } else if (name === 'get_deadlines') {
+      try {
+        const r = await fetch(`${API_URL}/api/whatsapp-command?action=get_deadlines`);
+        const d = await r.json().catch(() => ({}));
+        text = d.response || 'אין מידע על דדליינים.';
+      } catch (e) { text = 'שגיאה: ' + e.message; isError = true; }
+    } else {
+      text = 'כלי לא מוכר: ' + name;
+      isError = true;
+    }
+  } catch (e) {
+    text = 'שגיאה בכלי: ' + e.message;
+    isError = true;
+  }
+  return { content: [{ type: 'text', text: String(text) }], isError };
+}
+
+function mcpUnauthorized(res) {
+  res.writeHead(401, { 'Content-Type': 'application/json', 'WWW-Authenticate': 'Bearer' });
+  res.end(JSON.stringify({ error: 'unauthorized' }));
+}
+
+async function handleMcpPost(req, res, raw) {
+  if (MCP_TOKEN) {
+    const auth = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+    const qs = new URL(req.url, 'http://x').searchParams.get('token') || '';
+    if (auth !== MCP_TOKEN && qs !== MCP_TOKEN) return mcpUnauthorized(res);
+  }
+  let msg;
+  try { msg = JSON.parse(raw); }
+  catch { res.writeHead(400); return res.end('bad json'); }
+
+  const batch = Array.isArray(msg) ? msg : [msg];
+  const responses = [];
+  for (const m of batch) {
+    const id = m.id;
+    let result, error;
+    try {
+      switch (m.method) {
+        case 'initialize':
+          result = {
+            protocolVersion: '2024-11-05',
+            capabilities: { tools: {} },
+            serverInfo: { name: 'personal-os-mcp', version: '1.0.0' },
+          };
+          break;
+        case 'notifications/initialized':
+          continue;   // no response for notifications
+        case 'tools/list':
+          result = { tools: MCP_TOOLS };
+          break;
+        case 'tools/call': {
+          const { name, arguments: args } = m.params || {};
+          console.log(`[mcp] tool ${name}`, JSON.stringify(args || {}).slice(0, 120));
+          result = await mcpRunTool(name, args);
+          break;
+        }
+        case 'ping':
+          result = {};
+          break;
+        default:
+          error = { code: -32601, message: 'method not found: ' + m.method };
+      }
+    } catch (e) {
+      error = { code: -32603, message: e.message };
+    }
+    if (id !== undefined) {
+      responses.push(error
+        ? { jsonrpc: '2.0', id, error }
+        : { jsonrpc: '2.0', id, result });
+    }
+  }
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(responses.length ? JSON.stringify(Array.isArray(msg) ? responses : responses[0]) : '');
+}
+
+function handleMcpStream(req, res) {
+  if (MCP_TOKEN) {
+    const qs = new URL(req.url, 'http://x').searchParams.get('token') || '';
+    const auth = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+    if (qs !== MCP_TOKEN && auth !== MCP_TOKEN) return mcpUnauthorized(res);
+  }
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+  });
+  res.write(': mcp-stream\n\n');
+  const ka = setInterval(() => { try { res.write(': ka\n\n'); } catch {} }, 25000);
+  req.on('close', () => clearInterval(ka));
+}
+
 // ── HTTP server — Meta Cloud API webhook ──────────────────────────────────────
 function readBody(req) {
   return new Promise(resolve => {
@@ -301,6 +530,16 @@ const server = createServer(async (req, res) => {
   if (req.method === 'GET' && url.pathname === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     return res.end('Zoro WhatsApp bot — ok');
+  }
+
+  // MCP endpoint — Claude.ai consumer Connectors / desktop / MCP clients
+  if (url.pathname === '/mcp' || url.pathname === '/sse') {
+    if (req.method === 'POST') {
+      const raw = await readBody(req);
+      return handleMcpPost(req, res, raw);
+    }
+    if (req.method === 'GET') return handleMcpStream(req, res);
+    res.writeHead(405); return res.end('method not allowed');
   }
 
   // Meta webhook verification handshake
