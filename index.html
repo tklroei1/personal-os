@@ -640,6 +640,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
           <div class="user-name" id="user-name-lbl"></div>
           <div class="user-email" id="user-email-lbl"></div>
         </div>
+        <button class="bi" onclick="posSyncNow()" title="סנכרן עכשיו" style="font-size:13px;flex-shrink:0">🔄</button>
         <button class="bi" onclick="signOut()" title="התנתק" style="font-size:11px;flex-shrink:0">🚪</button>
       </div>
     </div>
@@ -1614,7 +1615,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 </div>
 
 <!-- WELCOME / LOGIN SCREEN (shown full-screen when signed out — works on mobile) -->
-<div id="login-screen" style="display:none">
+<div id="login-screen" style="display:flex">
   <div class="login-card">
     <div class="login-logo">◆</div>
     <h1>Personal OS</h1>
@@ -1849,6 +1850,9 @@ const PROJ_NAMES={jobs:'💼 חיפוש עבודה',upselles:'🚀 Upselles',hea
 
 // MULTI-USER: each user's data keyed by their Google sub ID
 let currentUser=JSON.parse(localStorage.getItem('pos_user')||'null');
+// If the user is already signed in, hide the full-screen login overlay
+// immediately — before any of the dashboard scripts run — so there's no flash.
+if(currentUser){try{var __ls=document.getElementById('login-screen');if(__ls)__ls.style.display='none';}catch(e){}}
 function storageKey(){return currentUser?`pos3_${currentUser.sub}`:'pos3';}
 
 function getDefaultState(){return{
@@ -1920,6 +1924,21 @@ const POS_SYNC = {
   token : localStorage.getItem('pos_sync_token') || '',
   busy  : false,
   pendingTimer: null,
+};
+// One-tap "sync now" — opens the setup prompt if not configured yet, otherwise
+// pulls the latest state from the server and re-renders the UI.
+window.posSyncNow = async function(){
+  if (!POS_SYNC.url || !POS_SYNC.token){
+    if (typeof window.posSyncSetup === 'function') window.posSyncSetup();
+    return;
+  }
+  if (typeof showNotif === 'function') showNotif('🔄 מסנכרן…');
+  const d = await posSyncPull(true);
+  if (!d || !d.state){
+    // Server is empty — push this device's data so the next pull on the other device works.
+    posSyncPush();
+    if (typeof showNotif === 'function') showNotif('🆙 העליתי לשרת. נסה שוב מהמכשיר השני.');
+  } else if (typeof showNotif === 'function') showNotif('✓ סונכרן');
 };
 window.posSyncSetup = function(){
   const url   = prompt('כתובת שרת הסנכרון (Railway URL, למשל https://xxx.up.railway.app):', POS_SYNC.url);

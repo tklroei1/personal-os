@@ -727,6 +727,7 @@
     menu.innerHTML =
       '<button data-act="voice"><span class="vm-i">🎤</span>שיחה קולית</button>' +
       '<button data-act="chat"><span class="vm-i">⌨️</span>צ\'אט בכתב</button>' +
+      '<button data-act="sync"><span class="vm-i">🔄</span>סנכרן עכשיו</button>' +
       '<button data-act="hide"><span class="vm-i">🙈</span>הסתר את זורו</button>';
     document.body.appendChild(menu);
 
@@ -762,6 +763,8 @@
         setTimeout(() => { if (!conversing) startConversation(); }, 180);
       } else if (act === 'chat'){
         try { if (window.Assistant && window.Assistant.open) window.Assistant.open(); } catch (e) {}
+      } else if (act === 'sync'){
+        try { if (typeof window.posSyncNow === 'function') window.posSyncNow(); } catch (e) {}
       } else if (act === 'hide'){
         f.style.display = 'none';
         restore.classList.add('show');
