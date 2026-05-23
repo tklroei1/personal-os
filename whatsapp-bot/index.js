@@ -18,6 +18,7 @@ const API_URL          = process.env.PERSONAL_OS_URL || 'https://personal-os-cor
 const DATA_DIR         = process.env.DATA_DIR || '/data';
 const REMINDERS_FILE   = `${DATA_DIR}/reminders.json`;
 const STATE_FILE       = `${DATA_DIR}/bot-state.json`;
+const POS_STATE_FILE   = `${DATA_DIR}/pos-state.json`;   // mirror of the browser's S object — cross-device sync
 const SIG              = ' — מערכת רואי 🤖';
 const TZ               = 'Asia/Jerusalem';
 const MCP_TOKEN        = process.env.MCP_TOKEN || '';   // bearer token for Claude MCP connector — leave empty to disable auth
@@ -586,6 +587,46 @@ async function handleMcpPost(req, res, raw) {
   res.end(responses.length ? JSON.stringify(Array.isArray(msg) ? responses : responses[0]) : '');
 }
 
+// ── Personal OS state sync — cross-device storage of the browser's S object ──
+function handleSync(req, res, raw) {
+  // Auth — reuse MCP_TOKEN (set to enable). When unset, the endpoint is open;
+  // OK for a personal use case behind a hard-to-guess Railway domain, but
+  // strongly recommended to set MCP_TOKEN in Railway env vars.
+  if (MCP_TOKEN) {
+    const auth = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+    const qs   = new URL(req.url, 'http://x').searchParams.get('token') || '';
+    if (auth !== MCP_TOKEN && qs !== MCP_TOKEN) return mcpUnauthorized(res);
+  }
+  // CORS — the browser PWA on Vercel calls this from a different origin
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+
+  if (req.method === 'GET') {
+    const stored = readJson(POS_STATE_FILE, null);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(stored || { state: null, ts: 0 }));
+  }
+
+  if (req.method === 'POST') {
+    let body;
+    try { body = JSON.parse(raw); }
+    catch { res.writeHead(400); return res.end('bad json'); }
+    if (!body || typeof body !== 'object' || !body.state) {
+      res.writeHead(400); return res.end('missing state');
+    }
+    const ts = Number(body.ts) || Date.now();
+    writeJson(POS_STATE_FILE, { state: body.state, ts });
+    console.log(`[sync] saved (${JSON.stringify(body.state).length} bytes)`);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: true, ts }));
+  }
+
+  res.writeHead(405); res.end('method not allowed');
+}
+
 function handleMcpStream(req, res) {
   if (MCP_TOKEN) {
     const qs = new URL(req.url, 'http://x').searchParams.get('token') || '';
@@ -631,6 +672,12 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'GET') return handleMcpStream(req, res);
     res.writeHead(405); return res.end('method not allowed');
+  }
+
+  // Cross-device state sync for the Personal OS PWA
+  if (url.pathname === '/sync') {
+    const raw = req.method === 'POST' ? await readBody(req) : '';
+    return handleSync(req, res, raw);
   }
 
   // Meta webhook verification handshake

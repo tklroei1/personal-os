@@ -1910,7 +1910,92 @@ if(!S.finance)S.finance=[];
 if(!S.notes)S.notes=[];
 if(!S.inbox)S.inbox=[];
 if(!S.userProfile)S.userProfile={};
-function save(){localStorage.setItem(storageKey(),JSON.stringify(S))}
+
+// ───── CROSS-DEVICE SYNC ─────
+// Pushes the full S object to a small endpoint on the Railway bot whenever
+// it changes, and pulls the latest version on app boot. This is what makes
+// the schedule/jobs/etc. visible on both the laptop and the iPhone.
+const POS_SYNC = {
+  url   : localStorage.getItem('pos_sync_url')   || '',
+  token : localStorage.getItem('pos_sync_token') || '',
+  busy  : false,
+  pendingTimer: null,
+};
+window.posSyncSetup = function(){
+  const url   = prompt('כתובת שרת הסנכרון (Railway URL, למשל https://xxx.up.railway.app):', POS_SYNC.url);
+  if (url === null) return;
+  const token = prompt('טוקן (MCP_TOKEN שהגדרת ב-Railway):', POS_SYNC.token);
+  if (token === null) return;
+  POS_SYNC.url   = url.trim().replace(/\/+$/, '');
+  POS_SYNC.token = token.trim();
+  localStorage.setItem('pos_sync_url',   POS_SYNC.url);
+  localStorage.setItem('pos_sync_token', POS_SYNC.token);
+  if (typeof showNotif === 'function') showNotif('✓ סנכרון מוגדר — מושך נתונים…');
+  posSyncPull(true);
+};
+window.posSyncClear = function(){
+  POS_SYNC.url = ''; POS_SYNC.token = '';
+  localStorage.removeItem('pos_sync_url');
+  localStorage.removeItem('pos_sync_token');
+  if (typeof showNotif === 'function') showNotif('סנכרון בוטל');
+};
+async function posSyncPull(replaceLocal){
+  if (!POS_SYNC.url || !POS_SYNC.token) return null;
+  try {
+    const r = await fetch(POS_SYNC.url + '/sync', {
+      headers: { 'Authorization': 'Bearer ' + POS_SYNC.token },
+    });
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (!d || !d.state) return null;
+    const localTs = +localStorage.getItem('pos_sync_local_ts') || 0;
+    // Replace on explicit setup, or whenever server is strictly newer than what we last saved.
+    if (replaceLocal || d.ts > localTs) {
+      // Preserve the per-user storage key — server holds the canonical S.
+      Object.keys(S).forEach(k => delete S[k]);
+      Object.assign(S, d.state);
+      localStorage.setItem(storageKey(), JSON.stringify(S));
+      localStorage.setItem('pos_sync_local_ts', String(d.ts));
+      if (typeof renderAll === 'function') renderAll();
+      if (typeof showNotif === 'function') showNotif('🔄 הנתונים סונכרנו מהשרת');
+    }
+    return d;
+  } catch (e) { console.warn('posSyncPull', e); return null; }
+}
+function posSyncPush(){
+  if (!POS_SYNC.url || !POS_SYNC.token) return;
+  clearTimeout(POS_SYNC.pendingTimer);
+  // Debounce — avoid hammering the server during bursts of save() calls.
+  POS_SYNC.pendingTimer = setTimeout(async () => {
+    if (POS_SYNC.busy) return;
+    POS_SYNC.busy = true;
+    try {
+      const ts = Date.now();
+      const r = await fetch(POS_SYNC.url + '/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + POS_SYNC.token },
+        body: JSON.stringify({ state: S, ts }),
+      });
+      if (r.ok) localStorage.setItem('pos_sync_local_ts', String(ts));
+    } catch (e) { console.warn('posSyncPush', e); }
+    POS_SYNC.busy = false;
+  }, 1500);
+}
+function save(){
+  localStorage.setItem(storageKey(), JSON.stringify(S));
+  posSyncPush();
+}
+// Auto-open the sync setup dialog if the URL has ?sync=1
+try {
+  if (new URLSearchParams(location.search).get('sync') === '1') {
+    setTimeout(() => window.posSyncSetup(), 300);
+  } else if (POS_SYNC.url && POS_SYNC.token) {
+    // Background pull on boot — but don't clobber unsaved local edits made
+    // in the few seconds before sync was ever configured (only replace if
+    // the server's ts is newer than the last ts we pushed).
+    setTimeout(() => posSyncPull(false), 800);
+  }
+} catch (e) {}
 
 // CLAUDE CV
 const CV=`רואי קליין — פרופיל מקצועי:
