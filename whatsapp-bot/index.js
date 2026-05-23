@@ -366,6 +366,87 @@ const MCP_TOOLS = [
     description: 'מחזיר את כל הדדליינים הקרובים מ-Personal OS (מבחנים ושיעורי בית).',
     inputSchema: { type: 'object', properties: {} },
   },
+  {
+    name: 'add_task',
+    description: 'מוסיף משימה חדשה לרשימת המשימות של רואי.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'תיאור המשימה' },
+        proj: { type: 'string', description: 'פרויקט (jobs/health/family/apartment/none)' },
+        cat:  { type: 'string', description: 'קטגוריה (work/health/family/home/project)' },
+      },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'add_event',
+    description: 'מוסיף אירוע ללוז השבועי של רואי.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        date:  { type: 'string', description: 'YYYY-MM-DD' },
+        time:  { type: 'string', description: 'HH:MM' },
+      },
+      required: ['title', 'date'],
+    },
+  },
+  {
+    name: 'add_note',
+    description: 'שומר פתק.',
+    inputSchema: {
+      type: 'object',
+      properties: { title: { type: 'string' }, content: { type: 'string' } },
+      required: ['content'],
+    },
+  },
+  {
+    name: 'add_idea',
+    description: 'שומר רעיון.',
+    inputSchema: {
+      type: 'object',
+      properties: { text: { type: 'string' } },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'add_goal',
+    description: 'מוסיף מטרה.',
+    inputSchema: {
+      type: 'object',
+      properties: { text: { type: 'string' } },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'add_job',
+    description: 'מוסיף משרה למעקב חיפוש העבודה.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title:   { type: 'string' },
+        company: { type: 'string' },
+        status:  { type: 'string' },
+        link:    { type: 'string' },
+      },
+      required: ['title'],
+    },
+  },
+  {
+    name: 'add_apartment',
+    description: 'מוסיף דירה למעקב חיפוש הדירה.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'כתובת/תיאור' },
+        price: { type: 'string' },
+        area:  { type: 'string' },
+        link:  { type: 'string' },
+      },
+      required: ['title'],
+    },
+  },
 ];
 
 // Forward a write action to the Vercel webhook so the Personal OS PWA picks
@@ -393,6 +474,12 @@ async function mcpRunTool(name, args) {
       if (!args.text || !args.datetime) text = 'חסרים פרטים';
       else {
         const rec = addReminderRecord(args.text, args.datetime);
+        // Also push into Personal OS so the PWA shows it AND syncs to
+        // Google Calendar (which gives a native iPhone notification).
+        const dt = new Date(args.datetime);
+        const date = isNaN(dt) ? '' : dt.toISOString().split('T')[0];
+        const time = isNaN(dt) ? '' : dt.toTimeString().slice(0, 5);
+        forwardToVercel('add_reminder', { text: args.text, date, time }).catch(() => {});
         text = `נקבעה תזכורת (${rec.id}) ל-${fmtWhen(rec.datetime)}: ${rec.text}`;
       }
     } else if (name === 'list_reminders') {
@@ -425,6 +512,10 @@ async function mcpRunTool(name, args) {
         const d = await r.json().catch(() => ({}));
         text = d.response || 'אין מידע על דדליינים.';
       } catch (e) { text = 'שגיאה: ' + e.message; isError = true; }
+    } else if ([
+      'add_task','add_event','add_note','add_idea','add_goal','add_job','add_apartment',
+    ].includes(name)) {
+      text = await forwardToVercel(name, args);
     } else {
       text = 'כלי לא מוכר: ' + name;
       isError = true;

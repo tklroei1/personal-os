@@ -6066,7 +6066,20 @@ function handleWebhookCommand(cmd){
     S.journalEntries.unshift({date:d.getDate()+' ב'+MO[d.getMonth()],text:cmd.text||'',time:d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
     save();renderJEntries();
     showNotif('📱 ערך יומן נוסף מ-WhatsApp');
+  // ── New actions routed through POS so everything stays consistent ─────────
+  }else if(window.POS&&typeof window.POS[posMethodFor(a)]==='function'){
+    try{
+      const out=window.POS[posMethodFor(a)](cmd);
+      if(typeof renderAll==='function')renderAll();
+      showNotif('📱 '+(typeof out==='string'?out:'בוצע')+' (מקלוד/וואטסאפ)');
+    }catch(e){console.warn('webhook apply error',a,e);}
   }
+}
+// Map a webhook action name (snake_case) to a POS method name (camelCase),
+// e.g. add_task → addTask. Keeps the bot/MCP action namespace clean while the
+// browser bridge stays generic.
+function posMethodFor(action){
+  return action.replace(/_([a-z])/g,(_,c)=>c.toUpperCase());
 }
 
 function pushStateToServer(){

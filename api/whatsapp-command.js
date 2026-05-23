@@ -48,8 +48,20 @@ const RESPONSES = {
   ds_add_hw: p => `✅ שיעורי בית "${p.title}" נוספו עד ${p.dueDate}${SIG}`,
   finance_add_expense: p => `✅ הוצאה של ₪${p.amount} — ${p.description || p.merchant || ''} נרשמה${SIG}`,
   add_journal_entry: () => `✅ ערך יומן נוסף${SIG}`,
+  add_task: p => `✅ משימה נוספה: ${p.text}${SIG}`,
+  add_reminder: p => `✅ תזכורת נוספה: ${p.text}${p.date ? ' ל-' + p.date : ''}${SIG}`,
+  add_event: p => `✅ אירוע נוסף: ${p.title}${SIG}`,
+  add_note: p => `✅ פתק נוסף${SIG}`,
+  add_idea: () => `✅ רעיון נשמר${SIG}`,
+  add_goal: () => `✅ מטרה נוספה${SIG}`,
+  add_job: p => `✅ משרה נוספה: ${p.title}${SIG}`,
+  add_apartment: p => `✅ דירה נוספה: ${p.title}${SIG}`,
 };
-const WRITE_ACTIONS = new Set(['ds_add_exam', 'ds_add_hw', 'finance_add_expense', 'add_journal_entry']);
+const WRITE_ACTIONS = new Set([
+  'ds_add_exam', 'ds_add_hw', 'finance_add_expense', 'add_journal_entry',
+  'add_task', 'add_reminder', 'add_event', 'add_note',
+  'add_idea', 'add_goal', 'add_job', 'add_apartment',
+]);
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
