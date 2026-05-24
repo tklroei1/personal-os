@@ -2033,6 +2033,142 @@ try {
   }
 } catch (e) {}
 
+// ───── SHARE-IN / IMPORT ─────
+// Two entry points: (a) Web Share Target — Android/desktop browsers route
+// shared text+URL here via ?title&text&url params. (b) Manual paste — the
+// floating-orb menu calls posOpenImport() with an empty payload for iOS where
+// the share sheet doesn't reach PWAs.
+function posOpenImport(initial){
+  const data = initial || {};
+  showImportModal(data);
+}
+window.posOpenImport = posOpenImport;
+
+function _posEsc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, m => (
+    { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]
+  ));
+}
+
+function _detectApartment(t){
+  return /(שותפ|דירה|חדר|פלורנטין|רוטשילד|נווה|רמת אביב|יפו|דיזנגוף|אלנבי|פוקס|מעלית|מרפסת|פינוי|כניסה|חודש|₪|שח|ש"ח|\d{4,5}\s*(?:₪|שח))/i.test(t);
+}
+function _detectJob(t){
+  return /(משרת|משרה|תפקיד|engineer|developer|analyst|product|growth|junior|senior|hr|recruit|נסיון|נדרש|career|jobs?|hiring|linkedin\.com\/jobs|comeet|greenhouse|לוקח קו"ח)/i.test(t);
+}
+function _parseApartment(text, url){
+  const t = text || '';
+  const priceM = t.match(/(\d{1,2}[,.]?\d{3})\s*(?:₪|שח|ש"ח|שקל)/i);
+  const areas = ['פלורנטין','רוטשילד','נווה צדק','יפו','רמת אביב','צפון ישן','דיזנגוף','מרכז','גבעתיים','פוקס','ככר רבין','אלנבי','שינקין','כרם התימנים','לב העיר','שפירא'];
+  const area = areas.find(a => t.includes(a)) || '';
+  const roomsM = t.match(/(\d(?:\.\d)?)\s*חדרים/);
+  const firstLine = (t.split('\n')[0] || '').slice(0, 80);
+  const title = firstLine || (area ? `דירה ב${area}` : 'דירה משותפת');
+  return {
+    title,
+    price: priceM ? '₪' + priceM[1].replace(/[,.]/g, '') : '',
+    area, link: url || '',
+    notes: t.slice(0, 600),
+  };
+}
+function _parseJob(text, url){
+  const t = text || '';
+  const firstLine = (t.split('\n')[0] || '').slice(0, 80);
+  const companyM = t.match(/(?:ב[-־]|@|חברת|at\s+)([A-Z][A-Za-z0-9 &.\-]{2,40}|[֐-׿]{2,30})/);
+  return {
+    title: firstLine || 'משרה',
+    company: companyM ? companyM[1].trim() : '',
+    status: 'open',
+    link: url || '',
+  };
+}
+
+function showImportModal(data){
+  if (document.getElementById('pos-import-modal')) return;
+  const title = data.title || '';
+  const text  = data.text  || '';
+  const url   = data.url   || '';
+  const initialContent = [title, text, url].filter(Boolean).join('\n');
+  const m = document.createElement('div');
+  m.id = 'pos-import-modal';
+  m.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.62);display:flex;align-items:flex-end;justify-content:center;padding:14px;direction:rtl;font-family:Heebo,sans-serif;backdrop-filter:blur(4px)';
+  m.innerHTML =
+    '<div style="background:var(--bg2,#fff);color:var(--text,#111);border-radius:18px 18px 10px 10px;padding:18px;max-width:520px;width:100%;box-shadow:0 -10px 50px rgba(0,0,0,.5);max-height:88vh;display:flex;flex-direction:column;gap:12px">' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+        '<div style="font-size:17px;font-weight:700;flex:1">📥 ייבוא ל-Personal OS</div>' +
+        '<button id="pi-x" style="background:transparent;border:0;font-size:22px;cursor:pointer;color:var(--text3,#999);line-height:1">×</button>' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--text3,#666);line-height:1.5">הדבק טקסט (פוסט מ-FB, מודעה, משרה, רעיון), או שתף ישירות לאפליקציה ממקור אחר. אני אזהה מה זה ואשמור במקום הנכון.</div>' +
+      '<textarea id="pi-text" placeholder="הדבק כאן את התוכן..." style="width:100%;min-height:140px;padding:12px;border-radius:12px;border:1px solid var(--border,#ccc);background:var(--bg3,#f7f7f7);color:var(--text,#111);font-family:inherit;font-size:13px;line-height:1.5;direction:rtl;resize:vertical"></textarea>' +
+      '<input id="pi-url" placeholder="קישור (אופציונלי, למשל לפוסט בפייסבוק)" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ccc);background:var(--bg3,#f7f7f7);color:var(--text,#111);font-family:inherit;font-size:12px;direction:ltr">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+        '<button data-as="apartment" style="background:#10b981;color:#fff;border:0;border-radius:10px;padding:13px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer">🏠 שמור כדירה</button>' +
+        '<button data-as="job"       style="background:#3b82f6;color:#fff;border:0;border-radius:10px;padding:13px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer">💼 שמור כמשרה</button>' +
+        '<button data-as="note"      style="background:#6366f1;color:#fff;border:0;border-radius:10px;padding:13px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer">📝 שמור כפתק</button>' +
+        '<button data-as="idea"      style="background:#a855f7;color:#fff;border:0;border-radius:10px;padding:13px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer">💡 שמור כרעיון</button>' +
+      '</div>' +
+      '<div id="pi-hint" style="font-size:11.5px;color:var(--text3,#888);text-align:center;min-height:14px"></div>' +
+    '</div>';
+  document.body.appendChild(m);
+
+  const ta = m.querySelector('#pi-text');
+  const ur = m.querySelector('#pi-url');
+  const hint = m.querySelector('#pi-hint');
+  ta.value = initialContent;
+  ur.value = url;
+
+  function syncHint(){
+    const t = ta.value || '';
+    if (_detectApartment(t))  hint.textContent = '💡 הקלאדיפיקציה: נראה כמו דירה — כפתור 🏠 הומלץ';
+    else if (_detectJob(t))   hint.textContent = '💡 הקלאדיפיקציה: נראה כמו משרה — כפתור 💼 הומלץ';
+    else                       hint.textContent = '';
+  }
+  ta.addEventListener('input', syncHint);
+  syncHint();
+
+  m.querySelector('#pi-x').onclick = () => m.remove();
+  m.addEventListener('click', (e) => {
+    if (e.target === m) m.remove();
+    const btn = e.target.closest('button[data-as]');
+    if (!btn) return;
+    const as = btn.dataset.as;
+    const t  = ta.value.trim();
+    const u  = ur.value.trim();
+    if (!t && !u) { ta.focus(); return; }
+    try {
+      if (as === 'apartment') {
+        POS.addApartment(_parseApartment(t, u));
+        showNotif('🏠 נוספה דירה — קישור: ' + (u ? 'יש' : 'אין'));
+        if (window.goPage) goPage('apartment');
+      } else if (as === 'job') {
+        POS.addJob(_parseJob(t, u));
+        showNotif('💼 נוספה משרה');
+        if (window.goPage) goPage('jobs');
+      } else if (as === 'note') {
+        POS.addNote({ title: (t.split('\n')[0] || 'פתק').slice(0, 60), content: t + (u ? '\n\n' + u : '') });
+        showNotif('📝 נוסף פתק');
+      } else if (as === 'idea') {
+        POS.addIdea({ text: t + (u ? '\n' + u : '') });
+        showNotif('💡 נוסף רעיון');
+      }
+    } catch (err) { console.warn('import', err); showNotif('שגיאה בשמירה'); }
+    m.remove();
+  });
+}
+
+// Web Share Target handler — Android/desktop shares land here on app boot.
+try {
+  const sp = new URLSearchParams(location.search);
+  const sTitle = sp.get('title') || '';
+  const sText  = sp.get('text')  || '';
+  const sUrl   = sp.get('url')   || '';
+  if (sTitle || sText || sUrl) {
+    // Clean the URL bar so the modal doesn't re-trigger on reload
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    setTimeout(() => showImportModal({ title: sTitle, text: sText, url: sUrl }), 700);
+  }
+} catch (e) {}
+
 // CLAUDE CV
 const CV=`רואי קליין — פרופיל מקצועי:
 • M.Sc Data Science & AI (Bar-Ilan 2025-2027), B.A. Economics & Business (ממוצע 88)
