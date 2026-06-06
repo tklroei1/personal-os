@@ -216,6 +216,16 @@ select.inp{cursor:pointer}
   .wg-dl-empty{flex:1;font-size:12px;color:var(--text3);padding:10px 2px;line-height:1.5}
 }
 @media(min-width:769px){.wg-daytabs,.wg-day-list{display:none!important}}
+/* iPhone comfort polish */
+@media(max-width:768px){
+  input,select,textarea{font-size:16px!important}
+  .btn{min-height:40px}
+  .wg-daytab{min-height:44px;min-width:48px}
+  .chip{padding:8px 12px}
+  *{-webkit-tap-highlight-color:transparent}
+  body{-webkit-font-smoothing:antialiased}
+  .main{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+}
 /* AI CHAT */
 .aic{display:flex;flex-direction:column;gap:8px;overflow-y:auto;margin-bottom:10px;padding-right:2px}
 .msg{display:flex;gap:7px;align-items:flex-start}
@@ -3662,7 +3672,7 @@ function executeClientTool(toolName,input){
     case'add_goal':       return P.addGoal({text:input.text||input.title,emoji:input.emoji});
     case'add_idea':       return P.addIdea({text:input.text||input.title,cat:input.cat});
     case'add_journal':    return P.addJournal({text:input.text||input.content});
-    case'add_job':        return P.addJob({title:input.title,company:input.company,status:input.status,link:input.link});
+    case'add_job':        return P.addJob({title:input.title,company:input.company,status:input.status,link:input.link,match:input.match,source:input.source,description:input.description,location:input.location});
     case'update_project': return P.updateProject({id:input.id||input.name,progress:input.progress});
   }
 }
