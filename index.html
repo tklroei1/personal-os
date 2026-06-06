@@ -197,6 +197,25 @@ select.inp{cursor:pointer}
 .wg-cell:last-child{border-right:none}
 .wg-ev{border-radius:4px;padding:2px 5px;margin-bottom:2px;font-size:10px;line-height:1.3;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:2px;overflow:hidden}
 .wg-ev-del{background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:9px;padding:0;flex-shrink:0}
+/* mobile weekly view (day tabs + agenda) — hidden on desktop */
+.wg-daytabs,.wg-day-list{display:none}
+@media(max-width:768px){
+  .wg-wrap{overflow-x:visible}
+  .wg{display:none}
+  .wg-daytabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;-webkit-overflow-scrolling:touch}
+  .wg-daytab{flex:0 0 auto;min-width:46px;padding:8px 7px;border-radius:13px;background:var(--bg3);border:1px solid var(--border);text-align:center;cursor:pointer;font-size:14px;font-weight:700;color:var(--text2);line-height:1.2}
+  .wg-daytab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .wg-daytab small{display:block;font-size:9px;font-weight:500;opacity:.85;margin-top:1px}
+  .wg-day-list{display:block;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .wg-dl-row{display:flex;gap:10px;padding:9px 10px;border-bottom:1px solid var(--border);align-items:flex-start;background:var(--bg2)}
+  .wg-dl-row:last-child{border-bottom:none}
+  .wg-dl-time{flex:0 0 48px;font-size:12px;color:var(--text3);font-weight:700;padding-top:4px}
+  .wg-dl-evs{flex:1;display:flex;flex-direction:column;gap:6px}
+  .wg-dl-ev{border-radius:9px;padding:8px 11px;font-size:13px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:8px;line-height:1.35}
+  .wg-dl-ev .wg-ev-del{color:rgba(255,255,255,.8);font-size:14px}
+  .wg-dl-empty{flex:1;font-size:12px;color:var(--text3);padding:10px 2px;line-height:1.5}
+}
+@media(min-width:769px){.wg-daytabs,.wg-day-list{display:none!important}}
 /* AI CHAT */
 .aic{display:flex;flex-direction:column;gap:8px;overflow-y:auto;margin-bottom:10px;padding-right:2px}
 .msg{display:flex;gap:7px;align-items:flex-start}
@@ -907,8 +926,10 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   <div class="card">
     <div class="ch">
       <div class="ct">🗓️ לוז שבועי חכם</div>
-      <div style="display:flex;gap:7px">
-        <button class="btn bs bsm" onclick="syncTasks()">🔄 סנכרן משימות</button>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <button class="btn bs bsm" onclick="syncCalWeek()">📅 סנכרן יומן</button>
+        <button class="btn bs bsm" onclick="seedSchedule(true)">↻ טען לוז</button>
+        <button class="btn bs bsm" onclick="syncTasks()">🔄 משימות</button>
         <button class="btn bp bsm" onclick="openWeekAI()">🤖 עוזר AI</button>
       </div>
     </div>
@@ -931,6 +952,8 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <!-- Grid selection info -->
     <div id="sel-info" style="display:none;background:var(--accent-light);border:1px solid var(--accent);border-radius:var(--radius-xs);padding:7px 12px;margin-bottom:10px;font-size:12px;color:var(--accent)"></div>
     <div class="wg-wrap">
+      <div class="wg-daytabs" id="wg-daytabs"></div>
+      <div class="wg-day-list" id="wg-day-list"></div>
       <div class="wg" id="week-grid"></div>
     </div>
     <div style="margin-top:8px;font-size:11px;color:var(--text3);display:flex;gap:16px;flex-wrap:wrap">
@@ -2451,6 +2474,13 @@ function renderDashProj(){
 let selStart=null,selEnd=null,isDragging=false;
 function buildWeekGrid(){
   const g=document.getElementById('week-grid');
+  if(!g)return;
+  // Auto-heal: if the built weekly schedule was wiped (e.g. by the multi-user /
+  // sync migration) re-seed it once so the grid is never empty.
+  const hasSched=Object.values(S.weekEvents||{}).some(arr=>(arr||[]).some(e=>e&&e.sched));
+  if(!hasSched&&!window._wgReseeded&&typeof seedSchedule==='function'){
+    window._wgReseeded=true;seedSchedule(true);return;
+  }
   let html='<div class="wg-hdr" style="font-size:10px">שעה</div>';
   const today=new Date().getDay();
   DF.forEach((d,i)=>{
@@ -2479,6 +2509,61 @@ function buildWeekGrid(){
     }
   });
   g.innerHTML=html;
+  buildWeekMobile();
+}
+
+// ── Mobile weekly view: day tabs + single-day agenda (phone-friendly) ──
+let wgDay=new Date().getDay();
+function setWgDay(d){wgDay=d;buildWeekMobile();}
+function buildWeekMobile(){
+  const tabs=document.getElementById('wg-daytabs');
+  const list=document.getElementById('wg-day-list');
+  if(!tabs||!list)return;
+  const today=new Date().getDay();
+  tabs.innerHTML=DF.map((d,i)=>`<div class="wg-daytab ${i===wgDay?'active':''}" onclick="setWgDay(${i})">${DH[i]}${i===today?' ●':''}<small>${d}</small></div>`).join('');
+  let rows='';
+  HRS.forEach(h=>{
+    const key=`${wgDay}-${h}`;
+    const evs=S.weekEvents[key]||[];
+    if(!evs.length)return;
+    rows+=`<div class="wg-dl-row"><div class="wg-dl-time">${h}</div><div class="wg-dl-evs">`+
+      evs.map(e=>`<div class="wg-dl-ev" style="background:${e.color||'var(--accent)'}"><span style="flex:1">${e.text}</span><button class="wg-ev-del" onclick="event.stopPropagation();delWeekEv('${key}',${e.id})">✕</button></div>`).join('')+
+      `</div></div>`;
+  });
+  if(!rows)rows='<div class="wg-dl-row"><div class="wg-dl-empty">אין אירועים ביום זה — הוסף דרך "הוסף לקאלנדר" למטה, או לחץ "📅 סנכרן יומן".</div></div>';
+  list.innerHTML=rows;
+}
+
+// ── Pull the current week (Sun–Sat) from Google Calendar into the grid ──
+async function syncCalWeek(){
+  if(!gat){showNotif('📅 מתחבר ליומן...');connectCal();return;}
+  const now=new Date();
+  const start=new Date(now);start.setDate(now.getDate()-now.getDay());start.setHours(0,0,0,0);
+  const end=new Date(start);end.setDate(start.getDate()+7);
+  try{
+    const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${start.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=100`,
+      {headers:{Authorization:`Bearer ${gat}`}});
+    if(r.status===401){showNotif('📅 צריך להתחבר מחדש ליומן');connectCal();return;}
+    const data=await r.json();
+    const items=data.items||[];
+    Object.keys(S.weekEvents).forEach(k=>{
+      S.weekEvents[k]=(S.weekEvents[k]||[]).filter(e=>!e.gcal);
+      if(!S.weekEvents[k].length)delete S.weekEvents[k];
+    });
+    let added=0;
+    items.forEach(ev=>{
+      if(!ev.start||!ev.start.dateTime)return;
+      const dt=new Date(ev.start.dateTime);
+      let hh=dt.getHours();if(hh<6)hh=6;if(hh>22)hh=22;
+      const key=`${dt.getDay()}-${String(hh).padStart(2,'0')}:00`;
+      const tm=dt.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+      if(!S.weekEvents[key])S.weekEvents[key]=[];
+      S.weekEvents[key].push({id:Date.now()+Math.floor(Math.random()*99999),text:`${tm} ${ev.summary||'אירוע'}`,color:'#4285f4',gcal:true});
+      added++;
+    });
+    save();buildWeekGrid();
+    showNotif(`✓ סונכרנו ${added} אירועים מהיומן`);
+  }catch(e){console.error(e);showNotif('⚠️ שגיאה בסנכרון היומן');}
 }
 
 function startSel(d,hi){isDragging=true;selStart={d,hi};selEnd={d,hi};highlightSel();}
@@ -4643,6 +4728,7 @@ function seedSchedule(force){
   save();
   localStorage.setItem(FLAG,'1');
   if(typeof buildWeekGrid==='function')buildWeekGrid();
+  if(force&&typeof showNotif==='function')showNotif('✓ הלוז הקבוע נטען לגריד');
 }
 seedSchedule();
 // ───── NOTIFICATIONS ─────
