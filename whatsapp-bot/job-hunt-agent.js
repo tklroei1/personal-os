@@ -7,6 +7,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { ROLE_DOMAINS, COMPANIES, TITLE_BLOCKLIST, LOCATION_ALLOW, buildTitleRegex } from './job-hunt-config.js';
 
 const API_URL     = process.env.PERSONAL_OS_URL || 'https://personal-os-coral-tau.vercel.app';
 const APIFY_TOKEN = process.env.APIFY_TOKEN || '';
@@ -22,10 +23,11 @@ const MONTHLY_CAP   = 4000; // results/month ≈ $4.0 — leaves margin under $5
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// ── Search keyword pools (rotated daily for coverage) ────────────────────────
-const POOL_AI_GROWTH = ['AI Analyst', 'Growth Analyst', 'GenAI Specialist', 'AI Operations', 'Prompt Engineer', 'Marketing Analyst', 'Junior Data Analyst', 'Revenue Operations Analyst'];
-const POOL_PRODUCT   = ['Junior Product Manager', 'Product Analyst', 'Associate Product Manager', 'Product Operations', 'Business Analyst'];
-const POOL_FINANCE   = ['Investment Analyst', 'VC Analyst', 'Private Equity Analyst', 'Economist Junior', 'Strategy Analyst', 'M&A Analyst', 'Financial Analyst Student'];
+// ── Search keyword pools — derived from the full role taxonomy ───────────────
+const POOL_AI_GROWTH = [...ROLE_DOMAINS.ai_data.linkedinKeywords, ...ROLE_DOMAINS.growth_marketing.linkedinKeywords];
+const POOL_PRODUCT   = [...ROLE_DOMAINS.product.linkedinKeywords, ...ROLE_DOMAINS.student_intern.linkedinKeywords];
+const POOL_FINANCE   = [...ROLE_DOMAINS.finance_investments.linkedinKeywords, ...ROLE_DOMAINS.business_strategy.linkedinKeywords];
+const TITLE_MATCH_RE = buildTitleRegex();
 
 const SENIOR_RE = /\b(senior|sr\.?|staff|principal|lead|head|director|vp|chief|architect|expert)\b/i;
 const MANAGER_OK_RE = /\b(junior|associate|jr\.?|student|intern)\b/i;
@@ -75,6 +77,49 @@ async function apifySearch(keywords, location) {
   throw new Error('Apify run timeout');
 }
 
+// ── Company career pages — FREE scanning via public ATS APIs ─────────────────
+// Greenhouse and Lever expose public job-board JSON; no scraping cost at all.
+// Each run scans a rotating slice of the curated company list.
+const COMPANIES_PER_RUN = 10;
+
+async function scanCompanies(day, runIdx) {
+  const scannable = COMPANIES.filter(c => c.ats);
+  const picked = [];
+  for (let i = 0; i < COMPANIES_PER_RUN && i < scannable.length; i++) {
+    picked.push(scannable[(day * COMPANIES_PER_RUN * 2 + runIdx * COMPANIES_PER_RUN + i) % scannable.length]);
+  }
+  const jobs = [];
+  let okCount = 0;
+  for (const c of picked) {
+    try {
+      let list = [];
+      if (c.ats.type === 'greenhouse') {
+        const r = await fetch(`https://boards-api.greenhouse.io/v1/boards/${c.ats.slug}/jobs`);
+        if (!r.ok) continue;
+        const d = await r.json();
+        list = (d.jobs || []).map(j => ({ title: j.title || '', loc: (j.location && j.location.name) || '', link: j.absolute_url || '' }));
+      } else if (c.ats.type === 'lever') {
+        const r = await fetch(`https://api.lever.co/v0/postings/${c.ats.slug}?mode=json`);
+        if (!r.ok) continue;
+        const d = await r.json();
+        list = (Array.isArray(d) ? d : []).map(j => ({ title: j.text || '', loc: (j.categories && j.categories.location) || '', link: j.hostedUrl || '' }));
+      }
+      okCount++;
+      for (const j of list) {
+        if (!LOCATION_ALLOW.test(j.loc)) continue;
+        if (TITLE_BLOCKLIST.test(j.title)) continue;
+        if (!TITLE_MATCH_RE.test(j.title)) continue;
+        jobs.push({
+          id: j.link, title: j.title, companyName: c.name, location: j.loc, link: j.link,
+          seniorityLevel: '', descriptionText: `source:company-careers interest:${c.interest} domain:${c.domain}`,
+        });
+      }
+    } catch (e) { console.error('[jobhunt] company scan', c.name, e.message); }
+  }
+  console.log(`[jobhunt] company scan: ${okCount}/${picked.length} boards ok → ${jobs.length} candidate roles`);
+  return { jobs: jobs.slice(0, 25), scanned: okCount };
+}
+
 // ── Claude scoring ───────────────────────────────────────────────────────────
 async function scoreJobs(jobs, runType) {
   const compact = jobs.map((j, i) => ({
@@ -90,7 +135,7 @@ async function scoreJobs(jobs, runType) {
 
 CANDIDATE: Roei Klein, Tel Aviv. M.Sc Information Science & Applied AI (active student, Bar-Ilan). B.A. Economics & Management (88). Founder of Upselles startup (product, GTM, growth analytics). Skills: Python, SQL, data analysis, KPI dashboards, prompt engineering/LLMs, product thinking, growth, business strategy. Hebrew+English.
 LONG-TERM GOAL: founding a startup — value roles that teach new domains, build network, give exposure to interesting industries, or lead to Product/business leadership.
-RULES: student/junior/entry ONLY — if a job requires 3+ years experience, cap score at 50. Part-time 80-90% is GOOD. Location: Tel Aviv best, then Petah Tikva/Herzliya/Ra'anana/center, rest of Israel lower; outside Israel = 0. Be honest, do not inflate.
+RULES: student/junior/entry ONLY — if a job requires 3+ years experience, cap score at 50. Part-time 80-90% is GOOD. Location: Tel Aviv best, then Petah Tikva/Herzliya/Ra'anana/center, rest of Israel lower; outside Israel = 0. Jobs whose desc contains "source:company-careers" come from curated company boards Roei picked — give +5 bonus, and +5 more if interest:3. Be honest, do not inflate.
 RUN TYPE: ${runType}
 
 JOBS:
@@ -112,7 +157,8 @@ async function uploadJob(job, score, reason) {
       action: 'add_job',
       data: {
         title: job.title, company: job.companyName, status: 'saved',
-        link: (job.link || '').split('?')[0], match: score, source: 'linkedin',
+        link: (job.link || '').split('?')[0], match: score,
+        source: (job.descriptionText || '').includes('company-careers') ? 'company' : 'linkedin',
         description: reason, location: job.location || '',
       },
     }),
@@ -144,15 +190,21 @@ export async function runJobHunt(sendMessage, { force = false } = {}) {
 
   console.log(`[jobhunt] run start: ${runType}, searches:`, searches.map(s => s[0]).join(' | '));
 
-  // 1. Scrape
+  // 1. Scrape LinkedIn (Apify — paid, capped)
   let jobs = [];
   for (const [kw, loc] of searches) {
     try { jobs.push(...(await apifySearch(kw, loc))); }
     catch (e) { console.error('[jobhunt] search error:', e.message); }
   }
-  state.results += jobs.length;
+  const apifyCount = jobs.length;
+  state.results += apifyCount;
   state.lastRun = new Date().toISOString();
   saveState(state);
+
+  // 1b. Scan company career pages (free public ATS APIs, rotating slice)
+  const comp = await scanCompanies(day, morning ? 0 : 1);
+  jobs.push(...comp.jobs);
+
   if (!jobs.length) { await sendMessage(`🎯 ציד משרות — לא התקבלו תוצאות מהסריקה (ייתכן שגיאת Apify).${SIG}`); return; }
 
   // 2. Hard filters (free — before spending Claude tokens)
@@ -166,7 +218,7 @@ export async function runJobHunt(sendMessage, { force = false } = {}) {
     if (SENIOR_RE.test(t) && !MANAGER_OK_RE.test(t)) return false;
     if (/manager/i.test(t) && !MANAGER_OK_RE.test(t)) return false;
     if (ABROAD_RE.test(t + ' ' + (j.descriptionText || '').slice(0, 300))) return false;
-    if (!/israel/i.test(j.location || '')) return false;
+    if (!LOCATION_ALLOW.test(j.location || '')) return false;
     if (seen.has(`${t}|${j.companyName}`)) return false; // already uploaded before
     return true;
   });
@@ -201,7 +253,7 @@ export async function runJobHunt(sendMessage, { force = false } = {}) {
   report += `🔎 ${searches.map(s => s[0]).join(' + ')}\n\n`;
   report += matches.length ? lines.join('\n\n') : 'לא נמצאו התאמות חזקות בריצה זו.';
   if (borderline.length) report += `\n\n*גבוליות (60-69%):*\n` + borderline.map(b => `• [${b.score}%] ${filtered[b.i].title} — ${filtered[b.i].companyName}`).join('\n');
-  report += `\n\n_נסרקו ${jobs.length} (${newJobs.length} חדשות) | החודש: ${state.results} (~$${cost} מתוך $5)_`;
+  report += `\n\n_לינקדאין: ${apifyCount} | אתרי חברות: ${comp.jobs.length} מועמדות מ-${comp.scanned} חברות | חדשות: ${newJobs.length} | החודש: ${state.results} (~$${cost} מתוך $5)_`;
   if (matches.length) report += `\n📲 פתח את Personal OS כדי שהמשרות ייקלטו`;
   report += SIG;
   await sendMessage(report);
