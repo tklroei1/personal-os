@@ -171,6 +171,11 @@ const TOOLS = [
       required: ['id'],
     },
   },
+  {
+    name: 'run_job_hunt',
+    description: 'מפעיל את סוכן ציד המשרות: סורק משרות טריות בלינקדאין (סטודנט/ג\'וניור, AI/Product/פיננסים בישראל), מנקד אותן מול הפרופיל של רואי, מעלה התאמות ≥70% ל-Personal OS ושולח דוח בוואטסאפ תוך כ-2 דקות. השתמש בכלי הזה בכל פעם שרואי מבקש לחפש משרות/עבודה/ג\'ובים או לבדוק אם יש משרות חדשות.',
+    input_schema: { type: 'object', properties: {} },
+  },
 ];
 
 function runTool(name, input) {
@@ -190,6 +195,11 @@ function runTool(name, input) {
     if (!r) return 'לא נמצאה תזכורת עם המזהה הזה.';
     r.done = true; saveReminders(list);
     return `התזכורת בוטלה: ${r.text}`;
+  }
+  if (name === 'run_job_hunt') {
+    runJobHunt(t => sendText(OWNER_WAID, t), { force: true })
+      .catch(e => sendText(OWNER_WAID, `⚠️ שגיאה בציד משרות: ${e.message}${SIG}`));
+    return 'ציד המשרות הופעל ברקע — דוח מלא יישלח לרואי בוואטסאפ תוך כ-2 דקות. אמור לו שזה רץ.';
   }
   return 'כלי לא מוכר';
 }
@@ -227,11 +237,16 @@ async function callVercel(action, params) {
 async function callClaude(userText) {
   const localNow = nowInTz();
   const system = `אתה מערכת רואי (זורו), העוזר האישי של רואי קליין, בצ'אט וואטסאפ פרטי.
-אתה עוזר עם תזכורות, תכנון יום, שאלות, ניסוח ועצות — בקצרה ובחום.
 התאריך והשעה כעת (אסיה/ירושלים): ${localNow}.
-כשרואי מבקש שתזכיר לו משהו — השתמש בכלי set_reminder עם מועד ISO מדויק
-(חשב "מחר" / "היום" / "בעוד שעה" / "ביום שישי" לפי השעה הנוכחית).
-ענה תמיד בעברית. סיים כל הודעה ב: — מערכת רואי 🤖`;
+
+היכולות שלך (יש לך כלים אמיתיים — השתמש בהם, אל תגיד שאתה לא יכול):
+1. ציד משרות 🎯 — הכלי run_job_hunt סורק לינקדאין, מנקד משרות מול הפרופיל של רואי (סטודנט M.Sc, AI/Product/פיננסים), מעלה התאמות ל-Personal OS ושולח דוח. הפעל אותו בכל בקשה לחיפוש משרות/עבודה. הסוכן גם רץ אוטומטית כל יום ב-09:00 וב-17:00.
+2. תזכורות ⏰ — set_reminder / list_reminders / cancel_reminder (חשב "מחר"/"בעוד שעה"/"ביום שישי" לפי השעה הנוכחית, מועד בפורמט ISO).
+3. פקודות Personal OS 📱 — אם רואי כותב בפורמט המדויק, זה נקלט אוטומטית: "הוסף הוצאה 50 קפה", "הוסף מבחן X בתאריך YYYY-MM-DD", "הוסף שיעורי בית X עד YYYY-MM-DD", "הוסף יומן טקסט", "מה הדדליינים השבוע?".
+4. שיחה חופשית — תכנון יום, ניסוח, עצות, שאלות.
+
+המערכת של רואי: https://personal-os-coral-tau.vercel.app
+ענה תמיד בעברית, בקצרה ובחום. סיים כל הודעה ב: — מערכת רואי 🤖`;
 
   const messages = [...dmHistory, { role: 'user', content: userText }];
   try {
@@ -277,8 +292,8 @@ async function callClaude(userText) {
 async function handleInbound(from, text) {
   botState.lastInboundAt = Date.now();
   saveState();
-  // Manual trigger: "חפש משרות" runs the job-hunt agent on demand
-  if (/^חפש משרות/.test((text || '').trim())) {
+  // Manual trigger: "חפש משרות" / "חפש עבודה" runs the job-hunt agent on demand
+  if (/^חפש (משרות|עבודה)/.test((text || '').trim())) {
     await sendText(from, `🔎 מתחיל ציד משרות... זה לוקח כ-2 דקות${SIG}`);
     runJobHunt(t => sendText(OWNER_WAID, t), { force: true })
       .catch(e => sendText(OWNER_WAID, `⚠️ שגיאה בציד משרות: ${e.message}${SIG}`));
