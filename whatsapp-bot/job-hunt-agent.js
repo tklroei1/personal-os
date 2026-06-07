@@ -209,12 +209,12 @@ export async function runJobHunt(sendMessage, { force = false } = {}) {
 }
 
 // ── Scheduler: fires at 09:00 and 17:00 Asia/Jerusalem ───────────────────────
-let _sock = null, _jid = null, _timer = null;
+let _send = null, _timer = null;
 
-export function setJobHuntSock(sock, jid) { _sock = sock; _jid = jid; }
+export function setJobHuntSend(fn) { _send = fn; }
 
 export function startJobHuntScheduler() {
-  if (_timer) return; // idempotent across reconnects
+  if (_timer) return; // idempotent
   console.log('[jobhunt] scheduler armed (09:00 + 17:00 Asia/Jerusalem)');
   _timer = setInterval(async () => {
     const now = new Date();
@@ -224,9 +224,9 @@ export function startJobHuntScheduler() {
     const slotKey = now.toLocaleDateString('en-CA', { timeZone: TZ }) + '-' + h;
     if (state.lastSlot === slotKey) return; // already ran this slot
     state.lastSlot = slotKey; saveState(state);
-    if (!_sock || !_jid) { console.error('[jobhunt] no socket — skipping run'); return; }
+    if (!_send) { console.error('[jobhunt] no send fn — skipping run'); return; }
     try {
-      await runJobHunt(text => _sock.sendMessage(_jid, { text }));
+      await runJobHunt(_send);
     } catch (e) { console.error('[jobhunt] run error:', e.message); }
   }, 30000);
 }
