@@ -411,6 +411,40 @@ select.inp{cursor:pointer}
 .kb-col[data-stage=interview] .kb-col-hdr{border-bottom-color:var(--stage-interview)}
 .kb-col[data-stage=offer] .kb-col-hdr{border-bottom-color:var(--stage-offer)}
 .kb-col[data-stage=archive] .kb-col-hdr{border-bottom-color:var(--stage-archive);opacity:0.7}
+/* ─── JOB VIEW TOGGLE + SMART TABLE ─── */
+.jview-toggle{display:inline-flex;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px}
+.jview-btn{border:none;background:transparent;color:var(--text2);font-size:12px;font-weight:600;padding:5px 12px;border-radius:calc(var(--radius-sm) - 2px);cursor:pointer;font-family:inherit}
+.jview-btn.on{background:var(--accent);color:#fff}
+.jt-group{margin-bottom:18px}
+.jt-group-hdr{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin:0 2px 7px;padding-bottom:5px;border-bottom:2px solid var(--col-color,var(--border))}
+.jt-group-hdr .jt-count{font-size:11px;font-weight:600;color:var(--text3);background:var(--bg3);border-radius:999px;padding:1px 8px}
+.jt-new-banner{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--green);background:var(--green-bg);border:1px solid var(--green);border-radius:var(--radius-sm);padding:7px 11px;margin:0 2px 12px}
+.jt-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm)}
+table.jt{width:100%;border-collapse:collapse;font-size:12px;min-width:760px}
+table.jt th{text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);font-weight:700;padding:7px 9px;background:var(--bg3);border-bottom:1px solid var(--border);white-space:nowrap}
+table.jt td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.jt tr:last-child td{border-bottom:none}
+table.jt tr.jt-row:hover{background:var(--bg3)}
+table.jt tr.jt-new td{box-shadow:inset 3px 0 0 var(--green)}
+.jt-title{font-weight:700;color:var(--text);cursor:pointer}
+.jt-title:hover{color:var(--accent)}
+.jt-co{color:var(--text2);font-size:11px}
+.jt-match{font-weight:700;border-radius:999px;padding:2px 8px;font-size:11px}
+.jt-match.hi{background:var(--green-bg);color:var(--green)}
+.jt-match.mid{background:var(--amber-bg,#fef3c7);color:var(--amber)}
+.jt-match.low{background:var(--bg3);color:var(--text3)}
+.jt-date{font-size:11px;color:var(--text2);white-space:nowrap}
+.jt-date.none{color:var(--text3)}
+.jt-stage-sel,.jt-status-inp{font-family:inherit;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);padding:4px 6px;background:var(--bg2);color:var(--text)}
+.jt-status-inp{width:130px}
+.jt-stage-sel{width:96px}
+.jt-save{border:none;background:var(--accent);color:#fff;border-radius:var(--radius-xs);font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.jt-save:disabled{opacity:.4;cursor:default}
+.jt-save.dirty{background:var(--amber);animation:jtpulse 1.2s infinite}
+@keyframes jtpulse{0%,100%{opacity:1}50%{opacity:.6}}
+.jt-link{text-decoration:none;font-size:13px;opacity:.7}
+.jt-link:hover{opacity:1}
+.jt-empty{text-align:center;color:var(--text3);font-size:12px;font-style:italic;padding:24px}
 /* ── JOB DETAIL DRAWER ── */
 .job-drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:450;display:none}
 .job-drawer-bg.open{display:block}
@@ -1112,7 +1146,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     </div>
     <div class="match-slider-wrap">
       <span class="filter-lbl">מינ׳ התאמה</span>
-      <input type="range" class="match-slider" id="min-match-slider" min="0" max="100" value="0" oninput="document.getElementById('min-match-lbl').textContent=this.value+'%';renderKanban()">
+      <input type="range" class="match-slider" id="min-match-slider" min="0" max="100" value="0" oninput="document.getElementById('min-match-lbl').textContent=this.value+'%';renderJobs()">
       <span id="min-match-lbl" style="font-size:12px;font-weight:600;min-width:32px;color:var(--accent)">0%</span>
     </div>
     <div class="irow" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
@@ -1132,12 +1166,18 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div id="job-live-list"></div>
   </div>
 
-  <!-- Kanban Board -->
+  <!-- Pipeline: Kanban + Table views -->
   <div class="card" style="padding:0;overflow:hidden">
     <div class="ch" style="padding:12px 14px 0">
-      <div class="ct">📋 Pipeline — גרור בין עמודות</div>
-      <span style="font-size:11px;color:var(--text3)">לחץ כרטיס לפרטים</span>
+      <div class="jview-toggle">
+        <button class="jview-btn" id="jview-btn-table" onclick="setJobView('table')">📊 טבלה</button>
+        <button class="jview-btn" id="jview-btn-kanban" onclick="setJobView('kanban')">📋 Kanban</button>
+      </div>
+      <span style="font-size:11px;color:var(--text3)" id="jview-hint">מחולק לפי תחומים • לחץ שורה לפרטים</span>
     </div>
+    <!-- TABLE VIEW -->
+    <div id="jobs-table-view" style="padding:8px 12px 14px"></div>
+    <!-- KANBAN VIEW -->
     <div class="kanban-wrap" id="kanban-wrap">
       <div class="kb-col" data-stage="discovered">
         <div class="kb-col-hdr">🔍 <span>גילוי</span><span class="nbadge" id="kb-cnt-discovered">0</span></div>
@@ -1278,6 +1318,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
           <div><div style="font-size:10px;color:var(--text3)">מטרה</div><div style="font-size:18px;font-weight:700;color:var(--green)" id="hp-g">—</div></div>
           <div><div style="font-size:10px;color:var(--text3)">גובה</div><div style="font-size:18px;font-weight:700" id="hp-h">—</div></div>
           <div><div style="font-size:10px;color:var(--text3)">BMI</div><div style="font-size:18px;font-weight:700" id="hp-bmi">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3)">TDEE</div><div style="font-size:18px;font-weight:700;color:var(--green)" id="hp-tdee">—</div></div>
         </div>
       </div>
       <button class="btn bg bsm" onclick="editBodyProfile()">✏️ עדכן</button>
@@ -1293,12 +1334,18 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div style="display:flex;flex-direction:column;gap:14px">
       <!-- FOOD -->
       <div class="card">
-        <div class="ch"><div class="ct">🍽️ מה אכלתי</div><button class="btn bs bsm" onclick="addMealManual()">+ ארוחה</button></div>
+        <div class="ch"><div class="ct">🍽️ מה אכלתי <span style="font-size:10px;color:var(--text3);font-weight:400">(היום)</span></div><button class="btn bs bsm" onclick="addMealManual()">+ ידני</button></div>
+        <div class="irow" style="margin-bottom:8px">
+          <input class="inp" style="flex:1" id="meal-ai-inp" placeholder="תאר בעברית: '2 ביצים, פרוסת לחם וקפה'..." onkeydown="if(event.key==='Enter')logMealAI()">
+          <button class="btn bp bsm" id="meal-ai-btn" onclick="logMealAI()">🤖 חשב והוסף</button>
+        </div>
+        <div id="cal-remaining" style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px"></div>
         <div id="meals-list"></div>
         <div class="macro-g">
           <div class="macro-c"><div style="font-size:16px;font-weight:700" id="m-k">0</div><div style="font-size:10px;color:var(--text3)">קל׳</div><div class="pb" style="margin-top:5px"><div class="pf" id="m-k-b" style="background:var(--green);width:0%"></div></div></div>
           <div class="macro-c"><div style="font-size:16px;font-weight:700" id="m-p">0g</div><div style="font-size:10px;color:var(--text3)">חלבון</div><div class="pb" style="margin-top:5px"><div class="pf" id="m-p-b" style="background:var(--blue);width:0%"></div></div></div>
           <div class="macro-c"><div style="font-size:16px;font-weight:700" id="m-c">0g</div><div style="font-size:10px;color:var(--text3)">פחמימות</div><div class="pb" style="margin-top:5px"><div class="pf" id="m-c-b" style="background:var(--amber);width:0%"></div></div></div>
+          <div class="macro-c"><div style="font-size:16px;font-weight:700" id="m-f">0g</div><div style="font-size:10px;color:var(--text3)">שומן</div><div class="pb" style="margin-top:5px"><div class="pf" id="m-f-b" style="background:var(--purple);width:0%"></div></div></div>
         </div>
         <!-- Meal suggestions -->
         <div style="margin-top:12px">
@@ -1311,6 +1358,20 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
           </div>
           <div id="meal-sug" style="font-size:12px;color:var(--text2);min-height:30px"></div>
         </div>
+      </div>
+      <!-- WEEKLY NUTRITION -->
+      <div class="card">
+        <div class="ch"><div class="ct">📊 שבוע אחרון — קלוריות</div></div>
+        <div id="weekly-nutri" style="font-size:12px"></div>
+      </div>
+      <!-- INTEGRATIONS -->
+      <div class="card">
+        <div class="ch"><div class="ct">🔗 חיבורים וייבוא</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button class="btn bs bsm" onclick="ingestAppleHealth()">🍎 קליטה מ-Apple Health (Shortcut)</button>
+          <button class="btn bs bsm" onclick="importMFP()">📥 ייבוא מ-MyFitnessPal</button>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:7px;line-height:1.5">חיבור ישיר ל-Apple Health/MyFitnessPal אינו אפשרי מאתר web. ראה מדריך ההגדרה של ה-Shortcut בקובץ הפרויקט.</div>
       </div>
       <!-- WATER -->
       <div class="card">
@@ -1915,7 +1976,7 @@ function getDefaultState(){return{
     {text:'מציאת דירה בת"א',progress:15,emoji:'🏡'},
   ],
   meals:[],workouts:[],water:0,
-  bodyProfile:{weight:'',goal:'',height:'',kcal:'',protein:''},
+  bodyProfile:{weight:'',goal:'',height:'',age:'',sex:'',activity:'',goalType:'',kcal:'',protein:'',carb:'',fat:''},
   weekEvents:{},
   jobs:[
     {title:'Junior Data Analyst',company:'Google Israel',cat:'Analytics',status:'waiting',match:87,date:'25.4',link:''},
@@ -2418,26 +2479,33 @@ function updateStats(){
   const pct=S.tasks.length>0?Math.round(done/S.tasks.length*100):0;
   document.getElementById('ds-week').textContent=pct+'%';
   document.getElementById('ds-week-s').textContent=`${done}/${S.tasks.length}`;
-  const kcal=S.meals.reduce((a,m)=>a+m.kcal,0);
-  document.getElementById('ds-kcal').textContent=kcal;
-  document.getElementById('ds-kcal-s').textContent=`יעד: ${S.bodyProfile.kcal||'—'}`;
-  // health page
-  const prot=S.meals.reduce((a,m)=>a+m.protein,0);
-  const carb=S.meals.reduce((a,m)=>a+(m.carb||0),0);
-  document.getElementById('h-kcal').textContent=kcal;
-  document.getElementById('h-prot').textContent=prot+'g';
-  document.getElementById('h-kcal-s').textContent=`יעד: ${S.bodyProfile.kcal||'—'}`;
-  document.getElementById('h-prot-s').textContent=`יעד: ${S.bodyProfile.protein||'—'}g`;
-  document.getElementById('h-wo').textContent=S.workouts.length;
-  document.getElementById('h-water').textContent=`${S.water}/8`;
-  // macros
-  document.getElementById('m-k').textContent=kcal;
-  document.getElementById('m-p').textContent=prot+'g';
-  document.getElementById('m-c').textContent=carb+'g';
-  const kt=parseInt(S.bodyProfile.kcal)||2000,pt=parseInt(S.bodyProfile.protein)||150;
-  document.getElementById('m-k-b').style.width=Math.min(100,kcal/kt*100)+'%';
-  document.getElementById('m-p-b').style.width=Math.min(100,prot/pt*100)+'%';
-  document.getElementById('m-c-b').style.width=Math.min(100,carb/250*100)+'%';
+  const _tm=(typeof todayMeals==='function')?todayMeals():S.meals;
+  const kcal=_tm.reduce((a,m)=>a+(+m.kcal||0),0);
+  const prot=_tm.reduce((a,m)=>a+(+m.protein||0),0);
+  const carb=_tm.reduce((a,m)=>a+(+m.carb||0),0);
+  const fat=_tm.reduce((a,m)=>a+(+m.fat||0),0);
+  const el=id=>document.getElementById(id);
+  const kt=parseInt(S.bodyProfile.kcal)||2000,pt=parseInt(S.bodyProfile.protein)||150,ct=parseInt(S.bodyProfile.carb)||250,ftt=parseInt(S.bodyProfile.fat)||70;
+  if(el('ds-kcal'))el('ds-kcal').textContent=kcal;
+  if(el('ds-kcal-s'))el('ds-kcal-s').textContent=`יעד: ${S.bodyProfile.kcal||'—'}`;
+  if(el('h-kcal'))el('h-kcal').textContent=kcal;
+  if(el('h-prot'))el('h-prot').textContent=prot+'g';
+  if(el('h-kcal-s'))el('h-kcal-s').textContent=`יעד: ${S.bodyProfile.kcal||'—'}`;
+  if(el('h-prot-s'))el('h-prot-s').textContent=`יעד: ${S.bodyProfile.protein||'—'}g`;
+  if(el('h-wo'))el('h-wo').textContent=S.workouts.length;
+  if(el('h-water'))el('h-water').textContent=`${S.water}/8`;
+  if(el('m-k'))el('m-k').textContent=kcal;
+  if(el('m-p'))el('m-p').textContent=prot+'g';
+  if(el('m-c'))el('m-c').textContent=carb+'g';
+  if(el('m-f'))el('m-f').textContent=fat+'g';
+  if(el('m-k-b'))el('m-k-b').style.width=Math.min(100,kcal/kt*100)+'%';
+  if(el('m-p-b'))el('m-p-b').style.width=Math.min(100,prot/pt*100)+'%';
+  if(el('m-c-b'))el('m-c-b').style.width=Math.min(100,carb/ct*100)+'%';
+  if(el('m-f-b'))el('m-f-b').style.width=Math.min(100,fat/ftt*100)+'%';
+  const rem=kt-kcal;
+  if(el('cal-remaining'))el('cal-remaining').innerHTML= rem>=0
+    ? `🔥 נותרו לך היום <strong>${rem}</strong> קלוריות פנויות (מתוך ${kt})`
+    : `⚠️ חרגת ב-<strong>${-rem}</strong> קלוריות מהיעד (${kt})`;
 }
 
 function updateCatProgress(){
@@ -2802,36 +2870,163 @@ async function addCalEvent(){
 }
 
 // HEALTH
+// ─── CALORIE / MACRO MODEL (Mifflin-St Jeor → TDEE → targets) ───
+const ACTIVITY_FACTORS={sedentary:1.2,light:1.375,moderate:1.55,active:1.725,very:1.9};
+const ACTIVITY_HE={sedentary:'יושבני (מעט/ללא פעילות)',light:'קל (1-3 אימונים/שבוע)',moderate:'בינוני (3-5)',active:'פעיל (6-7)',very:'מאוד פעיל (פיזי/2 ביום)'};
+function calcBMR(b){
+  const w=parseFloat(b.weight),h=parseFloat(b.height),a=parseFloat(b.age);
+  if(!w||!h||!a)return null;
+  const base=10*w+6.25*h-5*a;
+  return (b.sex==='f')?base-161:base+5; // default male if unset
+}
+function calcTDEE(b){
+  const bmr=calcBMR(b);if(!bmr)return null;
+  const f=ACTIVITY_FACTORS[b.activity]||1.375;
+  return Math.round(bmr*f);
+}
+function calcMacroTargets(b){
+  const tdee=calcTDEE(b);if(!tdee)return null;
+  let kcal=tdee;
+  if(b.goalType==='lose')kcal=Math.round(tdee-500);
+  else if(b.goalType==='gain')kcal=Math.round(tdee+300);
+  const w=parseFloat(b.weight)||0;
+  const protein=Math.round((b.goalType==='lose'?2.0:1.8)*w);   // g
+  const fat=Math.round(0.8*w);                                  // g
+  const carbKcal=Math.max(0,kcal-(protein*4+fat*9));
+  const carb=Math.round(carbKcal/4);                            // g
+  return {tdee,kcal,protein,carb,fat};
+}
+function applyCalorieModel(){
+  const t=calcMacroTargets(S.bodyProfile);
+  if(!t)return false;
+  S.bodyProfile.kcal=String(t.kcal);
+  S.bodyProfile.protein=String(t.protein);
+  S.bodyProfile.carb=String(t.carb);
+  S.bodyProfile.fat=String(t.fat);
+  return true;
+}
 function renderBodyProfile(){
   const b=S.bodyProfile;
-  document.getElementById('hp-w').textContent=b.weight?b.weight+'kg':'—';
-  document.getElementById('hp-g').textContent=b.goal?b.goal+'kg':'—';
-  document.getElementById('hp-h').textContent=b.height?b.height+'cm':'—';
-  if(b.weight&&b.height){
-    const bmi=(parseInt(b.weight)/Math.pow(parseInt(b.height)/100,2)).toFixed(1);
-    document.getElementById('hp-bmi').textContent=bmi;
+  const el=id=>document.getElementById(id);
+  if(el('hp-w'))el('hp-w').textContent=b.weight?b.weight+'kg':'—';
+  if(el('hp-g'))el('hp-g').textContent=b.goal?b.goal+'kg':'—';
+  if(el('hp-h'))el('hp-h').textContent=b.height?b.height+'cm':'—';
+  if(b.weight&&b.height&&el('hp-bmi')){
+    const bmi=(parseFloat(b.weight)/Math.pow(parseFloat(b.height)/100,2)).toFixed(1);
+    el('hp-bmi').textContent=bmi;
   }
+  const tdee=calcTDEE(b);
+  if(el('hp-tdee'))el('hp-tdee').textContent=tdee?tdee+' קל׳':'—';
 }
 function editBodyProfile(){
-  const fields=[['weight','משקל נוכחי (kg)'],['goal','משקל יעד (kg)'],['height','גובה (cm)'],['kcal','יעד קלוריות יומי'],['protein','יעד חלבון (g)']];
-  fields.forEach(([k,l])=>{const v=prompt(l+':',S.bodyProfile[k]||'');if(v!==null)S.bodyProfile[k]=v;});
-  save();renderBodyProfile();updateStats();
+  const b=S.bodyProfile;
+  const w=prompt('משקל נוכחי (kg):',b.weight||'');if(w!==null)b.weight=w;
+  const g=prompt('משקל יעד (kg):',b.goal||'');if(g!==null)b.goal=g;
+  const h=prompt('גובה (cm):',b.height||'');if(h!==null)b.height=h;
+  const a=prompt('גיל:',b.age||'');if(a!==null)b.age=a;
+  const sx=prompt('מין — הקלד m (זכר) או f (נקבה):',b.sex||'m');if(sx!==null)b.sex=(sx.trim().toLowerCase()==='f')?'f':'m';
+  const act=prompt('רמת פעילות — sedentary / light / moderate / active / very:',b.activity||'light');if(act!==null&&ACTIVITY_FACTORS[act.trim()])b.activity=act.trim();
+  const goal=prompt('מטרה — lose (הורדה) / maintain (שמירה) / gain (עלייה):',b.goalType||'lose');if(goal!==null&&['lose','maintain','gain'].includes(goal.trim()))b.goalType=goal.trim();
+  const t=calcMacroTargets(b);
+  if(t){
+    const use=confirm(`לפי החישוב (Mifflin-St Jeor):\nTDEE ≈ ${t.tdee} קל׳\nיעד יומי: ${t.kcal} קל׳ | חלבון ${t.protein}g | פחמ׳ ${t.carb}g | שומן ${t.fat}g\n\nאישור = שמור יעדים מחושבים. ביטול = הזן יעדים ידנית.`);
+    if(use){applyCalorieModel();}
+    else{
+      const kc=prompt('יעד קלוריות יומי:',b.kcal||String(t.kcal));if(kc!==null)b.kcal=kc;
+      const pr=prompt('יעד חלבון (g):',b.protein||String(t.protein));if(pr!==null)b.protein=pr;
+      const cb=prompt('יעד פחמימות (g):',b.carb||String(t.carb));if(cb!==null)b.carb=cb;
+      const ft=prompt('יעד שומן (g):',b.fat||String(t.fat));if(ft!==null)b.fat=ft;
+    }
+  }else{
+    showNotif('מלא משקל+גובה+גיל כדי לחשב יעדים אוטומטית');
+    const kc=prompt('יעד קלוריות יומי:',b.kcal||'');if(kc!==null)b.kcal=kc;
+    const pr=prompt('יעד חלבון (g):',b.protein||'');if(pr!==null)b.protein=pr;
+  }
+  save();renderBodyProfile();updateStats();showNotif('✓ הפרופיל עודכן');
+}
+function mealDateKey(d){return (d||new Date()).toISOString().split('T')[0];}
+function todayMeals(){const tk=mealDateKey();return (S.meals||[]).filter(m=>(m.date||tk)===tk);}
+function mealsOnDay(tk){return (S.meals||[]).filter(m=>(m.date||mealDateKey())===tk);}
+async function logMealAI(){
+  const inp=document.getElementById('meal-ai-inp');if(!inp)return;
+  const text=(inp.value||'').trim();if(!text){inp.focus();return;}
+  const btn=document.getElementById('meal-ai-btn');
+  if(btn){btn.disabled=true;btn.textContent='מחשב...';}
+  try{
+    const reply=await claude(`אתה מחשבון תזונה. המשתמש תיאר בעברית מה אכל. החזר אך ורק JSON תקין (ללא טקסט נוסף) בפורמט: {"name":"תיאור קצר בעברית","kcal":מספר,"protein":מספר,"carb":מספר,"fat":מספר}. הערך את הסכום הכולל לכל מה שתואר, בגרמים לחלבון/פחמימות/שומן וקלוריות כמספר שלם. אם הכמות לא ברורה, הנח כמות סבירה. תיאור: "${text}"`,'');
+    const m=reply.match(/\{[\s\S]*\}/);
+    if(!m)throw new Error('no json');
+    const j=JSON.parse(m[0]);
+    S.meals.push({name:j.name||text,kcal:Math.round(+j.kcal||0),protein:Math.round(+j.protein||0),carb:Math.round(+j.carb||0),fat:Math.round(+j.fat||0),date:mealDateKey(),time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
+    save();renderMeals();updateStats();
+    inp.value='';
+    showNotif(`✓ נוסף: ${j.name||text} — ${Math.round(+j.kcal||0)} קל׳`);
+  }catch(e){showNotif('⚠️ לא הצלחתי לחשב — נסה לנסח שוב או הוסף ידנית');}
+  if(btn){btn.disabled=false;btn.textContent='🤖 חשב והוסף';}
+}
+async function importMFP(){
+  const text=prompt('הדבק כאן ייצוא מ-MyFitnessPal (טקסט/CSV של היומן):');
+  if(!text)return;
+  showNotif('מעבד ייבוא...');
+  try{
+    const reply=await claude(`חלץ ארוחות מהטקסט הבא שמקורו ב-MyFitnessPal. החזר אך ורק מערך JSON: [{"name":"...","kcal":מספר,"protein":מספר,"carb":מספר,"fat":מספר}]. טקסט:\n\n${text.slice(0,4000)}`,'');
+    const m=reply.match(/\[[\s\S]*\]/);if(!m)throw new Error('no json');
+    const arr=JSON.parse(m[0]);let n=0;
+    arr.forEach(j=>{if(j&&j.name){S.meals.push({name:j.name,kcal:Math.round(+j.kcal||0),protein:Math.round(+j.protein||0),carb:Math.round(+j.carb||0),fat:Math.round(+j.fat||0),date:mealDateKey(),time:'ייבוא'});n++;}});
+    save();renderMeals();updateStats();showNotif(`✓ יובאו ${n} ארוחות מ-MyFitnessPal`);
+  }catch(e){showNotif('⚠️ הייבוא נכשל — בדוק את הפורמט');}
+}
+function ingestAppleHealth(){
+  const text=prompt('הדבק כאן את ה-JSON שה-Shortcut של Apple Health ייצא (משקל/צעדים/אנרגיה):');
+  if(!text)return;
+  try{
+    const j=JSON.parse(text);
+    if(!S.healthSync)S.healthSync=[];
+    const rec={date:mealDateKey(),weight:j.weight??j.bodyMass??null,steps:j.steps??null,activeEnergy:j.activeEnergy??j.active_calories??null,at:new Date().toISOString()};
+    S.healthSync.unshift(rec);
+    if(rec.weight){S.bodyProfile.weight=String(rec.weight);renderBodyProfile();}
+    save();updateStats();
+    showNotif(`✓ נקלט מ-Apple Health${rec.weight?' · משקל '+rec.weight+'kg':''}${rec.steps?' · '+rec.steps+' צעדים':''}`);
+  }catch(e){showNotif('⚠️ JSON לא תקין — ודא שהעתקת את הפלט המלא של ה-Shortcut');}
+}
+function renderWeeklyNutrition(){
+  const el=document.getElementById('weekly-nutri');if(!el)return;
+  const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(mealDateKey(d));}
+  const target=parseInt(S.bodyProfile.kcal)||0;
+  const rows=days.map(tk=>{
+    const ms=mealsOnDay(tk);const k=ms.reduce((a,m)=>a+(+m.kcal||0),0);
+    const dd=new Date(tk);const lbl=['א','ב','ג','ד','ה','ו','ש'][dd.getDay()];
+    const pct=target?Math.min(100,Math.round(k/target*100)):0;
+    const over=target&&k>target;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+      <div style="width:18px;font-size:11px;color:var(--text3)">${lbl}</div>
+      <div class="pb" style="flex:1"><div class="pf" style="width:${pct}%;background:${over?'var(--orange)':'var(--green)'}"></div></div>
+      <div style="width:62px;text-align:left;font-size:11px;color:var(--text2)">${k}${target?'/'+target:''}</div>
+    </div>`;
+  }).join('');
+  const totals=days.map(tk=>mealsOnDay(tk).reduce((a,m)=>a+(+m.kcal||0),0));
+  const active=totals.filter(t=>t>0);
+  const avg=active.length?Math.round(active.reduce((a,b)=>a+b,0)/active.length):0;
+  el.innerHTML=rows+`<div style="margin-top:6px;font-size:11px;color:var(--text3)">ממוצע יומי (ימים פעילים): <strong>${avg||'—'}</strong> קל׳${target?' · יעד '+target:''}</div>`;
 }
 function renderMeals(){
   const el=document.getElementById('meals-list');if(!el)return;
-  el.innerHTML=S.meals.length?S.meals.map((m,i)=>`
+  const meals=todayMeals();
+  el.innerHTML=meals.length?meals.map((m)=>{const i=S.meals.indexOf(m);return `
     <div class="meal">
       <div><div style="font-size:13px;font-weight:500">${m.time} — ${m.name}</div>
-      <div style="font-size:11px;color:var(--text3)">${m.kcal}קל׳ | ${m.protein}g חלבון${m.carb?` | ${m.carb}g פחמימות`:''}</div></div>
+      <div style="font-size:11px;color:var(--text3)">${m.kcal}קל׳ | ${m.protein}g חלבון${m.carb?` | ${m.carb}g פחמ׳`:''}${m.fat?` | ${m.fat}g שומן`:''}</div></div>
       <button class="bi" onclick="delMeal(${i})" style="font-size:11px">✕</button>
-    </div>`):'<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px">אין ארוחות — ספר לסוכן מה אכלת!</div>';
+    </div>`;}).join(''):'<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px">אין ארוחות היום — תאר מה אכלת למעלה 🤖</div>';
+  renderWeeklyNutrition();
 }
 function addMealManual(){
   const name=prompt('מה אכלת?');if(!name)return;
   const kcal=parseInt(prompt('קלוריות:','0')||0);
   const protein=parseInt(prompt('חלבון (g):','0')||0);
   const carb=parseInt(prompt('פחמימות (g):','0')||0);
-  S.meals.push({name,kcal,protein,carb,time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
+  const fat=parseInt(prompt('שומן (g):','0')||0);
+  S.meals.push({name,kcal,protein,carb,fat,date:mealDateKey(),time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
   save();renderMeals();updateStats();showNotif('✓ ארוחה נוספה');
 }
 function delMeal(i){S.meals.splice(i,1);save();renderMeals();updateStats();}
@@ -2904,12 +3099,12 @@ function toggleJobFilter(el){
   if(!jobFilters[g])jobFilters[g]=new Set();
   if(jobFilters[g].has(v)){jobFilters[g].delete(v);el.classList.remove('on');}
   else{jobFilters[g].add(v);el.classList.add('on');}
-  if(typeof renderKanban==='function')renderKanban();
+  if(typeof renderJobs==='function')renderJobs();
 }
 function clearJobFilters(){
   Object.keys(jobFilters).forEach(g=>jobFilters[g].clear());
   document.querySelectorAll('.fchip.on').forEach(c=>c.classList.remove('on'));
-  if(typeof renderKanban==='function')renderKanban();
+  if(typeof renderJobs==='function')renderJobs();
 }
 
 // ─── AUTO MATCH SCORE (locked, CV-profile-based, not user-editable) ─────────
@@ -3672,7 +3867,7 @@ function executeClientTool(toolName,input){
     case'add_goal':       return P.addGoal({text:input.text||input.title,emoji:input.emoji});
     case'add_idea':       return P.addIdea({text:input.text||input.title,cat:input.cat});
     case'add_journal':    return P.addJournal({text:input.text||input.content});
-    case'add_job':        return P.addJob({title:input.title,company:input.company,status:input.status,link:input.link,match:input.match,source:input.source,description:input.description,location:input.location});
+    case'add_job':        return P.addJob({title:input.title,company:input.company,status:input.status,link:input.link,match:input.match,source:input.source,description:input.description,location:input.location,posted_at:input.posted_at||input.published_at||input.posted,category:input.category,user_status:input.user_status});
     case'update_project': return P.updateProject({id:input.id||input.name,progress:input.progress});
   }
 }
@@ -3836,7 +4031,10 @@ window.POS = (function(){
         title:title,company:a.company||'',location:a.location||'ישראל',url:a.link||'',
         source:a.source||'other',source_label:(typeof SOURCE_LABELS!=='undefined'&&SOURCE_LABELS[a.source])||'אחר',
         description_summary:a.notes||a.description||'',description_full:null,
-        job_type:a.job_type||'',category:a.category||'',
+        job_type:a.job_type||'',
+        category:a.category||(typeof classifyJobCategory==='function'?classifyJobCategory({title:title,description_summary:a.description||''}):''),
+        posted_at:a.posted_at||a.published_at||a.posted||null,
+        user_status:a.user_status||'',
         match_score:Number(a.match)||0,
         match_breakdown:a.match_breakdown||null,
         match_explanation:a.match_explanation||a.description||'',
@@ -4025,7 +4223,7 @@ function handleCredentialResponse(response){
       // Roei gets pre-seeded data; everyone else gets blank + template selection
       S=currentUser.email==='tklroei1@gmail.com'?getDefaultState():{
         tasks:[],habits:[],projects:[],goals:[],meals:[],workouts:[],water:0,
-        bodyProfile:{weight:'',goal:'',height:'',kcal:'',protein:''},
+        bodyProfile:{weight:'',goal:'',height:'',age:'',sex:'',activity:'',goalType:'',kcal:'',protein:'',carb:'',fat:''},
         weekEvents:{},jobs:[],jobsV2:[],apts:[],leads:[],reminders:[],
         ideas:[],journalEntries:[],workspace:'',roadmap:[],
         finance:[],notes:[],inbox:[],userProfile:{},
@@ -4324,6 +4522,9 @@ function migrateJobsToV2(){
     url:j.link||'',
     source:j.source||'other',
     source_label:SOURCE_LABELS[j.source||'other']||'אחר',
+    category:j.category||'',
+    posted_at:j.posted_at||j.published_at||null,
+    user_status:j.user_status||'',
     description_summary:j.description||'',
     description_full:j.description_full||null,
     match_score:j.match||0,
@@ -4493,8 +4694,12 @@ function openJobDrawer(jobId){
     ${job.matched_keywords?.length?`<div style="margin-bottom:8px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">מיומנויות שנמצאו</div><div style="display:flex;gap:5px;flex-wrap:wrap">${job.matched_keywords.map(k=>`<span class="bdg bdg-g">${escH(k)}</span>`).join('')}</div></div>`:''}
     ${job.missing_keywords?.length?`<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">מיומנויות חסרות</div><div style="display:flex;gap:5px;flex-wrap:wrap">${job.missing_keywords.map(k=>`<span class="bdg bdg-a">${escH(k)}</span>`).join('')}</div></div>`:''}
     ${job.description_summary?`<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">תיאור</div><div style="font-size:12px;color:var(--text2);line-height:1.6">${escH(job.description_summary)}</div></div>`:''}
-    <textarea class="inp inp-full" rows="3" placeholder="הערות אישיות..." style="margin-bottom:8px" oninput="saveJobNote('${job.id}',this.value)">${escH(job.user_notes||'')}</textarea>
+    <div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">סטטוס שלי (חופשי)</div>
+    <input id="drawer-status-inp" class="inp inp-full" type="text" placeholder="לדוגמה: הוגש 8/6, ממתין לתשובה..." value="${escH(job.user_status||'')}" style="margin-bottom:8px">
+    <div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">הערות אישיות</div>
+    <textarea id="drawer-notes-inp" class="inp inp-full" rows="3" placeholder="הערות אישיות..." style="margin-bottom:10px">${escH(job.user_notes||'')}</textarea>
     <div style="display:flex;gap:7px">
+      <button class="btn bp bsm" style="flex:1" onclick="saveJobDrawer('${job.id}')">💾 שמור שינויים</button>
       <button class="btn bs bsm" onclick="deleteJobFromDrawer('${job.id}')">🗑 ארכב</button>
     </div>
   `;
@@ -4520,6 +4725,26 @@ function saveJobNote(jobId,note){
   const job=jobs.find(j=>j.id===jobId);
   if(job){job.user_notes=note;job.updated_at=new Date().toISOString();S.jobsV2=jobs;save();}
 }
+function saveJobDrawer(jobId){
+  const jobs=getJobsV2();
+  const job=jobs.find(j=>j.id===jobId);
+  if(!job)return;
+  const status=document.getElementById('drawer-status-inp')?.value||'';
+  const notes=document.getElementById('drawer-notes-inp')?.value||'';
+  const stage=document.getElementById('drawer-stage-sel')?.value;
+  job.user_status=status;
+  job.user_notes=notes;
+  job.updated_at=new Date().toISOString();
+  if(stage&&stage!==job.stage){
+    job.stage=stage;
+    if(!job.stage_history)job.stage_history=[];
+    job.stage_history.push({stage:stage,at:new Date().toISOString()});
+    if(stage==='applied'&&!job.applied_at)job.applied_at=new Date().toISOString();
+  }
+  S.jobsV2=jobs;save();
+  showNotif('✓ נשמר');
+  renderJobs();
+}
 
 function deleteJobFromDrawer(jobId){
   moveJobToStage(jobId,'archive');
@@ -4542,6 +4767,9 @@ function addJobManual(){
     url:(url||'').trim(),
     source:(source||'other').trim(),
     source_label:SOURCE_LABELS[source||'other']||'אחר',
+    category:classifyJobCategory({title:title,description_summary:''}),
+    posted_at:null,
+    user_status:'',
     description_summary:'',
     description_full:null,
     match_score:calcMatchScore(title,''),
@@ -4569,10 +4797,13 @@ function addJobToKanban(j){
     userId:currentUser?.email||'',
     title:(j.title||'').slice(0,120),
     company:(j.company||extractJobCompany({url:j.link||''})).trim(),
-    location:'ישראל',
+    location:j.location||'ישראל',
     url:j.link||j.url||'',
     source:j.source||'other',
     source_label:SOURCE_LABELS[j.source||'other']||'אחר',
+    category:j.category||classifyJobCategory({title:j.title||'',description_summary:j.description||''}),
+    posted_at:j.posted_at||j.published_at||j.posted||null,
+    user_status:'',
     description_summary:(j.description||'').slice(0,500),
     description_full:j.description_full||null,
     match_score:j.match||j.match_score||0,
@@ -4608,12 +4839,133 @@ function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 // Override renderJobs to use Kanban
 function renderJobs(){
   renderKanban();
+  if(typeof renderJobsTable==='function')renderJobsTable();
   // Keep legacy j-s, j-w, j-i if they exist (some may still reference old stats)
   const jel=document.getElementById('j-s');if(jel)jel.textContent=getJobsV2().filter(j=>j.stage!=='archive').length;
   const jwl=document.getElementById('j-w');if(jwl)jwl.textContent=getJobsV2().filter(j=>['discovered','saved'].includes(j.stage)).length;
   const jil=document.getElementById('j-i');if(jil)jil.textContent=getJobsV2().filter(j=>j.stage==='interview').length;
 }
 
+// ─── SMART TABLE VIEW (grouped by domain) ────────────────────────────────
+const JOB_CATEGORIES=[
+  {id:'ai_growth',name:'🤖 AI & Growth / Data',color:'#2563eb',kw:['ai ','a.i','genai','llm','ml ','machine learning','deep learning','prompt','data','analyst','analytics','growth','bi ','nlp','ד.אטה','דאטה','אנליסט','אנליטיק','בינה','גדילה']},
+  {id:'product',name:'🚀 Product',color:'#7c3aed',kw:['product','pm','prod ops','product operations','מוצר','פרודקט']},
+  {id:'finance',name:'💰 פיננסים / כלכלה',color:'#16a34a',kw:['finance','financial','fp&a','investment','equity','vc','venture','economist','m&a','strategy','audit','controller','בנק','השקע','כלכל','פיננס','אקטואר','חשב']},
+  {id:'other',name:'📋 כללי / אחר',color:'#64748b',kw:[]}
+];
+function classifyJobCategory(job){
+  const hay=((job.title||'')+' '+(job.description_summary||job.description||'')).toLowerCase();
+  const order=['finance','product','ai_growth'];
+  for(const id of order){
+    const c=JOB_CATEGORIES.find(x=>x.id===id);
+    if(c&&c.kw.some(k=>hay.includes(k)))return c.id;
+  }
+  return 'other';
+}
+function jobCategoryOf(job){
+  return (job.category&&JOB_CATEGORIES.some(c=>c.id===job.category))?job.category:classifyJobCategory(job);
+}
+function fmtJobDate(iso){
+  if(!iso)return null;
+  const d=new Date(iso);
+  if(isNaN(d))return null;
+  return d.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'});
+}
+function isNewJob(job){
+  if(job.stage==='discovered')return true;
+  const c=new Date(job.created_at||0).getTime();
+  return c>0 && (Date.now()-c)<7*24*60*60*1000;
+}
+let jobView=(()=>{try{return localStorage.getItem('pos_job_view')||'table';}catch(e){return'table';}})();
+function setJobView(v){
+  jobView=v;
+  try{localStorage.setItem('pos_job_view',v);}catch(e){}
+  const tv=document.getElementById('jobs-table-view'),kv=document.getElementById('kanban-wrap');
+  const bt=document.getElementById('jview-btn-table'),bk=document.getElementById('jview-btn-kanban');
+  const hint=document.getElementById('jview-hint');
+  if(tv)tv.style.display=v==='table'?'block':'none';
+  if(kv)kv.style.display=v==='kanban'?'flex':'none';
+  if(bt)bt.classList.toggle('on',v==='table');
+  if(bk)bk.classList.toggle('on',v==='kanban');
+  if(hint)hint.textContent=v==='table'?'מחולק לפי תחומים • לחץ שורה לפרטים':'גרור בין עמודות • לחץ כרטיס לפרטים';
+  if(v==='table')renderJobsTable();else renderKanban();
+}
+function jobRowHTML(job){
+  const mc=(job.match_score||0)>=75?'hi':(job.match_score||0)>=50?'mid':'low';
+  const posted=fmtJobDate(job.posted_at);
+  const added=fmtJobDate(job.created_at);
+  const stageOpts=STAGES.map(s=>`<option value="${s}"${job.stage===s?' selected':''}>${STAGE_LABELS[s]}</option>`).join('');
+  return`<tr class="jt-row${isNewJob(job)?' jt-new':''}" data-id="${job.id}">
+    <td><div class="jt-title" onclick="openJobDrawer('${job.id}')">${escH(job.title)}</div><div class="jt-co">${escH(job.company||'—')}${job.location?' · '+escH(job.location):''}</div></td>
+    <td><span class="jt-match ${mc}">${job.match_score||0}%</span></td>
+    <td><span class="jt-co">${escH(job.source_label||job.source||'—')}</span></td>
+    <td><span class="jt-date${posted?'':' none'}">${posted||'—'}</span></td>
+    <td><span class="jt-date${added?'':' none'}">${added||'—'}</span></td>
+    <td><select class="jt-stage-sel" onchange="jobMarkDirty('${job.id}')">${stageOpts}</select></td>
+    <td><input class="jt-status-inp" type="text" placeholder="הוגש / ממתין..." value="${escH(job.user_status||'')}" oninput="jobMarkDirty('${job.id}')"></td>
+    <td style="display:flex;gap:6px;align-items:center"><button class="jt-save" onclick="saveJobRow('${job.id}')">💾 שמור</button>${job.url?`<a class="jt-link" href="${escH(job.url)}" target="_blank" title="פתח משרה">🔗</a>`:''}</td>
+  </tr>`;
+}
+function jobTableHTML(jobs){
+  return`<div class="jt-wrap"><table class="jt"><thead><tr>
+    <th>תפקיד / חברה</th><th>התאמה</th><th>מקור</th><th>פורסם</th><th>נכנס למערכת</th><th>שלב</th><th>סטטוס שלי</th><th>פעולות</th>
+  </tr></thead><tbody>${jobs.map(jobRowHTML).join('')}</tbody></table></div>`;
+}
+function renderJobsTable(){
+  const wrap=document.getElementById('jobs-table-view');
+  if(!wrap)return;
+  const all=getJobsV2();
+  const minMatch=parseInt(document.getElementById('min-match-slider')?.value||0);
+  const activeSources=new Set([...document.querySelectorAll('.fchip.on[data-g="source"]')].map(el=>el.dataset.v));
+  const jobs=all.filter(j=>{
+    if((j.match_score||0)<minMatch)return false;
+    if(activeSources.size>0){const _SP=['linkedin','alljobs','comeet','drushim','wellfound'];
+      if(_SP.indexOf(j.source)>=0&&!activeSources.has(j.source))return false;}
+    return j.stage!=='archive';
+  });
+  if(!jobs.length){wrap.innerHTML='<div class="jt-empty">אין משרות להצגה. הסוכן יוסיף משרות חדשות אוטומטית, או הוסף ידנית עם "+ ידני".</div>';return;}
+  let html='';
+  const newJobs=jobs.filter(isNewJob).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  if(newJobs.length){
+    html+=`<div class="jt-new-banner">🆕 משרות חדשות (${newJobs.length}) — נוספו ב-7 הימים האחרונים</div>`;
+    html+=jobTableHTML(newJobs);
+    html+='<div style="height:14px"></div>';
+  }
+  JOB_CATEGORIES.forEach(cat=>{
+    const inCat=jobs.filter(j=>jobCategoryOf(j)===cat.id).sort((a,b)=>(b.match_score||0)-(a.match_score||0));
+    if(!inCat.length)return;
+    html+=`<div class="jt-group"><div class="jt-group-hdr" style="--col-color:${cat.color}">${cat.name}<span class="jt-count">${inCat.length}</span></div>${jobTableHTML(inCat)}</div>`;
+  });
+  wrap.innerHTML=html;
+}
+function jobMarkDirty(jobId){
+  const row=document.querySelector(`#jobs-table-view tr[data-id="${jobId}"]`);
+  if(!row)return;
+  const btn=row.querySelector('.jt-save');
+  if(btn)btn.classList.add('dirty');
+}
+function saveJobRow(jobId){
+  const jobs=getJobsV2();
+  const job=jobs.find(j=>j.id===jobId);
+  if(!job)return;
+  const rows=document.querySelectorAll(`#jobs-table-view tr[data-id="${jobId}"]`);
+  const srcRow=[...rows].find(r=>r.contains(document.activeElement))||rows[0];
+  if(!srcRow)return;
+  const newStage=srcRow.querySelector('.jt-stage-sel')?.value;
+  const newStatus=srcRow.querySelector('.jt-status-inp')?.value||'';
+  job.user_status=newStatus;
+  job.updated_at=new Date().toISOString();
+  if(newStage&&newStage!==job.stage){
+    job.stage=newStage;
+    if(!job.stage_history)job.stage_history=[];
+    job.stage_history.push({stage:newStage,at:new Date().toISOString()});
+    if(newStage==='applied'&&!job.applied_at)job.applied_at=new Date().toISOString();
+  }
+  S.jobsV2=jobs;save();
+  rows.forEach(r=>{const b=r.querySelector('.jt-save');if(b)b.classList.remove('dirty');});
+  showNotif('✓ נשמר');
+  renderKanban();
+}
 // ─── STAGE SAVE AFTER SEARCH RESULT ──────────────────────────────────────
 function saveJobFromSearch(idx){
   const j=liveSearchResults[idx];
@@ -4625,6 +4977,7 @@ function saveJobFromSearch(idx){
 
 // INIT
 init();
+if(typeof setJobView==='function')setJobView(jobView);
 if(S.workspace)document.getElementById('workspace').value=S.workspace;
 
 // ─── DASHBOARD DECLUTTER — collapsible secondary cards ──────────────────────
