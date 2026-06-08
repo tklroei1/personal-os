@@ -722,6 +722,17 @@ const server = createServer(async (req, res) => {
     return handleSync(req, res, raw);
   }
 
+  // On-demand job hunt — triggered by the in-app "run now" button
+  if (url.pathname === '/run-jobhunt') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    runJobHunt(t => sendText(OWNER_WAID, t), { force: true })
+      .catch(e => sendText(OWNER_WAID, `⚠️ שגיאה בציד משרות: ${e.message}${SIG}`));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: true, msg: 'ציד משרות הופעל — דוח יישלח לוואטסאפ תוך כ-2 דקות' }));
+  }
+
   // Meta webhook verification handshake
   if (req.method === 'GET' && url.pathname === '/webhook') {
     const mode      = url.searchParams.get('hub.mode');

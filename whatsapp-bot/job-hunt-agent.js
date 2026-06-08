@@ -120,22 +120,71 @@ async function scanCompanies(day, runIdx) {
   return { jobs: jobs.slice(0, 25), scanned: okCount };
 }
 
+// ── Candidate profile — defaults to Roei, overridden by synced CV/profile ────
+const DEFAULT_PROFILE = {
+  name: 'Roei Klein', location: 'Tel Aviv',
+  summary: 'M.Sc Information Science & Applied AI (active student, Bar-Ilan). B.A. Economics & Management (GPA 88). Founder of Upselles startup (product, GTM, growth analytics).',
+  skills: ['Python', 'SQL', 'data analysis', 'KPI dashboards', 'prompt engineering', 'LLMs', 'product thinking', 'growth', 'business strategy'],
+  bigPicture: 'founding a startup — value roles that teach new domains, build network, give exposure to interesting industries, or lead to Product/business leadership',
+  seniority: 'student / junior / entry only (≤2 years experience)',
+  locations: "Tel Aviv best, then Petah Tikva / Herzliya / Ra'anana / center; rest of Israel lower; outside Israel = 0",
+  cv: '',
+};
+
+// Read the user's synced profile + CV from the browser state mirror written by
+// the Personal OS /sync endpoint (pos-state.json on the Railway volume). This
+// is how a CV pasted in the app's job-hunt panel reaches the scoring engine —
+// and how multi-user works: each user's own jobHuntConfig drives their scoring.
+function loadProfile() {
+  try {
+    const synced = JSON.parse(readFileSync((existsSync('/data') ? '/data' : '.') + '/pos-state.json', 'utf8'));
+    const S = synced && synced.state;
+    const cfg = S && (S.jobHuntConfig || (S.jobHunt && S.jobHunt.config));
+    if (!cfg) return DEFAULT_PROFILE;
+    return {
+      name: cfg.name || DEFAULT_PROFILE.name,
+      location: cfg.homeArea || DEFAULT_PROFILE.location,
+      summary: cfg.summary || DEFAULT_PROFILE.summary,
+      skills: Array.isArray(cfg.skills) && cfg.skills.length ? cfg.skills : DEFAULT_PROFILE.skills,
+      bigPicture: cfg.bigPicture || DEFAULT_PROFILE.bigPicture,
+      seniority: cfg.seniority || DEFAULT_PROFILE.seniority,
+      locations: cfg.locations || DEFAULT_PROFILE.locations,
+      cv: (cfg.cv || '').slice(0, 4000),
+    };
+  } catch { return DEFAULT_PROFILE; }
+}
+
 // ── Claude scoring ───────────────────────────────────────────────────────────
 async function scoreJobs(jobs, runType) {
+  const p = loadProfile();
   const compact = jobs.map((j, i) => ({
     i, title: j.title, company: j.companyName, location: j.location,
     seniority: j.seniorityLevel, desc: (j.descriptionText || '').slice(0, 500),
   }));
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5',
-    max_tokens: 2000,
+    max_tokens: 3000,
     messages: [{
       role: 'user',
-      content: `Score each job 0-100 for this candidate. Return ONLY a JSON array: [{"i":0,"score":NN,"cat":"AI/Growth|Product|Finance","reason":"one short Hebrew line: why it fits + how it serves his startup goal"}].
+      content: `You are a precise job-matching engine. Score each job 0-100 for THIS candidate and return ONLY a JSON array, one object per job:
+[{"i":0,"score":NN,"cat":"AI/Data|Product|Growth|Business|Finance","level":"student|junior|entry|mid|senior","reason":"one short Hebrew sentence: why it fits + how it serves the big picture","fit":"2 short Hebrew sentences explaining the match in depth","matched":["skill1","skill2"],"gaps":["missing1"],"breakdown":{"skills":NN,"seniority":NN,"domain":NN,"location":NN,"bigpicture":NN}}]
 
-CANDIDATE: Roei Klein, Tel Aviv. M.Sc Information Science & Applied AI (active student, Bar-Ilan). B.A. Economics & Management (88). Founder of Upselles startup (product, GTM, growth analytics). Skills: Python, SQL, data analysis, KPI dashboards, prompt engineering/LLMs, product thinking, growth, business strategy. Hebrew+English.
-LONG-TERM GOAL: founding a startup — value roles that teach new domains, build network, give exposure to interesting industries, or lead to Product/business leadership.
-RULES: student/junior/entry ONLY — if a job requires 3+ years experience, cap score at 50. Part-time 80-90% is GOOD. Location: Tel Aviv best, then Petah Tikva/Herzliya/Ra'anana/center, rest of Israel lower; outside Israel = 0. Jobs whose desc contains "source:company-careers" come from curated company boards Roei picked — give +5 bonus, and +5 more if interest:3. Be honest, do not inflate.
+SCORING METHOD (compute, don't guess):
+- skills (0-100): overlap between the job's required skills and the candidate's skills.
+- seniority (0-100): 100 if explicitly student/junior/entry/intern; 60 if unspecified-but-plausible; if it needs 3+ years → max 40 and CAP the total score at 50.
+- domain (0-100): how interesting/relevant the field is to the candidate's goals.
+- location (0-100): per the location rule below. Outside Israel → 0 and total score 0.
+- bigpicture (0-100): how much the role teaches new domains / builds network / leads toward Product or business leadership.
+- total "score" = round( skills*0.30 + seniority*0.25 + domain*0.20 + location*0.10 + bigpicture*0.15 ), then apply caps.
+- "level": classify the seniority of the posting itself (student/junior/entry/mid/senior).
+- Jobs whose desc contains "source:company-careers" are from companies the candidate hand-picked — add +5 to total, +5 more if "interest:3".
+Be honest and consistent. Do not inflate.
+
+CANDIDATE: ${p.name}, ${p.location}. ${p.summary}
+Skills: ${p.skills.join(', ')}.
+LONG-TERM GOAL: ${p.bigPicture}.
+SENIORITY FILTER: ${p.seniority}.
+LOCATION RULE: ${p.locations}.${p.cv ? '\nCV (use it to judge skills overlap precisely):\n' + p.cv : ''}
 RUN TYPE: ${runType}
 
 JOBS:
@@ -148,7 +197,7 @@ ${JSON.stringify(compact)}`,
 }
 
 // ── Personal OS upload (webhook queue → frontend POS.addJob) ────────────────
-async function uploadJob(job, score, reason) {
+async function uploadJob(job, m) {
   const headers = { 'Content-Type': 'application/json' };
   if (process.env.WEBHOOK_SECRET) headers['X-Webhook-Secret'] = process.env.WEBHOOK_SECRET;
   const r = await fetch(`${API_URL}/api/webhook`, {
@@ -157,9 +206,14 @@ async function uploadJob(job, score, reason) {
       action: 'add_job',
       data: {
         title: job.title, company: job.companyName, status: 'saved',
-        link: (job.link || '').split('?')[0], match: score,
+        link: (job.link || '').split('?')[0], match: m.score,
         source: (job.descriptionText || '').includes('company-careers') ? 'company' : 'linkedin',
-        description: reason, location: job.location || '',
+        description: m.reason, location: job.location || '',
+        // rich match data → rendered in the job drawer
+        job_type: m.level || '', match_explanation: m.fit || m.reason || '',
+        match_breakdown: m.breakdown || null,
+        matched_keywords: m.matched || [], missing_keywords: m.gaps || [],
+        category: m.cat || '',
       },
     }),
   });
@@ -240,9 +294,10 @@ export async function runJobHunt(sendMessage, { force = false } = {}) {
   for (const m of matches) {
     const j = filtered[m.i];
     let ok = false;
-    try { ok = await uploadJob(j, m.score, m.reason); } catch {}
+    try { ok = await uploadJob(j, m); } catch {}
     if (ok) { seen.add(`${j.title}|${j.companyName}`); }
-    lines.push(`• [${m.score}%] ${j.title} — ${j.companyName} | ${j.location}\n  ${m.cat} | ${m.reason}\n  ${(j.link || '').split('?')[0]}\n  ${ok ? '✅ הועלה ל-Personal OS' : '⚠️ העלאה נכשלה'}`);
+    const lvl = m.level ? ` (${m.level})` : '';
+    lines.push(`• [${m.score}%] ${j.title} — ${j.companyName} | ${j.location}\n  ${m.cat}${lvl} | ${m.reason}\n  ${(j.link || '').split('?')[0]}\n  ${ok ? '✅ הועלה ל-Personal OS' : '⚠️ העלאה נכשלה'}`);
   }
   state.uploaded = [...seen].slice(-300);
   saveState(state);
