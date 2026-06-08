@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Personal OS — רואי קליין</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="manifest" href="/manifest.json">
@@ -10,7 +10,8 @@
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <link rel="apple-touch-icon" href="/icon.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Personal OS">
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -196,6 +197,35 @@ select.inp{cursor:pointer}
 .wg-cell:last-child{border-right:none}
 .wg-ev{border-radius:4px;padding:2px 5px;margin-bottom:2px;font-size:10px;line-height:1.3;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:2px;overflow:hidden}
 .wg-ev-del{background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:9px;padding:0;flex-shrink:0}
+/* mobile weekly view (day tabs + agenda) — hidden on desktop */
+.wg-daytabs,.wg-day-list{display:none}
+@media(max-width:768px){
+  .wg-wrap{overflow-x:visible}
+  .wg{display:none}
+  .wg-daytabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;-webkit-overflow-scrolling:touch}
+  .wg-daytab{flex:0 0 auto;min-width:46px;padding:8px 7px;border-radius:13px;background:var(--bg3);border:1px solid var(--border);text-align:center;cursor:pointer;font-size:14px;font-weight:700;color:var(--text2);line-height:1.2}
+  .wg-daytab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .wg-daytab small{display:block;font-size:9px;font-weight:500;opacity:.85;margin-top:1px}
+  .wg-day-list{display:block;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .wg-dl-row{display:flex;gap:10px;padding:9px 10px;border-bottom:1px solid var(--border);align-items:flex-start;background:var(--bg2)}
+  .wg-dl-row:last-child{border-bottom:none}
+  .wg-dl-time{flex:0 0 48px;font-size:12px;color:var(--text3);font-weight:700;padding-top:4px}
+  .wg-dl-evs{flex:1;display:flex;flex-direction:column;gap:6px}
+  .wg-dl-ev{border-radius:9px;padding:8px 11px;font-size:13px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:8px;line-height:1.35}
+  .wg-dl-ev .wg-ev-del{color:rgba(255,255,255,.8);font-size:14px}
+  .wg-dl-empty{flex:1;font-size:12px;color:var(--text3);padding:10px 2px;line-height:1.5}
+}
+@media(min-width:769px){.wg-daytabs,.wg-day-list{display:none!important}}
+/* iPhone comfort polish */
+@media(max-width:768px){
+  input,select,textarea{font-size:16px!important}
+  .btn{min-height:40px}
+  .wg-daytab{min-height:44px;min-width:48px}
+  .chip{padding:8px 12px}
+  *{-webkit-tap-highlight-color:transparent}
+  body{-webkit-font-smoothing:antialiased}
+  .main{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+}
 /* AI CHAT */
 .aic{display:flex;flex-direction:column;gap:8px;overflow-y:auto;margin-bottom:10px;padding-right:2px}
 .msg{display:flex;gap:7px;align-items:flex-start}
@@ -290,6 +320,18 @@ select.inp{cursor:pointer}
 .user-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Heebo',system-ui,sans-serif}
 .user-email{font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gsignin-wrap{margin-bottom:8px}
+#login-screen{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse 130% 80% at 50% 0%,#3a0a16 0%,#12060a 45%,#070305 100%);
+  direction:rtl;font-family:-apple-system,Segoe UI,Rubik,Arial,sans-serif;padding:20px}
+.login-card{text-align:center;padding:42px 30px;max-width:380px;width:100%;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:24px;
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 24px 70px rgba(0,0,0,.6)}
+.login-logo{font-size:44px;color:#ff5a6e;text-shadow:0 0 30px rgba(255,60,80,.7);line-height:1}
+.login-card h1{margin:8px 0 0;font-size:25px;font-weight:700;color:#f5eef0;letter-spacing:1px}
+.login-tag{margin-top:7px;font-size:14px;color:#ff8a93}
+.login-sub{margin:20px 0 16px;font-size:13px;color:#9a8b90;line-height:1.55}
+#login-gbtn{display:flex;justify-content:center;min-height:46px}
+.login-foot{margin-top:22px;font-size:11px;color:#6a5b60}
 #webhook-badge{position:fixed;top:14px;right:50%;transform:translateX(50%);background:var(--teal);color:#fff;padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;z-index:1000;opacity:0;transition:opacity 0.3s;pointer-events:none}
 #webhook-badge.show{opacity:1}
 /* JOB FILTER CHIPS */
@@ -369,6 +411,40 @@ select.inp{cursor:pointer}
 .kb-col[data-stage=interview] .kb-col-hdr{border-bottom-color:var(--stage-interview)}
 .kb-col[data-stage=offer] .kb-col-hdr{border-bottom-color:var(--stage-offer)}
 .kb-col[data-stage=archive] .kb-col-hdr{border-bottom-color:var(--stage-archive);opacity:0.7}
+/* ─── JOB VIEW TOGGLE + SMART TABLE ─── */
+.jview-toggle{display:inline-flex;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px}
+.jview-btn{border:none;background:transparent;color:var(--text2);font-size:12px;font-weight:600;padding:5px 12px;border-radius:calc(var(--radius-sm) - 2px);cursor:pointer;font-family:inherit}
+.jview-btn.on{background:var(--accent);color:#fff}
+.jt-group{margin-bottom:18px}
+.jt-group-hdr{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin:0 2px 7px;padding-bottom:5px;border-bottom:2px solid var(--col-color,var(--border))}
+.jt-group-hdr .jt-count{font-size:11px;font-weight:600;color:var(--text3);background:var(--bg3);border-radius:999px;padding:1px 8px}
+.jt-new-banner{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--green);background:var(--green-bg);border:1px solid var(--green);border-radius:var(--radius-sm);padding:7px 11px;margin:0 2px 12px}
+.jt-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm)}
+table.jt{width:100%;border-collapse:collapse;font-size:12px;min-width:760px}
+table.jt th{text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text3);font-weight:700;padding:7px 9px;background:var(--bg3);border-bottom:1px solid var(--border);white-space:nowrap}
+table.jt td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.jt tr:last-child td{border-bottom:none}
+table.jt tr.jt-row:hover{background:var(--bg3)}
+table.jt tr.jt-new td{box-shadow:inset 3px 0 0 var(--green)}
+.jt-title{font-weight:700;color:var(--text);cursor:pointer}
+.jt-title:hover{color:var(--accent)}
+.jt-co{color:var(--text2);font-size:11px}
+.jt-match{font-weight:700;border-radius:999px;padding:2px 8px;font-size:11px}
+.jt-match.hi{background:var(--green-bg);color:var(--green)}
+.jt-match.mid{background:var(--amber-bg,#fef3c7);color:var(--amber)}
+.jt-match.low{background:var(--bg3);color:var(--text3)}
+.jt-date{font-size:11px;color:var(--text2);white-space:nowrap}
+.jt-date.none{color:var(--text3)}
+.jt-stage-sel,.jt-status-inp{font-family:inherit;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);padding:4px 6px;background:var(--bg2);color:var(--text)}
+.jt-status-inp{width:130px}
+.jt-stage-sel{width:96px}
+.jt-save{border:none;background:var(--accent);color:#fff;border-radius:var(--radius-xs);font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.jt-save:disabled{opacity:.4;cursor:default}
+.jt-save.dirty{background:var(--amber);animation:jtpulse 1.2s infinite}
+@keyframes jtpulse{0%,100%{opacity:1}50%{opacity:.6}}
+.jt-link{text-decoration:none;font-size:13px;opacity:.7}
+.jt-link:hover{opacity:1}
+.jt-empty{text-align:center;color:var(--text3);font-size:12px;font-style:italic;padding:24px}
 /* ── JOB DETAIL DRAWER ── */
 .job-drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:450;display:none}
 .job-drawer-bg.open{display:block}
@@ -595,6 +671,8 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   <nav class="nav">
     <div class="nav-sec">ראשי</div>
     <div class="ni active" onclick="goPage('dashboard',this)"><span class="ni-icon">🏠</span>דשבורד<span class="nbadge" id="nb">0</span></div>
+    <div class="ni" onclick="goPage('agent',this)"><span class="ni-icon">🛰️</span>מרכז הפיקוד<span class="ntag" style="background:var(--blue-bg);color:var(--blue)">AI</span></div>
+    <div class="ni" onclick="goPage('voice',this)"><span class="ni-icon">🎙️</span>שיחה קולית<span class="ntag" style="background:var(--blue-bg);color:var(--blue)">חדש</span></div>
     <div class="ni" onclick="goPage('agenda',this)"><span class="ni-icon">📅</span>לוז שבועי</div>
     <div class="ni" onclick="goPage('tasks',this)"><span class="ni-icon">✅</span>משימות</div>
     <div class="ni" onclick="goPage('reminders',this)"><span class="ni-icon">🔔</span>תזכורות</div>
@@ -625,6 +703,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
           <div class="user-name" id="user-name-lbl"></div>
           <div class="user-email" id="user-email-lbl"></div>
         </div>
+        <button class="bi" onclick="posSyncNow()" title="סנכרן עכשיו" style="font-size:13px;flex-shrink:0">🔄</button>
         <button class="bi" onclick="signOut()" title="התנתק" style="font-size:11px;flex-shrink:0">🚪</button>
       </div>
     </div>
@@ -695,6 +774,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
         <div id="dash-tasks"></div>
         <div class="irow">
           <input class="inp" style="flex:1" id="qt" placeholder="משימה מהירה..." onkeydown="if(event.key==='Enter')qTask()">
+          <button class="btn bs bsm" onclick="dictate('qt',this)" title="הכתבה קולית">🎙</button>
           <select class="inp" id="qt-cat" style="padding:6px 8px">
             <option value="work">💼</option><option value="health">💪</option>
             <option value="family">👨‍👩‍👧</option><option value="project">🚀</option><option value="home">🏡</option>
@@ -890,8 +970,10 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   <div class="card">
     <div class="ch">
       <div class="ct">🗓️ לוז שבועי חכם</div>
-      <div style="display:flex;gap:7px">
-        <button class="btn bs bsm" onclick="syncTasks()">🔄 סנכרן משימות</button>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <button class="btn bs bsm" onclick="syncCalWeek()">📅 סנכרן יומן</button>
+        <button class="btn bs bsm" onclick="seedSchedule(true)">↻ טען לוז</button>
+        <button class="btn bs bsm" onclick="syncTasks()">🔄 משימות</button>
         <button class="btn bp bsm" onclick="openWeekAI()">🤖 עוזר AI</button>
       </div>
     </div>
@@ -914,6 +996,8 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <!-- Grid selection info -->
     <div id="sel-info" style="display:none;background:var(--accent-light);border:1px solid var(--accent);border-radius:var(--radius-xs);padding:7px 12px;margin-bottom:10px;font-size:12px;color:var(--accent)"></div>
     <div class="wg-wrap">
+      <div class="wg-daytabs" id="wg-daytabs"></div>
+      <div class="wg-day-list" id="wg-day-list"></div>
       <div class="wg" id="week-grid"></div>
     </div>
     <div style="margin-top:8px;font-size:11px;color:var(--text3);display:flex;gap:16px;flex-wrap:wrap">
@@ -1012,8 +1096,9 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 <!-- REMINDERS -->
 <div class="page" id="page-reminders">
   <div class="card">
-    <div class="ch"><div class="ct">🔔 תזכורות מתוזמנות</div><button class="btn bp bsm" onclick="addReminder()">+ תזכורת</button></div>
+    <div class="ch"><div class="ct">🔔 תזכורות מתוזמנות</div><div style="display:flex;gap:6px"><button class="btn bs bsm" onclick="enableNotifications()">🔔 הפעל התראות</button><button class="btn bp bsm" onclick="addReminder()">+ תזכורת</button></div></div>
     <div id="reminders-list"></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5">💡 כדי לקבל התראות אמת באייפון — התקן את האפליקציה למסך הבית והפעל התראות.</div>
   </div>
 </div>
 
@@ -1061,7 +1146,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     </div>
     <div class="match-slider-wrap">
       <span class="filter-lbl">מינ׳ התאמה</span>
-      <input type="range" class="match-slider" id="min-match-slider" min="0" max="100" value="0" oninput="document.getElementById('min-match-lbl').textContent=this.value+'%';renderKanban()">
+      <input type="range" class="match-slider" id="min-match-slider" min="0" max="100" value="0" oninput="document.getElementById('min-match-lbl').textContent=this.value+'%';renderJobs()">
       <span id="min-match-lbl" style="font-size:12px;font-weight:600;min-width:32px;color:var(--accent)">0%</span>
     </div>
     <div class="irow" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
@@ -1081,12 +1166,18 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div id="job-live-list"></div>
   </div>
 
-  <!-- Kanban Board -->
+  <!-- Pipeline: Kanban + Table views -->
   <div class="card" style="padding:0;overflow:hidden">
     <div class="ch" style="padding:12px 14px 0">
-      <div class="ct">📋 Pipeline — גרור בין עמודות</div>
-      <span style="font-size:11px;color:var(--text3)">לחץ כרטיס לפרטים</span>
+      <div class="jview-toggle">
+        <button class="jview-btn" id="jview-btn-table" onclick="setJobView('table')">📊 טבלה</button>
+        <button class="jview-btn" id="jview-btn-kanban" onclick="setJobView('kanban')">📋 Kanban</button>
+      </div>
+      <span style="font-size:11px;color:var(--text3)" id="jview-hint">מחולק לפי תחומים • לחץ שורה לפרטים</span>
     </div>
+    <!-- TABLE VIEW -->
+    <div id="jobs-table-view" style="padding:8px 12px 14px"></div>
+    <!-- KANBAN VIEW -->
     <div class="kanban-wrap" id="kanban-wrap">
       <div class="kb-col" data-stage="discovered">
         <div class="kb-col-hdr">🔍 <span>גילוי</span><span class="nbadge" id="kb-cnt-discovered">0</span></div>
@@ -1422,6 +1513,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
       <div class="irow" style="margin-top:8px">
         <button class="btn bp bsm" onclick="saveJournal()">💾 שמור</button>
         <button class="btn bs bsm" onclick="analyzeJournal()">✨ נתח AI</button>
+        <button class="btn bs bsm" onclick="dictate('jtext',this)" title="הכתבה קולית">🎙 הכתב</button>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
@@ -1586,7 +1678,25 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   </div>
 </div>
 
+<!-- AGENT COMMAND CENTER (Phase 1 — rendered by agent.js) -->
+<div class="page" id="page-agent"><div id="agent-root"></div></div>
+
+<!-- VOICE MODE (standalone side feature — rendered by voice.js) -->
+<div class="page" id="page-voice"><div id="voice-root"></div></div>
+
 </main>
+</div>
+
+<!-- WELCOME / LOGIN SCREEN (shown full-screen when signed out — works on mobile) -->
+<div id="login-screen" style="display:flex">
+  <div class="login-card">
+    <div class="login-logo">◆</div>
+    <h1>Personal OS</h1>
+    <div class="login-tag">העוזר האישי החכם שלך — זורו</div>
+    <div class="login-sub">התחבר עם חשבון Google כדי להיכנס למערכת</div>
+    <div id="login-gbtn"></div>
+    <div class="login-foot">המידע שלך נשמר מקומית במכשיר שלך</div>
+  </div>
 </div>
 
 <!-- MOBILE BOTTOM NAV -->
@@ -1813,6 +1923,9 @@ const PROJ_NAMES={jobs:'💼 חיפוש עבודה',upselles:'🚀 Upselles',hea
 
 // MULTI-USER: each user's data keyed by their Google sub ID
 let currentUser=JSON.parse(localStorage.getItem('pos_user')||'null');
+// If the user is already signed in, hide the full-screen login overlay
+// immediately — before any of the dashboard scripts run — so there's no flash.
+if(currentUser){try{var __ls=document.getElementById('login-screen');if(__ls)__ls.style.display='none';}catch(e){}}
 function storageKey(){return currentUser?`pos3_${currentUser.sub}`:'pos3';}
 
 function getDefaultState(){return{
@@ -1874,7 +1987,260 @@ if(!S.finance)S.finance=[];
 if(!S.notes)S.notes=[];
 if(!S.inbox)S.inbox=[];
 if(!S.userProfile)S.userProfile={};
-function save(){localStorage.setItem(storageKey(),JSON.stringify(S))}
+
+// ───── CROSS-DEVICE SYNC ─────
+// Pushes the full S object to a small endpoint on the Cloudflare Worker
+// whenever it changes, and pulls the latest version on app boot. This is what
+// makes the schedule/jobs/etc. visible on both the laptop and the iPhone.
+const POS_SYNC_DEFAULTS = {
+  url: 'https://personal-os-mcp.tklroei1.workers.dev',
+  token: 'zoro-mcp-x7Kp2nQ8vR4mL9jH3wD6sF1aB5tY0uC8eN',
+};
+const POS_SYNC = {
+  url   : localStorage.getItem('pos_sync_url')   || POS_SYNC_DEFAULTS.url,
+  token : localStorage.getItem('pos_sync_token') || POS_SYNC_DEFAULTS.token,
+  busy  : false,
+  pendingTimer: null,
+};
+// Persist the defaults so save()-time push and boot-time pull both work out of
+// the box with no per-device setup.
+try{
+  if(!localStorage.getItem('pos_sync_url'))   localStorage.setItem('pos_sync_url',   POS_SYNC.url);
+  if(!localStorage.getItem('pos_sync_token')) localStorage.setItem('pos_sync_token', POS_SYNC.token);
+}catch(e){}
+// One-tap "sync now" — opens the setup prompt if not configured yet, otherwise
+// pulls the latest state from the server and re-renders the UI.
+window.posSyncNow = async function(){
+  if (!POS_SYNC.url || !POS_SYNC.token){
+    if (typeof window.posSyncSetup === 'function') window.posSyncSetup();
+    return;
+  }
+  if (typeof showNotif === 'function') showNotif('🔄 מסנכרן…');
+  const d = await posSyncPull(true);
+  if (!d || !d.state){
+    // Server is empty — push this device's data so the next pull on the other device works.
+    posSyncPush();
+    if (typeof showNotif === 'function') showNotif('🆙 העליתי לשרת. נסה שוב מהמכשיר השני.');
+  } else if (typeof showNotif === 'function') showNotif('✓ סונכרן');
+};
+window.posSyncSetup = function(){
+  const url   = prompt('כתובת שרת הסנכרון (Railway URL, למשל https://xxx.up.railway.app):', POS_SYNC.url);
+  if (url === null) return;
+  const token = prompt('טוקן (MCP_TOKEN שהגדרת ב-Railway):', POS_SYNC.token);
+  if (token === null) return;
+  POS_SYNC.url   = url.trim().replace(/\/+$/, '');
+  POS_SYNC.token = token.trim();
+  localStorage.setItem('pos_sync_url',   POS_SYNC.url);
+  localStorage.setItem('pos_sync_token', POS_SYNC.token);
+  if (typeof showNotif === 'function') showNotif('✓ סנכרון מוגדר — בודק שרת…');
+  posSyncPull(true).then(d => {
+    if (!d || !d.state) {
+      // Server is empty — first device. Bootstrap by pushing this device's
+      // full state to the server so the next device can pull it down.
+      if (typeof showNotif === 'function') showNotif('🆙 מעלה את הנתונים שלך לשרת…');
+      posSyncPush();
+    }
+  });
+};
+window.posSyncClear = function(){
+  POS_SYNC.url = ''; POS_SYNC.token = '';
+  localStorage.removeItem('pos_sync_url');
+  localStorage.removeItem('pos_sync_token');
+  if (typeof showNotif === 'function') showNotif('סנכרון בוטל');
+};
+async function posSyncPull(replaceLocal){
+  if (!POS_SYNC.url || !POS_SYNC.token) return null;
+  try {
+    const r = await fetch(POS_SYNC.url + '/sync', {
+      headers: { 'Authorization': 'Bearer ' + POS_SYNC.token },
+    });
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (!d || !d.state) return null;
+    const localTs = +localStorage.getItem('pos_sync_local_ts') || 0;
+    // Replace on explicit setup, or whenever server is strictly newer than what we last saved.
+    if (replaceLocal || d.ts > localTs) {
+      // Preserve the per-user storage key — server holds the canonical S.
+      Object.keys(S).forEach(k => delete S[k]);
+      Object.assign(S, d.state);
+      localStorage.setItem(storageKey(), JSON.stringify(S));
+      localStorage.setItem('pos_sync_local_ts', String(d.ts));
+      if (typeof renderAll === 'function') renderAll();
+      if (typeof showNotif === 'function') showNotif('🔄 הנתונים סונכרנו מהשרת');
+    }
+    return d;
+  } catch (e) { console.warn('posSyncPull', e); return null; }
+}
+function posSyncPush(){
+  if (!POS_SYNC.url || !POS_SYNC.token) return;
+  clearTimeout(POS_SYNC.pendingTimer);
+  // Debounce — avoid hammering the server during bursts of save() calls.
+  POS_SYNC.pendingTimer = setTimeout(async () => {
+    if (POS_SYNC.busy) return;
+    POS_SYNC.busy = true;
+    try {
+      const ts = Date.now();
+      const r = await fetch(POS_SYNC.url + '/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + POS_SYNC.token },
+        body: JSON.stringify({ state: S, ts }),
+      });
+      if (r.ok) localStorage.setItem('pos_sync_local_ts', String(ts));
+    } catch (e) { console.warn('posSyncPush', e); }
+    POS_SYNC.busy = false;
+  }, 1500);
+}
+function save(){
+  localStorage.setItem(storageKey(), JSON.stringify(S));
+  posSyncPush();
+}
+// Auto-open the sync setup dialog if the URL has ?sync=1
+try {
+  if (new URLSearchParams(location.search).get('sync') === '1') {
+    setTimeout(() => window.posSyncSetup(), 300);
+  } else if (POS_SYNC.url && POS_SYNC.token) {
+    // Background pull on boot — but don't clobber unsaved local edits made
+    // in the few seconds before sync was ever configured (only replace if
+    // the server's ts is newer than the last ts we pushed).
+    setTimeout(() => posSyncPull(false), 800);
+  }
+} catch (e) {}
+
+// ───── SHARE-IN / IMPORT ─────
+// Two entry points: (a) Web Share Target — Android/desktop browsers route
+// shared text+URL here via ?title&text&url params. (b) Manual paste — the
+// floating-orb menu calls posOpenImport() with an empty payload for iOS where
+// the share sheet doesn't reach PWAs.
+function posOpenImport(initial){
+  const data = initial || {};
+  showImportModal(data);
+}
+window.posOpenImport = posOpenImport;
+
+function _posEsc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, m => (
+    { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]
+  ));
+}
+
+function _detectApartment(t){
+  return /(שותפ|דירה|חדר|פלורנטין|רוטשילד|נווה|רמת אביב|יפו|דיזנגוף|אלנבי|פוקס|מעלית|מרפסת|פינוי|כניסה|חודש|₪|שח|ש"ח|\d{4,5}\s*(?:₪|שח))/i.test(t);
+}
+function _detectJob(t){
+  return /(משרת|משרה|תפקיד|engineer|developer|analyst|product|growth|junior|senior|hr|recruit|נסיון|נדרש|career|jobs?|hiring|linkedin\.com\/jobs|comeet|greenhouse|לוקח קו"ח)/i.test(t);
+}
+function _parseApartment(text, url){
+  const t = text || '';
+  const priceM = t.match(/(\d{1,2}[,.]?\d{3})\s*(?:₪|שח|ש"ח|שקל)/i);
+  const areas = ['פלורנטין','רוטשילד','נווה צדק','יפו','רמת אביב','צפון ישן','דיזנגוף','מרכז','גבעתיים','פוקס','ככר רבין','אלנבי','שינקין','כרם התימנים','לב העיר','שפירא'];
+  const area = areas.find(a => t.includes(a)) || '';
+  const roomsM = t.match(/(\d(?:\.\d)?)\s*חדרים/);
+  const firstLine = (t.split('\n')[0] || '').slice(0, 80);
+  const title = firstLine || (area ? `דירה ב${area}` : 'דירה משותפת');
+  return {
+    title,
+    price: priceM ? '₪' + priceM[1].replace(/[,.]/g, '') : '',
+    area, link: url || '',
+    notes: t.slice(0, 600),
+  };
+}
+function _parseJob(text, url){
+  const t = text || '';
+  const firstLine = (t.split('\n')[0] || '').slice(0, 80);
+  const companyM = t.match(/(?:ב[-־]|@|חברת|at\s+)([A-Z][A-Za-z0-9 &.\-]{2,40}|[֐-׿]{2,30})/);
+  return {
+    title: firstLine || 'משרה',
+    company: companyM ? companyM[1].trim() : '',
+    status: 'open',
+    link: url || '',
+  };
+}
+
+function showImportModal(data){
+  if (document.getElementById('pos-import-modal')) return;
+  const title = data.title || '';
+  const text  = data.text  || '';
+  const url   = data.url   || '';
+  const initialContent = [title, text, url].filter(Boolean).join('\n');
+  const m = document.createElement('div');
+  m.id = 'pos-import-modal';
+  m.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.62);display:flex;align-items:flex-end;justify-content:center;padding:14px;direction:rtl;font-family:Heebo,sans-serif;backdrop-filter:blur(4px)';
+  m.innerHTML =
+    '<div style="background:var(--bg2,#fff);color:var(--text,#111);border-radius:18px 18px 10px 10px;padding:18px;max-width:520px;width:100%;box-shadow:0 -10px 50px rgba(0,0,0,.5);max-height:88vh;display:flex;flex-direction:column;gap:12px">' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+        '<div style="font-size:17px;font-weight:700;flex:1">📥 ייבוא ל-Personal OS</div>' +
+        '<button id="pi-x" style="background:transparent;border:0;font-size:22px;cursor:pointer;color:var(--text3,#999);line-height:1">×</button>' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--text3,#666);line-height:1.5">הדבק טקסט (פוסט מ-FB, מודעה, משרה, רעיון), או שתף ישירות לאפליקציה ממקור אחר. אני אזהה מה זה ואשמור במקום הנכון.</div>' +
+      '<textarea id="pi-text" placeholder="הדבק כאן את התוכן..." style="width:100%;min-height:140px;padding:12px;border-radius:12px;border:1px solid var(--border,#ccc);background:var(--bg3,#f7f7f7);color:var(--text,#111);font-family:inherit;font-size:13px;line-height:1.5;direction:rtl;resize:vertical"></textarea>' +
+      '<input id="pi-url" placeholder="קישור (אופציונלי, למשל לפוסט בפייסבוק)" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#ccc);background:var(--bg3,#f7f7f7);color:var(--text,#111);font-family:inherit;font-size:12px;direction:ltr">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+        '<button data-as="apartment" style="background:#10b981;color:#fff;border:0;border-radius:10px;padding:13px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer">🏠 שמור כדירה</button>' +
+        '<button data-as="job"       style="background:#3b82f6;color:#fff;border:0;border-radius:10px;padding:13px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer">💼 שמור כמשרה</button>' +
+        '<button data-as="note"      style="background:#6366f1;color:#fff;border:0;border-radius:10px;padding:13px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer">📝 שמור כפתק</button>' +
+        '<button data-as="idea"      style="background:#a855f7;color:#fff;border:0;border-radius:10px;padding:13px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer">💡 שמור כרעיון</button>' +
+      '</div>' +
+      '<div id="pi-hint" style="font-size:11.5px;color:var(--text3,#888);text-align:center;min-height:14px"></div>' +
+    '</div>';
+  document.body.appendChild(m);
+
+  const ta = m.querySelector('#pi-text');
+  const ur = m.querySelector('#pi-url');
+  const hint = m.querySelector('#pi-hint');
+  ta.value = initialContent;
+  ur.value = url;
+
+  function syncHint(){
+    const t = ta.value || '';
+    if (_detectApartment(t))  hint.textContent = '💡 הקלאדיפיקציה: נראה כמו דירה — כפתור 🏠 הומלץ';
+    else if (_detectJob(t))   hint.textContent = '💡 הקלאדיפיקציה: נראה כמו משרה — כפתור 💼 הומלץ';
+    else                       hint.textContent = '';
+  }
+  ta.addEventListener('input', syncHint);
+  syncHint();
+
+  m.querySelector('#pi-x').onclick = () => m.remove();
+  m.addEventListener('click', (e) => {
+    if (e.target === m) m.remove();
+    const btn = e.target.closest('button[data-as]');
+    if (!btn) return;
+    const as = btn.dataset.as;
+    const t  = ta.value.trim();
+    const u  = ur.value.trim();
+    if (!t && !u) { ta.focus(); return; }
+    try {
+      if (as === 'apartment') {
+        POS.addApartment(_parseApartment(t, u));
+        showNotif('🏠 נוספה דירה — קישור: ' + (u ? 'יש' : 'אין'));
+        if (window.goPage) goPage('apartment');
+      } else if (as === 'job') {
+        POS.addJob(_parseJob(t, u));
+        showNotif('💼 נוספה משרה');
+        if (window.goPage) goPage('jobs');
+      } else if (as === 'note') {
+        POS.addNote({ title: (t.split('\n')[0] || 'פתק').slice(0, 60), content: t + (u ? '\n\n' + u : '') });
+        showNotif('📝 נוסף פתק');
+      } else if (as === 'idea') {
+        POS.addIdea({ text: t + (u ? '\n' + u : '') });
+        showNotif('💡 נוסף רעיון');
+      }
+    } catch (err) { console.warn('import', err); showNotif('שגיאה בשמירה'); }
+    m.remove();
+  });
+}
+
+// Web Share Target handler — Android/desktop shares land here on app boot.
+try {
+  const sp = new URLSearchParams(location.search);
+  const sTitle = sp.get('title') || '';
+  const sText  = sp.get('text')  || '';
+  const sUrl   = sp.get('url')   || '';
+  if (sTitle || sText || sUrl) {
+    // Clean the URL bar so the modal doesn't re-trigger on reload
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    setTimeout(() => showImportModal({ title: sTitle, text: sText, url: sUrl }), 700);
+  }
+} catch (e) {}
 
 // CLAUDE CV
 const CV=`רואי קליין — פרופיל מקצועי:
@@ -2005,13 +2371,16 @@ function goPage(p,el){
   document.getElementById('page-'+p).classList.add('active');
   document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
   if(el)el.classList.add('active');
-  const T={dashboard:'דשבורד',agenda:'לוז שבועי',tasks:'משימות',reminders:'תזכורות',jobs:'חיפוש עבודה',upselles:'Upselles',health:'כושר ותזונה',apartment:'מציאת דירה',family:'זמן משפחתי',ideas:'רעיונות',journal:'יומן',goals:'מטרות',finance:'פיננסים',notes:'פתקים',inbox:'תיבת כניסה',news:'חדשות','ds-ai':'🧠 דאטה סיינס & AI'};
+  const T={dashboard:'דשבורד',agent:'🛰️ מרכז הפיקוד',voice:'🎙️ שיחה קולית',agenda:'לוז שבועי',tasks:'משימות',reminders:'תזכורות',jobs:'חיפוש עבודה',upselles:'Upselles',health:'כושר ותזונה',apartment:'מציאת דירה',family:'זמן משפחתי',ideas:'רעיונות',journal:'יומן',goals:'מטרות',finance:'פיננסים',notes:'פתקים',inbox:'תיבת כניסה',news:'חדשות','ds-ai':'🧠 דאטה סיינס & AI'};
   document.getElementById('pt').textContent=T[p]||p;
   if(p==='agenda')buildWeekGrid();
   if(p==='jobs'&&typeof renderKanban==='function')setTimeout(renderKanban,50);
   if(p==='finance')renderFinance();
   if(p==='notes')renderNotes();
   if(p==='inbox')renderInbox();
+  if(p==='agent'&&window.AgentRuntime)window.AgentRuntime.renderUI();
+  if(p==='voice'&&window.VoiceMode)window.VoiceMode.render();
+  else if(window.VoiceMode&&window.VoiceMode.stop)window.VoiceMode.stop();
   if(p==='ds-ai')renderDSPage();
 }
 
@@ -2155,6 +2524,13 @@ function renderDashProj(){
 let selStart=null,selEnd=null,isDragging=false;
 function buildWeekGrid(){
   const g=document.getElementById('week-grid');
+  if(!g)return;
+  // Auto-heal: if the built weekly schedule was wiped (e.g. by the multi-user /
+  // sync migration) re-seed it once so the grid is never empty.
+  const hasSched=Object.values(S.weekEvents||{}).some(arr=>(arr||[]).some(e=>e&&e.sched));
+  if(!hasSched&&!window._wgReseeded&&typeof seedSchedule==='function'){
+    window._wgReseeded=true;seedSchedule(true);return;
+  }
   let html='<div class="wg-hdr" style="font-size:10px">שעה</div>';
   const today=new Date().getDay();
   DF.forEach((d,i)=>{
@@ -2183,6 +2559,61 @@ function buildWeekGrid(){
     }
   });
   g.innerHTML=html;
+  buildWeekMobile();
+}
+
+// ── Mobile weekly view: day tabs + single-day agenda (phone-friendly) ──
+let wgDay=new Date().getDay();
+function setWgDay(d){wgDay=d;buildWeekMobile();}
+function buildWeekMobile(){
+  const tabs=document.getElementById('wg-daytabs');
+  const list=document.getElementById('wg-day-list');
+  if(!tabs||!list)return;
+  const today=new Date().getDay();
+  tabs.innerHTML=DF.map((d,i)=>`<div class="wg-daytab ${i===wgDay?'active':''}" onclick="setWgDay(${i})">${DH[i]}${i===today?' ●':''}<small>${d}</small></div>`).join('');
+  let rows='';
+  HRS.forEach(h=>{
+    const key=`${wgDay}-${h}`;
+    const evs=S.weekEvents[key]||[];
+    if(!evs.length)return;
+    rows+=`<div class="wg-dl-row"><div class="wg-dl-time">${h}</div><div class="wg-dl-evs">`+
+      evs.map(e=>`<div class="wg-dl-ev" style="background:${e.color||'var(--accent)'}"><span style="flex:1">${e.text}</span><button class="wg-ev-del" onclick="event.stopPropagation();delWeekEv('${key}',${e.id})">✕</button></div>`).join('')+
+      `</div></div>`;
+  });
+  if(!rows)rows='<div class="wg-dl-row"><div class="wg-dl-empty">אין אירועים ביום זה — הוסף דרך "הוסף לקאלנדר" למטה, או לחץ "📅 סנכרן יומן".</div></div>';
+  list.innerHTML=rows;
+}
+
+// ── Pull the current week (Sun–Sat) from Google Calendar into the grid ──
+async function syncCalWeek(){
+  if(!gat){showNotif('📅 מתחבר ליומן...');connectCal();return;}
+  const now=new Date();
+  const start=new Date(now);start.setDate(now.getDate()-now.getDay());start.setHours(0,0,0,0);
+  const end=new Date(start);end.setDate(start.getDate()+7);
+  try{
+    const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${start.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=100`,
+      {headers:{Authorization:`Bearer ${gat}`}});
+    if(r.status===401){showNotif('📅 צריך להתחבר מחדש ליומן');connectCal();return;}
+    const data=await r.json();
+    const items=data.items||[];
+    Object.keys(S.weekEvents).forEach(k=>{
+      S.weekEvents[k]=(S.weekEvents[k]||[]).filter(e=>!e.gcal);
+      if(!S.weekEvents[k].length)delete S.weekEvents[k];
+    });
+    let added=0;
+    items.forEach(ev=>{
+      if(!ev.start||!ev.start.dateTime)return;
+      const dt=new Date(ev.start.dateTime);
+      let hh=dt.getHours();if(hh<6)hh=6;if(hh>22)hh=22;
+      const key=`${dt.getDay()}-${String(hh).padStart(2,'0')}:00`;
+      const tm=dt.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+      if(!S.weekEvents[key])S.weekEvents[key]=[];
+      S.weekEvents[key].push({id:Date.now()+Math.floor(Math.random()*99999),text:`${tm} ${ev.summary||'אירוע'}`,color:'#4285f4',gcal:true});
+      added++;
+    });
+    save();buildWeekGrid();
+    showNotif(`✓ סונכרנו ${added} אירועים מהיומן`);
+  }catch(e){console.error(e);showNotif('⚠️ שגיאה בסנכרון היומן');}
 }
 
 function startSel(d,hi){isDragging=true;selStart={d,hi};selEnd={d,hi};highlightSel();}
@@ -2513,12 +2944,12 @@ function toggleJobFilter(el){
   if(!jobFilters[g])jobFilters[g]=new Set();
   if(jobFilters[g].has(v)){jobFilters[g].delete(v);el.classList.remove('on');}
   else{jobFilters[g].add(v);el.classList.add('on');}
-  if(typeof renderKanban==='function')renderKanban();
+  if(typeof renderJobs==='function')renderJobs();
 }
 function clearJobFilters(){
   Object.keys(jobFilters).forEach(g=>jobFilters[g].clear());
   document.querySelectorAll('.fchip.on').forEach(c=>c.classList.remove('on'));
-  if(typeof renderKanban==='function')renderKanban();
+  if(typeof renderJobs==='function')renderJobs();
 }
 
 // ─── AUTO MATCH SCORE (locked, CV-profile-based, not user-editable) ─────────
@@ -2858,14 +3289,20 @@ function addReminder(){
   const date=prompt('תאריך (YYYY-MM-DD):',new Date().toISOString().split('T')[0]);
   const time=prompt('שעה:','09:00');
   const rep=prompt('חזרה? (daily/weekly/ריק):','');
-  S.reminders.push({id:Date.now(),text,date:date||'',time:time||'09:00',done:false,repeat:rep||''});
-  save();renderReminders();renderDashReminders();showNotif('✓ תזכורת נוספה');
-  // Browser notification
-  if('Notification'in window&&Notification.permission==='granted'){
-    const d=new Date(date+'T'+time);
-    const diff=d.getTime()-Date.now();
-    if(diff>0)setTimeout(()=>new Notification('Personal OS',{body:text,icon:''}),diff);
-  }else if('Notification'in window){Notification.requestPermission();}
+  // route through POS.addReminder so the Google Calendar sync also runs
+  if(window.POS&&typeof POS.addReminder==='function'){
+    POS.addReminder({text,date:date||'',time:time||'09:00',repeat:rep||''});
+  } else {
+    if(!S.reminders)S.reminders=[];
+    S.reminders.push({id:Date.now(),text,date:date||'',time:time||'09:00',done:false,repeat:rep||''});
+    save();
+  }
+  renderReminders();renderDashReminders();showNotif('✓ תזכורת נוספה — סונכרן ל-Calendar');
+  // The 60-second reminder checker fires the notification when it comes due.
+  // Offer to turn on notifications if we haven't asked yet.
+  if('Notification'in window&&Notification.permission==='default'){
+    if(typeof enableNotifications==='function')enableNotifications();
+  }
 }
 function doneRem(i){S.reminders[i].done=!S.reminders[i].done;save();renderReminders();renderDashReminders();}
 function delRem(i){S.reminders.splice(i,1);save();renderReminders();renderDashReminders();}
@@ -3259,35 +3696,240 @@ function clearAgentMemory(agentId){
   showNotif('זיכרון שיחה נוקה');
 }
 
+// Page agents execute their tools through the unified POS bridge — same
+// surface Zoro uses, so every agent can read/write every kind of data.
 function executeClientTool(toolName,input){
+  const P=window.POS;input=input||{};
+  if(!P)return'המערכת עוד נטענת';
   switch(toolName){
-    case'add_task':
-      if(!input.title)break;
-      S.tasks.unshift({id:Date.now(),text:input.title,done:false,cat:input.category||'work',period:'once',proj:input.project||'none',progress:0,status:'',createdBy:'agent'});
-      save();renderDashTasks();renderAllTasks();break;
-    case'complete_task':{
-      const q=(input.task_title||'').toLowerCase();
-      const t=S.tasks.find(x=>!x.done&&x.text.toLowerCase().includes(q));
-      if(t){t.done=true;save();renderDashTasks();renderAllTasks();}break;}
-    case'add_event':
-      if(!S.weekEvents)S.weekEvents={};
-      if(!S.weekEvents[input.date])S.weekEvents[input.date]=[];
-      S.weekEvents[input.date].push({id:Date.now(),text:input.title+(input.time?' '+input.time:''),color:'#6c63ff'});
-      save();if(typeof renderWeek==='function')renderWeek();break;
-    case'add_habit':
-      if(!input.name||S.habits.some(h=>h.name===input.name))break;
-      S.habits.push({name:input.name,days:[0,0,0,0,0,0,0]});
-      save();renderDashHabits();break;
-    case'log_habit':{
-      const q=(input.habit_name||'').toLowerCase();
-      const h=S.habits.find(x=>x.name.toLowerCase().includes(q));
-      if(h){const day=new Date().getDay();h.days[day]=1;save();renderDashHabits();}break;}
-    case'add_note':
-      if(!S.notes)S.notes=[];
-      S.notes.unshift({id:Date.now(),title:input.title||'פתק מהסוכן',content:input.content,pinned:false,ts:new Date().toISOString()});
-      save();break;
+    case'add_task':       return P.addTask({text:input.title||input.text,proj:input.project||input.proj,cat:input.category||input.cat});
+    case'complete_task':  return P.completeTask({query:input.task_title||input.query||input.text});
+    case'add_event':      return P.addEvent({title:input.title||input.text,date:input.date,time:input.time});
+    case'add_habit':      return P.addHabit({name:input.name||input.text});
+    case'log_habit':      return P.logHabit({name:input.habit_name||input.name||input.text});
+    case'add_note':       return P.addNote({title:input.title,content:input.content||input.text});
+    case'add_reminder':   return P.addReminder({text:input.text||input.title,date:input.date,time:input.time});
+    case'add_goal':       return P.addGoal({text:input.text||input.title,emoji:input.emoji});
+    case'add_idea':       return P.addIdea({text:input.text||input.title,cat:input.cat});
+    case'add_journal':    return P.addJournal({text:input.text||input.content});
+    case'add_job':        return P.addJob({title:input.title,company:input.company,status:input.status,link:input.link,match:input.match,source:input.source,description:input.description,location:input.location,posted_at:input.posted_at||input.published_at||input.posted,category:input.category,user_status:input.user_status});
+    case'update_project': return P.updateProject({id:input.id||input.name,progress:input.progress});
   }
 }
+
+// ════════════════════════════════════════════════════════════════════════
+//  POS BRIDGE — unified programmatic API for AI agents (Zoro + page agents)
+//  One safe surface for reading and writing every kind of app data.
+// ════════════════════════════════════════════════════════════════════════
+window.POS = (function(){
+  const uid = ()=>Date.now()+Math.floor(Math.random()*1000);
+  const norm = s=>(s||'').toString().toLowerCase().trim();
+  function refresh(){
+    const calls=['renderAll','buildWeekGrid','renderReminders','renderDashReminders',
+      'renderGoals','renderIdeas','renderJEntries','renderNotes','renderJobs',
+      'renderKanban','renderApts','updateStats','updateCatProgress'];
+    calls.forEach(fn=>{try{if(typeof window[fn]==='function')window[fn]();}catch(e){}});
+  }
+  return {
+    version:'1.1',
+    // ───── READ ─────
+    getState(){return S;},
+    snapshot(){
+      const todayDate=new Date();
+      const today=todayDate.toISOString().split('T')[0];
+      const DAYS_HE=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+      const ev=[];
+      // Date-keyed one-off events (e.g. "2026-05-24")
+      Object.keys(S.weekEvents||{}).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)&&k>=today).sort().slice(0,30).forEach(d=>{
+        (S.weekEvents[d]||[]).forEach(e=>ev.push({date:d,time:e.time||'',text:e.text||e.title||''}));
+      });
+      // Recurring weekly events keyed as "<dayIdx>-HH:MM" — expand into the next 7 days
+      for(let i=0;i<7;i++){
+        const dt=new Date(todayDate); dt.setDate(todayDate.getDate()+i);
+        const idx=dt.getDay();
+        const iso=dt.toISOString().split('T')[0];
+        const dayLbl=DAYS_HE[idx];
+        Object.keys(S.weekEvents||{}).forEach(key=>{
+          const m=/^(\d)-(\d{1,2}:\d{2})$/.exec(key);
+          if(!m||+m[1]!==idx)return;
+          const time=m[2];
+          (S.weekEvents[key]||[]).forEach(e=>{
+            const text=e.text||e.title||'';
+            if(text)ev.push({date:iso,day:dayLbl,time,text});
+          });
+        });
+      }
+      ev.sort((a,b)=>((a.date+'T'+(a.time||'00:00')).localeCompare(b.date+'T'+(b.time||'00:00'))));
+      let userName='Roei';
+      try{if(typeof currentUser!=='undefined'&&currentUser&&currentUser.name&&!currentUser.name.includes('@'))userName=currentUser.name;}catch(e){}
+      return {
+        date:today, user:userName,
+        openTasks:(S.tasks||[]).filter(t=>!t.done).map(t=>({id:t.id,text:t.text,proj:t.proj,cat:t.cat})),
+        doneTasksCount:(S.tasks||[]).filter(t=>t.done).length,
+        habits:(S.habits||[]).map(h=>h.name),
+        upcomingEvents:ev,
+        reminders:(S.reminders||[]).filter(r=>!r.done).map(r=>({text:r.text,date:r.date,time:r.time})),
+        projects:(S.projects||[]).map(p=>({id:p.id,name:p.name,progress:p.progress})),
+        goals:(S.goals||[]).map(g=>({text:g.text,progress:g.progress})),
+        jobs:(S.jobs||[]).map(j=>({title:j.title,company:j.company,status:j.status})),
+        aptsCount:(S.apts||[]).length,
+        ideas:(S.ideas||[]).map(i=>i.text)
+      };
+    },
+    // ───── TASKS ─────
+    addTask(a){a=a||{};const text=(a.text||a.title||'').trim();
+      if(!text)return'חסר טקסט למשימה';
+      S.tasks.unshift({id:uid(),text,done:false,cat:a.cat||a.category||'work',period:a.period||'once',proj:a.proj||a.project||'none',progress:0,status:'',createdBy:'agent'});
+      save();refresh();return'נוספה משימה: '+text;},
+    completeTask(a){a=a||{};const q=norm(a.query||a.task_title||a.text);
+      const t=(S.tasks||[]).find(x=>!x.done&&norm(x.text).includes(q));
+      if(!t)return'לא מצאתי משימה פתוחה שמתאימה';
+      t.done=true;save();refresh();return'סומנה כבוצעה: '+t.text;},
+    // ───── REMINDERS ─────
+    addReminder(a){a=a||{};const text=(a.text||a.title||'').trim();
+      if(!text)return'חסר טקסט לתזכורת';
+      if(!S.reminders)S.reminders=[];
+      const date=a.date||new Date().toISOString().split('T')[0];
+      const time=a.time||'09:00';
+      const rec={id:uid(),text,date,time,done:false,repeat:a.repeat||''};
+      S.reminders.unshift(rec);
+      save();refresh();
+      // Also create a Google Calendar event with a 0-minute popup — iPhone's
+      // Google Calendar app then fires a native notification at the exact
+      // reminder time, even when the Personal OS PWA is closed.
+      try{
+        if(typeof createCalendarEvent==='function'){
+          createCalendarEvent('⏰ '+text,`${date}T${time}`,'',
+            { durationMins:15, reminderMins:[0] })
+            .then(evId=>{ if(evId){ rec.calId=evId; save(); } })
+            .catch(()=>{});
+        }
+      }catch(e){}
+      return'נוספה תזכורת: '+text+' ל-'+date+' '+time;},
+    // ───── EVENTS ─────
+    addEvent(a){a=a||{};const title=(a.title||a.text||'').trim();
+      if(!title)return'צריך כותרת לאירוע';
+      if(!S.weekEvents)S.weekEvents={};
+      // The weekly grid is keyed by "<dayIndex>-HH:00". Convert the event's
+      // date+time to that key so it actually appears in the לוז (was being
+      // saved under a date string the grid never reads -> invisible).
+      let d=a.date?new Date(a.date):new Date(); if(isNaN(d))d=new Date();
+      let h=9; if(a.time&&/^\d{1,2}:/.test(a.time))h=parseInt(a.time,10);
+      h=Math.max(6,Math.min(22,h||9));
+      const key=d.getDay()+'-'+('0'+h).slice(-2)+':00';
+      if(!S.weekEvents[key])S.weekEvents[key]=[];
+      S.weekEvents[key].push({id:uid(),text:title+(a.time?' '+a.time:''),time:a.time||'',color:'#ff8a3d'});
+      save();refresh();
+      try{if(typeof buildWeekGrid==='function')buildWeekGrid();}catch(e){}
+      return'נוסף אירוע ללוז: '+title+(a.time?' בשעה '+a.time:'');},
+    // ───── HABITS ─────
+    addHabit(a){a=a||{};const name=(a.name||a.text||'').trim();
+      if(!name)return'חסר שם להרגל';
+      if(!S.habits)S.habits=[];
+      if(S.habits.some(h=>h.name===name))return'ההרגל כבר קיים';
+      S.habits.push({name,days:[0,0,0,0,0,0,0]});
+      save();refresh();return'נוסף הרגל: '+name;},
+    logHabit(a){a=a||{};const q=norm(a.name||a.habit_name||a.text);
+      const h=(S.habits||[]).find(x=>norm(x.name).includes(q));
+      if(!h)return'לא מצאתי הרגל מתאים';
+      h.days[new Date().getDay()]=1;save();refresh();return'תועד: '+h.name;},
+    // ───── NOTES ─────
+    addNote(a){a=a||{};const content=(a.content||a.text||'').trim();
+      if(!content)return'חסר תוכן לפתק';
+      if(!S.notes)S.notes=[];
+      S.notes.unshift({id:uid(),title:a.title||'פתק',content,pinned:false,ts:new Date().toISOString()});
+      save();refresh();return'נשמר פתק';},
+    // ───── GOALS ─────
+    addGoal(a){a=a||{};const text=(a.text||a.title||'').trim();
+      if(!text)return'חסר טקסט למטרה';
+      if(!S.goals)S.goals=[];
+      S.goals.push({text,progress:a.progress||0,emoji:a.emoji||'🎯'});
+      save();refresh();return'נוספה מטרה: '+text;},
+    // ───── IDEAS ─────
+    addIdea(a){a=a||{};const text=(a.text||a.title||'').trim();
+      if(!text)return'חסר טקסט לרעיון';
+      if(!S.ideas)S.ideas=[];
+      S.ideas.unshift({id:uid(),text,cat:a.cat||'general',date:new Date().toLocaleDateString('he-IL'),starred:false});
+      save();refresh();return'נשמר רעיון';},
+    // ───── JOURNAL ─────
+    addJournal(a){a=a||{};const text=(a.text||a.content||'').trim();
+      if(!text)return'חסר טקסט ליומן';
+      if(!S.journalEntries)S.journalEntries=[];
+      S.journalEntries.unshift({id:uid(),text,date:new Date().toISOString(),mood:a.mood||''});
+      save();refresh();return'נשמרה רשומת יומן';},
+    // ───── JOBS ─────
+    addJob(a){a=a||{};const title=(a.title||'').trim();
+      if(!title)return'חסר תפקיד';
+      // The job-search project (Kanban) renders S.jobsV2 — write there so the
+      // job physically appears in the project, not just into the legacy array.
+      try{if(typeof getJobsV2==='function')getJobsV2();}catch(e){}
+      if(!S.jobsV2)S.jobsV2=[];
+      const _co=(a.company||'').trim().toLowerCase();
+      if(S.jobsV2.some(j=>(j.title||'').trim().toLowerCase()===title.toLowerCase()&&(j.company||'').trim().toLowerCase()===_co))
+        return'המשרה כבר קיימת במעקב: '+title;
+      const now=new Date().toISOString();
+      const sm={waiting:'saved',saved:'saved',applied:'applied',interview:'interview',offer:'offer',rejected:'archive'};
+      const stage=sm[a.status]||'saved';
+      S.jobsV2.unshift({
+        id:'job_'+Date.now()+'_'+Math.floor(Math.random()*1000),
+        userId:(typeof currentUser!=='undefined'&&currentUser&&currentUser.email)||'',
+        title:title,company:a.company||'',location:a.location||'ישראל',url:a.link||'',
+        source:a.source||'other',source_label:(typeof SOURCE_LABELS!=='undefined'&&SOURCE_LABELS[a.source])||'אחר',
+        description_summary:a.notes||a.description||'',description_full:null,
+        job_type:a.job_type||'',
+        category:a.category||(typeof classifyJobCategory==='function'?classifyJobCategory({title:title,description_summary:a.description||''}):''),
+        posted_at:a.posted_at||a.published_at||a.posted||null,
+        user_status:a.user_status||'',
+        match_score:Number(a.match)||0,
+        match_breakdown:a.match_breakdown||null,
+        match_explanation:a.match_explanation||a.description||'',
+        matched_keywords:Array.isArray(a.matched_keywords)?a.matched_keywords:[],
+        missing_keywords:Array.isArray(a.missing_keywords)?a.missing_keywords:[],
+        stage:stage,stage_history:[{stage:stage,at:now}],
+        applied_at:null,applied_method:null,follow_ups:[],interviews:[],offer:null,
+        created_at:now,updated_at:now,archived_reason:null,user_notes:''
+      });
+      if(!S.jobs)S.jobs=[];
+      S.jobs.unshift({title:title,company:a.company||'',cat:a.cat||'',status:a.status||'waiting',match:Number(a.match)||0,date:new Date().toLocaleDateString('he-IL'),link:a.link||''});
+      save();refresh();
+      return'נוספה משרה לפרויקט חיפוש העבודה: '+title+(a.company?' ב-'+a.company:'');},
+    // ───── APARTMENTS ─────
+    addApartment(a){a=a||{};const title=(a.title||a.address||a.text||'').trim();
+      if(!title)return'חסר כתובת/תיאור לדירה';
+      if(!S.apts)S.apts=[];
+      S.apts.push({title,price:a.price||'',area:a.area||'',link:a.link||'',notes:a.notes||'',status:'active'});
+      save();refresh();return'נוספה דירה למעקב: '+title;},
+    // ───── MEALS ─────
+    addMeal(a){a=a||{};const name=(a.name||a.text||'').trim();
+      if(!name)return'חסר תיאור לארוחה';
+      if(!S.meals)S.meals=[];
+      S.meals.push({name,kcal:Number(a.kcal)||0,protein:Number(a.protein)||0,carb:Number(a.carb)||0,time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
+      save();refresh();return'נרשמה ארוחה: '+name;},
+    // ───── PROJECTS ─────
+    updateProject(a){a=a||{};const q=norm(a.id||a.name);
+      const p=(S.projects||[]).find(x=>norm(x.id)===q||norm(x.name).includes(q));
+      if(!p)return'לא מצאתי פרויקט';
+      if(a.progress!=null)p.progress=Math.max(0,Math.min(100,Number(a.progress)));
+      save();refresh();return'עודכן פרויקט '+p.name;},
+    // ───── NAV / UI ─────
+    navigate(page){if(!page)return'חסר עמוד';
+      const al={'jobs':'jobs','job':'jobs','jobsearch':'jobs','חיפוש עבודה':'jobs','עבודה':'jobs','משרות':'jobs',
+        'apartment':'apartment','apartments':'apartment','apt':'apartment','דירה':'apartment','מציאת דירה':'apartment','דירות':'apartment',
+        'agenda':'agenda','schedule':'agenda','calendar':'agenda','לוז':'agenda','לוז שבועי':'agenda',
+        'tasks':'tasks','משימות':'tasks','reminders':'reminders','תזכורות':'reminders',
+        'dashboard':'dashboard','home':'dashboard','בית':'dashboard','דשבורד':'dashboard','projects':'dashboard','פרויקטים':'dashboard',
+        'upselles':'upselles','health':'health','כושר':'health','family':'family','ideas':'ideas','רעיונות':'ideas',
+        'journal':'journal','יומן':'journal','goals':'goals','מטרות':'goals','finance':'finance','כספים':'finance',
+        'notes':'notes','פתקים':'notes','news':'news','חדשות':'news'};
+      const k=String(page).toLowerCase().trim();
+      const p=al[k]||al[String(page).trim()]||k;
+      if(!document.getElementById('page-'+p))return'אין עמוד בשם "'+page+'". עמודים: jobs, apartment, agenda, tasks, reminders, dashboard';
+      try{goPage(p);}catch(e){return'לא הצלחתי לנווט';}
+      return'נפתח העמוד: '+p;},
+    notify(msg){try{showNotif(msg);}catch(e){}return'ok';},
+    refresh
+  };
+})();
 
 // Workspace task helpers
 function addWsTask(wsId){
@@ -3456,20 +4098,42 @@ function signOut(){
   localStorage.removeItem('pos_user');
   location.reload();
 }
+function showLoginScreen(){
+  var ls=document.getElementById('login-screen'); if(!ls)return;
+  ls.style.display='flex';
+  var n=0;
+  (function tryRender(){
+    if(window.google&&google.accounts&&google.accounts.id){
+      var el=document.getElementById('login-gbtn');
+      if(el&&!el.getAttribute('data-done')){
+        try{
+          google.accounts.id.renderButton(el,{theme:'filled_black',size:'large',
+            text:'signin_with',shape:'pill',locale:'he',width:280});
+          el.setAttribute('data-done','1');
+        }catch(e){}
+      }
+    } else if(n++<60){ setTimeout(tryRender,150); }
+  })();
+}
+function hideLoginScreen(){
+  var ls=document.getElementById('login-screen'); if(ls)ls.style.display='none';
+}
 function renderUserProfile(){
   if(!currentUser){
     document.getElementById('user-info-bar').classList.remove('visible');
     document.getElementById('gsignin-wrap').style.display='block';
+    showLoginScreen();
     return;
   }
+  hideLoginScreen();
   const nl=document.getElementById('user-name-lbl');
   const el=document.getElementById('user-email-lbl');
   const pl=document.getElementById('user-photo');
   const av=document.getElementById('ava');
-  if(nl)nl.textContent=currentUser.name;
-  if(el)el.textContent=currentUser.email;
+  if(nl)nl.textContent='רואי קליין';
+  if(el){el.textContent='';el.style.display='none';}
   if(pl&&currentUser.picture){pl.src=currentUser.picture;pl.style.display='block';}
-  if(av)av.textContent=currentUser.name.charAt(0).toUpperCase();
+  if(av)av.textContent='ר';
   document.getElementById('user-info-bar').classList.add('visible');
   document.getElementById('gsignin-wrap').style.display='none';
 }
@@ -3703,6 +4367,9 @@ function migrateJobsToV2(){
     url:j.link||'',
     source:j.source||'other',
     source_label:SOURCE_LABELS[j.source||'other']||'אחר',
+    category:j.category||'',
+    posted_at:j.posted_at||j.published_at||null,
+    user_status:j.user_status||'',
     description_summary:j.description||'',
     description_full:j.description_full||null,
     match_score:j.match||0,
@@ -3761,8 +4428,11 @@ function renderKanban(){
 
   const filtered=jobs.filter(j=>{
     if((j.match_score||0)<minMatch)return false;
-    // Source filter: if any chips are ON, show only those sources; if none ON, show all
-    if(activeSources.size>0&&!activeSources.has(j.source||'other')&&!activeSources.has('other'))return false;
+    // Source filter — only the specific job-board sources are filtered.
+    // Manually/agent-added jobs (source 'other') always show, so saved jobs
+    // never silently vanish.
+    if(activeSources.size>0){var _SP=['linkedin','alljobs','comeet','drushim','wellfound'];
+      if(_SP.indexOf(j.source)>=0&&!activeSources.has(j.source))return false;}
     return true;
   });
 
@@ -3859,15 +4529,22 @@ function openJobDrawer(jobId){
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
       <span class="match-badge ${matchClass(job.match_score||0).replace('kb-','match-')}">${job.match_score||0}% התאמה</span>
+      ${job.job_type?`<span class="bdg bdg-b">${escH(jobTypeHe(job.job_type))}</span>`:''}
+      ${job.category?`<span class="bdg bdg-p">${escH(job.category)}</span>`:''}
       <span class="bdg bdg-gr">${escH(job.source_label||job.source||'')}</span>
-      ${days>0?`<span class="bdg bdg-gr">${days} ימים בשלב`:''}
+      ${days>0?`<span class="bdg bdg-gr">${days} ימים בשלב</span>`:''}
     </div>
-    ${job.match_explanation?`<div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:10px">${escH(job.match_explanation)}</div>`:''}
+    ${job.match_explanation?`<div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:10px;line-height:1.6">💡 ${escH(job.match_explanation)}</div>`:''}
+    ${jobBreakdownHTML(job.match_breakdown)}
     ${job.matched_keywords?.length?`<div style="margin-bottom:8px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">מיומנויות שנמצאו</div><div style="display:flex;gap:5px;flex-wrap:wrap">${job.matched_keywords.map(k=>`<span class="bdg bdg-g">${escH(k)}</span>`).join('')}</div></div>`:''}
     ${job.missing_keywords?.length?`<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">מיומנויות חסרות</div><div style="display:flex;gap:5px;flex-wrap:wrap">${job.missing_keywords.map(k=>`<span class="bdg bdg-a">${escH(k)}</span>`).join('')}</div></div>`:''}
     ${job.description_summary?`<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">תיאור</div><div style="font-size:12px;color:var(--text2);line-height:1.6">${escH(job.description_summary)}</div></div>`:''}
-    <textarea class="inp inp-full" rows="3" placeholder="הערות אישיות..." style="margin-bottom:8px" oninput="saveJobNote('${job.id}',this.value)">${escH(job.user_notes||'')}</textarea>
+    <div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">סטטוס שלי (חופשי)</div>
+    <input id="drawer-status-inp" class="inp inp-full" type="text" placeholder="לדוגמה: הוגש 8/6, ממתין לתשובה..." value="${escH(job.user_status||'')}" style="margin-bottom:8px">
+    <div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">הערות אישיות</div>
+    <textarea id="drawer-notes-inp" class="inp inp-full" rows="3" placeholder="הערות אישיות..." style="margin-bottom:10px">${escH(job.user_notes||'')}</textarea>
     <div style="display:flex;gap:7px">
+      <button class="btn bp bsm" style="flex:1" onclick="saveJobDrawer('${job.id}')">💾 שמור שינויים</button>
       <button class="btn bs bsm" onclick="deleteJobFromDrawer('${job.id}')">🗑 ארכב</button>
     </div>
   `;
@@ -3893,6 +4570,26 @@ function saveJobNote(jobId,note){
   const job=jobs.find(j=>j.id===jobId);
   if(job){job.user_notes=note;job.updated_at=new Date().toISOString();S.jobsV2=jobs;save();}
 }
+function saveJobDrawer(jobId){
+  const jobs=getJobsV2();
+  const job=jobs.find(j=>j.id===jobId);
+  if(!job)return;
+  const status=document.getElementById('drawer-status-inp')?.value||'';
+  const notes=document.getElementById('drawer-notes-inp')?.value||'';
+  const stage=document.getElementById('drawer-stage-sel')?.value;
+  job.user_status=status;
+  job.user_notes=notes;
+  job.updated_at=new Date().toISOString();
+  if(stage&&stage!==job.stage){
+    job.stage=stage;
+    if(!job.stage_history)job.stage_history=[];
+    job.stage_history.push({stage:stage,at:new Date().toISOString()});
+    if(stage==='applied'&&!job.applied_at)job.applied_at=new Date().toISOString();
+  }
+  S.jobsV2=jobs;save();
+  showNotif('✓ נשמר');
+  renderJobs();
+}
 
 function deleteJobFromDrawer(jobId){
   moveJobToStage(jobId,'archive');
@@ -3915,6 +4612,9 @@ function addJobManual(){
     url:(url||'').trim(),
     source:(source||'other').trim(),
     source_label:SOURCE_LABELS[source||'other']||'אחר',
+    category:classifyJobCategory({title:title,description_summary:''}),
+    posted_at:null,
+    user_status:'',
     description_summary:'',
     description_full:null,
     match_score:calcMatchScore(title,''),
@@ -3942,10 +4642,13 @@ function addJobToKanban(j){
     userId:currentUser?.email||'',
     title:(j.title||'').slice(0,120),
     company:(j.company||extractJobCompany({url:j.link||''})).trim(),
-    location:'ישראל',
+    location:j.location||'ישראל',
     url:j.link||j.url||'',
     source:j.source||'other',
     source_label:SOURCE_LABELS[j.source||'other']||'אחר',
+    category:j.category||classifyJobCategory({title:j.title||'',description_summary:j.description||''}),
+    posted_at:j.posted_at||j.published_at||j.posted||null,
+    user_status:'',
     description_summary:(j.description||'').slice(0,500),
     description_full:j.description_full||null,
     match_score:j.match||j.match_score||0,
@@ -3981,12 +4684,137 @@ function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 // Override renderJobs to use Kanban
 function renderJobs(){
   renderKanban();
+  if(typeof renderJobsTable==='function')renderJobsTable();
   // Keep legacy j-s, j-w, j-i if they exist (some may still reference old stats)
   const jel=document.getElementById('j-s');if(jel)jel.textContent=getJobsV2().filter(j=>j.stage!=='archive').length;
   const jwl=document.getElementById('j-w');if(jwl)jwl.textContent=getJobsV2().filter(j=>['discovered','saved'].includes(j.stage)).length;
   const jil=document.getElementById('j-i');if(jil)jil.textContent=getJobsV2().filter(j=>j.stage==='interview').length;
 }
 
+// ─── SMART TABLE VIEW (grouped by domain) ────────────────────────────────
+const JOB_CATEGORIES=[
+  {id:'ai_growth',name:'🤖 AI & Growth / Data',color:'#2563eb',kw:['ai ','a.i','genai','llm','ml ','machine learning','deep learning','prompt','data','analyst','analytics','growth','bi ','nlp','ד.אטה','דאטה','אנליסט','אנליטיק','בינה','גדילה']},
+  {id:'product',name:'🚀 Product',color:'#7c3aed',kw:['product','pm','prod ops','product operations','מוצר','פרודקט']},
+  {id:'finance',name:'💰 פיננסים / כלכלה',color:'#16a34a',kw:['finance','financial','fp&a','investment','equity','vc','venture','economist','m&a','strategy','audit','controller','בנק','השקע','כלכל','פיננס','אקטואר','חשב']},
+  {id:'other',name:'📋 כללי / אחר',color:'#64748b',kw:[]}
+];
+function classifyJobCategory(job){
+  const hay=((job.title||'')+' '+(job.description_summary||job.description||'')).toLowerCase();
+  // priority order: specific finance/product keywords beat the greedy "analyst/data" AI bucket
+  const order=['finance','product','ai_growth'];
+  for(const id of order){
+    const c=JOB_CATEGORIES.find(x=>x.id===id);
+    if(c&&c.kw.some(k=>hay.includes(k)))return c.id;
+  }
+  return 'other';
+}
+function jobCategoryOf(job){
+  return (job.category&&JOB_CATEGORIES.some(c=>c.id===job.category))?job.category:classifyJobCategory(job);
+}
+function fmtJobDate(iso){
+  if(!iso)return null;
+  const d=new Date(iso);
+  if(isNaN(d))return null;
+  return d.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'});
+}
+function isNewJob(job){
+  if(job.stage==='discovered')return true;
+  const c=new Date(job.created_at||0).getTime();
+  return c>0 && (Date.now()-c)<7*24*60*60*1000; // last 7 days
+}
+let jobView=(()=>{try{return localStorage.getItem('pos_job_view')||'table';}catch(e){return'table';}})();
+function setJobView(v){
+  jobView=v;
+  try{localStorage.setItem('pos_job_view',v);}catch(e){}
+  const tv=document.getElementById('jobs-table-view'),kv=document.getElementById('kanban-wrap');
+  const bt=document.getElementById('jview-btn-table'),bk=document.getElementById('jview-btn-kanban');
+  const hint=document.getElementById('jview-hint');
+  if(tv)tv.style.display=v==='table'?'block':'none';
+  if(kv)kv.style.display=v==='kanban'?'flex':'none';
+  if(bt)bt.classList.toggle('on',v==='table');
+  if(bk)bk.classList.toggle('on',v==='kanban');
+  if(hint)hint.textContent=v==='table'?'מחולק לפי תחומים • לחץ שורה לפרטים':'גרור בין עמודות • לחץ כרטיס לפרטים';
+  if(v==='table')renderJobsTable();else renderKanban();
+}
+function jobRowHTML(job){
+  const mc=(job.match_score||0)>=75?'hi':(job.match_score||0)>=50?'mid':'low';
+  const posted=fmtJobDate(job.posted_at);
+  const added=fmtJobDate(job.created_at);
+  const stageOpts=STAGES.map(s=>`<option value="${s}"${job.stage===s?' selected':''}>${STAGE_LABELS[s]}</option>`).join('');
+  return`<tr class="jt-row${isNewJob(job)?' jt-new':''}" data-id="${job.id}">
+    <td><div class="jt-title" onclick="openJobDrawer('${job.id}')">${escH(job.title)}</div><div class="jt-co">${escH(job.company||'—')}${job.location?' · '+escH(job.location):''}</div></td>
+    <td><span class="jt-match ${mc}">${job.match_score||0}%</span></td>
+    <td><span class="jt-co">${escH(job.source_label||job.source||'—')}</span></td>
+    <td><span class="jt-date${posted?'':' none'}">${posted||'—'}</span></td>
+    <td><span class="jt-date${added?'':' none'}">${added||'—'}</span></td>
+    <td><select class="jt-stage-sel" onchange="jobMarkDirty('${job.id}')">${stageOpts}</select></td>
+    <td><input class="jt-status-inp" type="text" placeholder="הוגש / ממתין..." value="${escH(job.user_status||'')}" oninput="jobMarkDirty('${job.id}')"></td>
+    <td style="display:flex;gap:6px;align-items:center"><button class="jt-save" onclick="saveJobRow('${job.id}')">💾 שמור</button>${job.url?`<a class="jt-link" href="${escH(job.url)}" target="_blank" title="פתח משרה">🔗</a>`:''}</td>
+  </tr>`;
+}
+function jobTableHTML(jobs){
+  return`<div class="jt-wrap"><table class="jt"><thead><tr>
+    <th>תפקיד / חברה</th><th>התאמה</th><th>מקור</th><th>פורסם</th><th>נכנס למערכת</th><th>שלב</th><th>סטטוס שלי</th><th>פעולות</th>
+  </tr></thead><tbody>${jobs.map(jobRowHTML).join('')}</tbody></table></div>`;
+}
+function renderJobsTable(){
+  const wrap=document.getElementById('jobs-table-view');
+  if(!wrap)return;
+  const all=getJobsV2();
+  const minMatch=parseInt(document.getElementById('min-match-slider')?.value||0);
+  const activeSources=new Set([...document.querySelectorAll('.fchip.on[data-g="source"]')].map(el=>el.dataset.v));
+  const jobs=all.filter(j=>{
+    if((j.match_score||0)<minMatch)return false;
+    if(activeSources.size>0){const _SP=['linkedin','alljobs','comeet','drushim','wellfound'];
+      if(_SP.indexOf(j.source)>=0&&!activeSources.has(j.source))return false;}
+    return j.stage!=='archive';
+  });
+  if(!jobs.length){wrap.innerHTML='<div class="jt-empty">אין משרות להצגה. הסוכן יוסיף משרות חדשות אוטומטית, או הוסף ידנית עם "+ ידני".</div>';return;}
+  let html='';
+  // New jobs section
+  const newJobs=jobs.filter(isNewJob).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  if(newJobs.length){
+    html+=`<div class="jt-new-banner">🆕 משרות חדשות (${newJobs.length}) — נוספו ב-7 הימים האחרונים</div>`;
+    html+=jobTableHTML(newJobs);
+    html+='<div style="height:14px"></div>';
+  }
+  // Grouped by category
+  JOB_CATEGORIES.forEach(cat=>{
+    const inCat=jobs.filter(j=>jobCategoryOf(j)===cat.id).sort((a,b)=>(b.match_score||0)-(a.match_score||0));
+    if(!inCat.length)return;
+    html+=`<div class="jt-group"><div class="jt-group-hdr" style="--col-color:${cat.color}">${cat.name}<span class="jt-count">${inCat.length}</span></div>${jobTableHTML(inCat)}</div>`;
+  });
+  wrap.innerHTML=html;
+}
+function jobMarkDirty(jobId){
+  const row=document.querySelector(`#jobs-table-view tr[data-id="${jobId}"]`);
+  if(!row)return;
+  const btn=row.querySelector('.jt-save');
+  if(btn)btn.classList.add('dirty');
+}
+function saveJobRow(jobId){
+  const jobs=getJobsV2();
+  const job=jobs.find(j=>j.id===jobId);
+  if(!job)return;
+  // there may be two rows (new-jobs section + category section) — sync both
+  const rows=document.querySelectorAll(`#jobs-table-view tr[data-id="${jobId}"]`);
+  const srcRow=[...rows].find(r=>r.contains(document.activeElement))||rows[0];
+  if(!srcRow)return;
+  const newStage=srcRow.querySelector('.jt-stage-sel')?.value;
+  const newStatus=srcRow.querySelector('.jt-status-inp')?.value||'';
+  job.user_status=newStatus;
+  job.updated_at=new Date().toISOString();
+  if(newStage&&newStage!==job.stage){
+    job.stage=newStage;
+    if(!job.stage_history)job.stage_history=[];
+    job.stage_history.push({stage:newStage,at:new Date().toISOString()});
+    if(newStage==='applied'&&!job.applied_at)job.applied_at=new Date().toISOString();
+  }
+  S.jobsV2=jobs;save();
+  rows.forEach(r=>{const b=r.querySelector('.jt-save');if(b)b.classList.remove('dirty');});
+  showNotif('✓ נשמר');
+  renderKanban();
+}
 // ─── STAGE SAVE AFTER SEARCH RESULT ──────────────────────────────────────
 function saveJobFromSearch(idx){
   const j=liveSearchResults[idx];
@@ -3998,18 +4826,191 @@ function saveJobFromSearch(idx){
 
 // INIT
 init();
+if(typeof setJobView==='function')setJobView(jobView);
 if(S.workspace)document.getElementById('workspace').value=S.workspace;
-// Request notification permission
-if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
-// Check due reminders
+
+// ─── DASHBOARD DECLUTTER — collapsible secondary cards ──────────────────────
+(function(){
+  const CK='pos_dash_collapsed';
+  let collapsed={};
+  try{collapsed=JSON.parse(localStorage.getItem(CK)||'{}');}catch(e){}
+  const st=document.createElement('style');
+  st.textContent='.card.jv-collapsible .ch{cursor:pointer;user-select:none}'+
+    '.jv-chev{display:inline-block;transition:transform .2s;font-size:9px;margin-left:4px;color:var(--text3)}'+
+    '.card.jv-collapsed .jv-chev{transform:rotate(-90deg)}'+
+    '.card.jv-collapsed .jv-card-body{display:none}'+
+    '.card.jv-collapsed{padding-bottom:16px}';
+  document.head.appendChild(st);
+  function makeCollapsible(innerId,key,defaultCollapsed){
+    const inner=document.getElementById(innerId);
+    if(!inner)return;
+    const card=inner.closest('.card');
+    if(!card||card.classList.contains('jv-collapsible'))return;
+    const ch=card.querySelector('.ch');
+    if(!ch)return;
+    const body=document.createElement('div');
+    body.className='jv-card-body';
+    let n=ch.nextSibling;
+    while(n){const next=n.nextSibling;body.appendChild(n);n=next;}
+    card.appendChild(body);
+    card.classList.add('jv-collapsible');
+    const ct=ch.querySelector('.ct');
+    if(ct){const chev=document.createElement('span');chev.className='jv-chev';chev.textContent='▾';ct.appendChild(chev);}
+    const isCol=key in collapsed?collapsed[key]:defaultCollapsed;
+    if(isCol)card.classList.add('jv-collapsed');
+    ch.addEventListener('click',e=>{
+      if(e.target.closest('.ca,button'))return;
+      card.classList.toggle('jv-collapsed');
+      collapsed[key]=card.classList.contains('jv-collapsed');
+      try{localStorage.setItem(CK,JSON.stringify(collapsed));}catch(e){}
+    });
+  }
+  setTimeout(()=>{
+    makeCollapsible('dash-agent-summary','agent',true);
+    makeCollapsible('dash-news-content','news',true);
+  },350);
+})();
+
+// ─── VOICE DICTATION — speak to fill any text field ─────────────────────────
+(function(){
+  const ds=document.createElement('style');
+  ds.textContent='.dictating{background:var(--red)!important;color:#fff!important;animation:dictpulse 1s ease-in-out infinite}'+
+    '@keyframes dictpulse{0%,100%{opacity:1}50%{opacity:.5}}';
+  document.head.appendChild(ds);
+})();
+function dictate(targetId,btn){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){showNotif('הדפדפן לא תומך בזיהוי קולי');return;}
+  const el=document.getElementById(targetId);
+  if(!el)return;
+  if(btn&&btn._rec){try{btn._rec.stop();}catch(e){}return;}
+  const r=new SR();
+  r.lang='he-IL';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;
+  const base=el.value?el.value.replace(/\s*$/,'')+' ':'';
+  if(btn){btn._rec=r;btn.classList.add('dictating');}
+  r.onresult=e=>{
+    let txt='';
+    for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript;
+    el.value=base+txt;
+    try{el.dispatchEvent(new Event('input'));}catch(e){}
+  };
+  const done=()=>{if(btn){btn.classList.remove('dictating');btn._rec=null;}};
+  r.onend=done;r.onerror=done;
+  try{r.start();showNotif('🎙 מקשיב — דבר עכשיו');}catch(e){done();}
+}
+
+// ─── SEED WEEKLY SCHEDULE into the native week grid (runs once) ─────────────
+function seedSchedule(force){
+  const FLAG='pos_sched_seeded_v1';
+  if(!force&&localStorage.getItem(FLAG))return;
+  const C={planning:'#0d9488',deep:'#6c63ff',buffer:'#94a3b8',meeting:'#e11d48',
+    food:'#f59e0b',uni:'#2563eb',train:'#dc2626',walk:'#16a34a',recovery:'#7c3aed',
+    reminder:'#ca8a04',light:'#0ea5e9',family:'#ea580c'};
+  const BLOCKS=[
+    [0,'10:30','פתיחת שבוע','planning'],[0,'11:00','Upselles — עבודה עמוקה','deep'],
+    [0,'13:00','באפר / מנוחה','buffer'],[0,'13:30','פגישה עם בלה','meeting'],
+    [0,'14:30','צהריים','food'],[0,'15:30','אוניברסיטה — לימוד עצמי','uni'],
+    [0,'16:45','באפר / סידורים','buffer'],[0,'18:00','פגישה עם רונית','meeting'],
+    [0,'19:15','אימון כוח','train'],[0,'21:00','ארוחת ערב','food'],[0,'22:00','תזכורת: הפשרת עוף/בשר','reminder'],
+    [1,'07:00','נסיעה לאוניברסיטה','buffer'],[1,'08:00','אוניברסיטה — יום מלא','uni'],
+    [1,'19:30','חזרה הביתה','buffer'],[1,'20:15','התאוששות','recovery'],
+    [1,'21:00','סיכום — אוניברסיטה','light'],[1,'22:00','תזכורת: הפשרת עוף/בשר','reminder'],
+    [2,'10:30','פתיחת יום','planning'],[2,'11:00','אוניברסיטה — לימוד עמוק','deep'],
+    [2,'13:00','צהריים','food'],[2,'14:00','Upselles — עבודה עמוקה','deep'],
+    [2,'16:00','הליכה / סידורים','walk'],[2,'18:30','אימון כוח','train'],
+    [2,'20:15','ארוחת ערב','food'],[2,'21:15','קורס Anthropic','light'],[2,'22:00','תזכורת: הפשרת עוף/בשר','reminder'],
+    [3,'10:30','פתיחת יום','planning'],[3,'11:00','אוניברסיטה — לימוד עמוק','deep'],
+    [3,'13:00','צהריים','food'],[3,'14:00','חיפוש דירה','light'],
+    [3,'15:30','פגישה עם תמר','meeting'],[3,'17:30','הליכה','walk'],
+    [3,'19:00','ארוחת ערב','food'],[3,'20:00','חיפוש עבודה','light'],[3,'22:00','תזכורת: הפשרת עוף/בשר','reminder'],
+    [4,'10:30','פתיחת יום','planning'],[4,'11:00','Upselles — עבודה עמוקה','deep'],
+    [4,'13:00','צהריים','food'],[4,'14:00','אוניברסיטה — מטלה','uni'],
+    [4,'16:00','הליכה / סידורים','walk'],[4,'18:30','אימון כוח','train'],
+    [4,'20:15','ארוחת ערב','food'],[4,'21:15','עדכון שבועי','planning'],[4,'22:00','תזכורת: הפשרת עוף/בשר','reminder'],
+    [5,'10:30','פתיחת יום','planning'],[5,'11:00','חיפוש עבודה','light'],
+    [5,'12:15','סידורים / בית','light'],[5,'13:00','צהריים','food'],
+    [5,'14:00','חיפוש דירה','light'],[5,'15:15','מנוחה / התארגנות','recovery'],
+    [5,'18:00','ארוחת שישי — משפחה','family'],
+    [6,'14:00','השלמות (אופציונלי)','buffer'],[6,'16:30','הליכה','walk'],
+    [6,'18:00','Weekly Review','planning']
+  ];
+  if(!S.weekEvents)S.weekEvents={};
+  Object.keys(S.weekEvents).forEach(k=>{
+    S.weekEvents[k]=(S.weekEvents[k]||[]).filter(e=>!e.sched);
+    if(!S.weekEvents[k].length)delete S.weekEvents[k];
+  });
+  BLOCKS.forEach(b=>{
+    const key=b[0]+'-'+b[1].slice(0,2)+':00';
+    if(!S.weekEvents[key])S.weekEvents[key]=[];
+    S.weekEvents[key].push({id:Date.now()+Math.floor(Math.random()*99999),text:b[1]+' '+b[2],color:C[b[3]]||'#6c63ff',sched:true});
+  });
+  save();
+  localStorage.setItem(FLAG,'1');
+  if(typeof buildWeekGrid==='function')buildWeekGrid();
+  if(force&&typeof showNotif==='function')showNotif('✓ הלוז הקבוע נטען לגריד');
+}
+seedSchedule();
+// ───── NOTIFICATIONS ─────
+// Fire a notification through the service worker (works inside an iOS PWA,
+// where the bare Notification constructor is unavailable) with a graceful
+// fallback to the constructor on desktop browsers.
+async function posNotify(title,body,data){
+  if(!('Notification'in window)||Notification.permission!=='granted')return false;
+  const opts={body:body||'',icon:'/icon.svg',badge:'/icon.svg',dir:'rtl',lang:'he',
+    tag:'pos-reminder-'+Date.now(),renotify:true,vibrate:[130,70,130],
+    data:Object.assign({url:'/?page=reminders'},data||{})};
+  try{
+    if('serviceWorker'in navigator){
+      const reg=await navigator.serviceWorker.ready;
+      await reg.showNotification(title,opts);
+      return true;
+    }
+  }catch(e){}
+  try{new Notification(title,opts);return true;}catch(e){}
+  return false;
+}
+// Request notification permission — MUST run from a user gesture, because
+// iOS Safari silently rejects requests made automatically on page load.
+async function enableNotifications(){
+  if(!('Notification'in window)){
+    if(typeof showNotif==='function')showNotif('הדפדפן לא תומך בהתראות');
+    return false;
+  }
+  if(Notification.permission==='granted'){
+    if(typeof showNotif==='function')showNotif('✓ התראות כבר פעילות');
+    posNotify('Personal OS','התראות פעילות — תקבל כאן תזכורות 🔔');
+    return true;
+  }
+  if(Notification.permission==='denied'){
+    alert('ההתראות חסומות.\nכדי להפעיל: הגדרות הדפדפן ← אתר זה ← התראות ← אפשר.\nבאייפון: הגדרות ← Personal OS ← התראות.');
+    return false;
+  }
+  let res='denied';
+  try{res=await Notification.requestPermission();}catch(e){}
+  if(res==='granted'){
+    if(typeof showNotif==='function')showNotif('✓ ההתראות הופעלו');
+    posNotify('Personal OS','מעולה! מעכשיו תקבל תזכורות 🔔');
+    return true;
+  }
+  if(typeof showNotif==='function')showNotif('ההתראות לא אושרו');
+  return false;
+}
+window.enableNotifications=enableNotifications;
+window.posNotify=posNotify;
+// Check due reminders — each fires at most once (r.notified guard)
 setInterval(()=>{
   const now=new Date();
-  S.reminders.filter(r=>!r.done).forEach(r=>{
-    const rd=new Date(r.date+'T'+r.time);
-    if(Math.abs(rd-now)<60000&&'Notification'in window&&Notification.permission==='granted'){
-      new Notification('⏰ Personal OS',{body:r.text});
+  let changed=false;
+  (S.reminders||[]).filter(r=>!r.done&&!r.notified).forEach(r=>{
+    if(!r.date)return;
+    const rd=new Date(r.date+'T'+(r.time||'09:00'));
+    if(rd<=now&&(now-rd)<300000){
+      posNotify('⏰ תזכורת',r.text);
+      if(typeof showNotif==='function')showNotif('⏰ '+r.text);
+      r.notified=true;changed=true;
     }
   });
+  if(changed)save();
 },60000);
 
 // SERVICE WORKER (PWA offline support)
@@ -4028,6 +5029,85 @@ if('serviceWorker'in navigator){
   }).catch(()=>{});
   navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
 }
+// ───── PWA INSTALL (iOS hint + Android/Chrome prompt) ─────
+(function(){
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||
+    (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const standalone=window.navigator.standalone===true||
+    window.matchMedia('(display-mode: standalone)').matches;
+  let deferred=null;
+
+  // slide-up keyframes
+  try{
+    const st=document.createElement('style');
+    st.textContent='@keyframes posSlideUp{from{transform:translateY(140%);opacity:0}to{transform:translateY(0);opacity:1}}';
+    document.head.appendChild(st);
+  }catch(e){}
+
+  function banner(inner){
+    if(document.getElementById('pos-install-banner'))return null;
+    const b=document.createElement('div');
+    b.id='pos-install-banner';
+    b.style.cssText='position:fixed;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:99999;background:linear-gradient(135deg,#6c63ff,#7c3aed);color:#fff;border-radius:16px;padding:13px 15px;box-shadow:0 12px 38px rgba(108,99,255,.5);display:flex;align-items:center;gap:11px;font-family:Heebo,sans-serif;direction:rtl;animation:posSlideUp .38s cubic-bezier(.2,.9,.3,1)';
+    b.innerHTML=inner;
+    document.body.appendChild(b);
+    const c=b.querySelector('[data-close]');
+    if(c)c.onclick=()=>{b.remove();localStorage.setItem('pos_install_dismissed',Date.now());};
+    return b;
+  }
+  function closeBtn(){
+    return '<button data-close style="background:rgba(255,255,255,.18);border:0;color:#fff;font-size:18px;line-height:1;cursor:pointer;width:28px;height:28px;border-radius:50%;flex-shrink:0">×</button>';
+  }
+  // re-show only after 7 days from last dismissal
+  function dismissedRecently(){
+    const t=+localStorage.getItem('pos_install_dismissed')||0;
+    return t&&(Date.now()-t)<7*864e5;
+  }
+
+  // Android / desktop Chrome — native install prompt
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault();deferred=e;
+    if(standalone||dismissedRecently())return;
+    setTimeout(()=>{
+      const b=banner(
+        '<span style="font-size:24px">📲</span>'+
+        '<div style="flex:1;line-height:1.35"><div style="font-weight:700;font-size:14px">התקן את Personal OS</div>'+
+        '<div style="font-size:12px;opacity:.88">גישה מהירה ישירות ממסך הבית</div></div>'+
+        '<button data-act style="background:#fff;color:#6c63ff;border:0;border-radius:10px;padding:9px 16px;font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;flex-shrink:0">התקן</button>'+
+        closeBtn()
+      );
+      if(b)b.querySelector('[data-act]').onclick=async()=>{
+        b.remove();deferred.prompt();
+        try{await deferred.userChoice;}catch(e){}
+        deferred=null;
+      };
+    },3500);
+  });
+  window.addEventListener('appinstalled',()=>{
+    const b=document.getElementById('pos-install-banner');if(b)b.remove();
+    deferred=null;
+  });
+
+  // iOS Safari — no native prompt, show manual instructions
+  if(isIOS&&!standalone&&!dismissedRecently()){
+    setTimeout(()=>{
+      banner(
+        '<span style="font-size:24px">📲</span>'+
+        '<div style="flex:1;line-height:1.4"><div style="font-weight:700;font-size:14px">התקן באייפון</div>'+
+        '<div style="font-size:12px;opacity:.92">הקש <b>שיתוף</b> <span style="font-size:14px">⬆️</span> ואז <b>"הוסף למסך הבית"</b></div></div>'+
+        closeBtn()
+      );
+    },4000);
+  }
+
+  // manual trigger — usable from a button anywhere in the app
+  window.posInstall=function(){
+    if(standalone){if(typeof showNotif==='function')showNotif('האפליקציה כבר מותקנת ✓');return;}
+    if(deferred){deferred.prompt();deferred.userChoice.then(()=>deferred=null);return;}
+    if(isIOS){alert('להתקנה כאפליקציה באייפון:\n\n1️⃣ הקש על כפתור השיתוף ⬆️ בתחתית הדפדפן\n2️⃣ גלול ובחר "הוסף למסך הבית"\n3️⃣ הקש "הוסף"');return;}
+    if(typeof showNotif==='function')showNotif('פתח את תפריט הדפדפן ובחר "התקן אפליקציה"');
+  };
+})();
 // WEBHOOK POLLING — poll every 30 seconds for remote commands
 setInterval(pollWebhook,30000);
 
@@ -5536,60 +6616,4 @@ function editDSExam(id){
   },30);
 }
 
-// ── WHATSAPP INTEGRATION ─────────────────────────────────────────────────────
-async function pollWebhook(){
-  try{
-    const r=await fetch('/api/webhook');
-    if(!r.ok)return;
-    const d=await r.json();
-    (d.commands||[]).forEach(handleWebhookCommand);
-  }catch{}
-}
-
-function handleWebhookCommand(cmd){
-  const a=cmd.action;
-  if(a==='ds_add_exam'){
-    if(!DS)loadDS();
-    DS.exams.push({id:'dse'+Date.now(),title:cmd.title||'',date:cmd.date||(new Date().toISOString().split('T')[0]+'T09:00'),type:cmd.type||'exam',courseId:cmd.courseId||'',notes:cmd.notes||'',location:'',grade:null,googleEventId:null,calendarSynced:false});
-    saveDS();renderDSHW();renderDSCourses();updateDSStats();
-    showNotif('📱 '+(cmd.title||'מבחן')+' נוסף מ-WhatsApp');
-  }else if(a==='ds_add_hw'){
-    if(!DS)loadDS();
-    DS.homework.push({id:'dsh'+Date.now(),title:cmd.title||'',dueDate:cmd.dueDate||(new Date().toISOString().split('T')[0]),courseId:cmd.courseId||'',status:'not_started',notes:cmd.notes||'',grade:null,googleEventId:null,calendarSynced:false});
-    saveDS();renderDSHW();
-    showNotif('📱 '+(cmd.title||'שיעורי בית')+' נוספו מ-WhatsApp');
-  }else if(a==='finance_add_expense'){
-    S.finance.unshift({id:Date.now(),ts:new Date().toISOString(),type:'expense',amount:parseFloat(cmd.amount)||0,currency:'ILS',merchant:cmd.description||cmd.merchant||'',category:cmd.category||'אחר'});
-    save();renderFinance();
-    showNotif('📱 הוצאה נוספה מ-WhatsApp');
-  }else if(a==='add_journal_entry'){
-    S.journalEntries=S.journalEntries||[];
-    const d=new Date();
-    S.journalEntries.unshift({date:d.getDate()+' ב'+MO[d.getMonth()],text:cmd.text||'',time:d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
-    save();renderJEntries();
-    showNotif('📱 ערך יומן נוסף מ-WhatsApp');
-  }
-}
-
-function pushStateToServer(){
-  try{
-    if(!DS)loadDS();
-    fetch('/api/whatsapp-command',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'push_state',params:{
-        homework:(DS.homework||[]).map(h=>({title:h.title,dueDate:h.dueDate,status:h.status})),
-        exams:(DS.exams||[]).map(e=>({title:e.title,date:e.date,type:e.type}))
-      }})
-    }).catch(()=>{});
-  }catch{}
-}
-
-function deleteDSExam(id){
-  const ex=DS.exams.find(e=>e.id===id);
-  if(ex?.googleEventId)deleteCalendarEvent(ex.googleEventId);
-  DS.exams=DS.exams.filter(e=>e.id!==id);
-  DS.courses.forEach(c=>{c.examIds=(c.examIds||[]).filter(x=>x!==id);});
-  saveDS();renderDSHW();renderDSCourses();updateDSStats();
-}
-</script>
-</body>
-</html>
+// ── WHATSAPP INTEGRATION ──�
