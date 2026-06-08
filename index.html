@@ -3834,10 +3834,14 @@ window.POS = (function(){
         id:'job_'+Date.now()+'_'+Math.floor(Math.random()*1000),
         userId:(typeof currentUser!=='undefined'&&currentUser&&currentUser.email)||'',
         title:title,company:a.company||'',location:a.location||'ישראל',url:a.link||'',
-        source:a.source||'other',source_label:'אחר',
+        source:a.source||'other',source_label:(typeof SOURCE_LABELS!=='undefined'&&SOURCE_LABELS[a.source])||'אחר',
         description_summary:a.notes||a.description||'',description_full:null,
-        match_score:Number(a.match)||0,match_breakdown:null,match_explanation:'',
-        matched_keywords:[],missing_keywords:[],
+        job_type:a.job_type||'',category:a.category||'',
+        match_score:Number(a.match)||0,
+        match_breakdown:a.match_breakdown||null,
+        match_explanation:a.match_explanation||a.description||'',
+        matched_keywords:Array.isArray(a.matched_keywords)?a.matched_keywords:[],
+        missing_keywords:Array.isArray(a.missing_keywords)?a.missing_keywords:[],
         stage:stage,stage_history:[{stage:stage,at:now}],
         applied_at:null,applied_method:null,follow_ups:[],interviews:[],offer:null,
         created_at:now,updated_at:now,archived_reason:null,user_notes:''
@@ -4479,10 +4483,13 @@ function openJobDrawer(jobId){
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
       <span class="match-badge ${matchClass(job.match_score||0).replace('kb-','match-')}">${job.match_score||0}% התאמה</span>
+      ${job.job_type?`<span class="bdg bdg-b">${escH(jobTypeHe(job.job_type))}</span>`:''}
+      ${job.category?`<span class="bdg bdg-p">${escH(job.category)}</span>`:''}
       <span class="bdg bdg-gr">${escH(job.source_label||job.source||'')}</span>
-      ${days>0?`<span class="bdg bdg-gr">${days} ימים בשלב`:''}
+      ${days>0?`<span class="bdg bdg-gr">${days} ימים בשלב</span>`:''}
     </div>
-    ${job.match_explanation?`<div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:10px">${escH(job.match_explanation)}</div>`:''}
+    ${job.match_explanation?`<div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:10px;line-height:1.6">💡 ${escH(job.match_explanation)}</div>`:''}
+    ${jobBreakdownHTML(job.match_breakdown)}
     ${job.matched_keywords?.length?`<div style="margin-bottom:8px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">מיומנויות שנמצאו</div><div style="display:flex;gap:5px;flex-wrap:wrap">${job.matched_keywords.map(k=>`<span class="bdg bdg-g">${escH(k)}</span>`).join('')}</div></div>`:''}
     ${job.missing_keywords?.length?`<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">מיומנויות חסרות</div><div style="display:flex;gap:5px;flex-wrap:wrap">${job.missing_keywords.map(k=>`<span class="bdg bdg-a">${escH(k)}</span>`).join('')}</div></div>`:''}
     ${job.description_summary?`<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">תיאור</div><div style="font-size:12px;color:var(--text2);line-height:1.6">${escH(job.description_summary)}</div></div>`:''}
@@ -6521,6 +6528,99 @@ function jobFollowUpSweep(){
 }
 document.addEventListener('DOMContentLoaded',()=>{setTimeout(jobFollowUpSweep,6000);});
 setInterval(jobFollowUpSweep,4*60*60*1000);
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  JOB-HUNT AGENT — in-app control panel, rich match detail, per-user profile
+//  (drop-in, 2026-06-08). The agent config is stored per-user in S.jobHuntConfig
+//  and auto-synced to the bot via save()→posSyncPush()→/sync, where the Railway
+//  job-hunt agent reads it (CV + preferences) to score jobs for THIS user.
+// ═══════════════════════════════════════════════════════════════════════════
+function jobTypeHe(t){
+  return ({student:'סטודנט',junior:'ג\'וניור',entry:'אנטרי',intern:'התמחות',mid:'מיד-לבל',senior:'סיניור'})[String(t||'').toLowerCase()]||t;
+}
+const JH_BD_LABELS={skills:'מיומנויות',seniority:'רמת ותק',domain:'תחום',location:'מיקום',bigpicture:'תמונה גדולה'};
+function jobBreakdownHTML(bd){
+  if(!bd||typeof bd!=='object')return '';
+  const rows=Object.keys(JH_BD_LABELS).filter(k=>typeof bd[k]==='number').map(k=>{
+    const v=Math.max(0,Math.min(100,Math.round(bd[k])));
+    const col=v>=75?'var(--green)':v>=50?'var(--amber)':'var(--red)';
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+      <div style="font-size:11px;color:var(--text2);min-width:74px">${JH_BD_LABELS[k]}</div>
+      <div style="flex:1;height:7px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="width:${v}%;height:100%;background:${col}"></div></div>
+      <div style="font-size:11px;font-weight:600;color:${col};min-width:30px;text-align:left">${v}</div>
+    </div>`;
+  }).join('');
+  if(!rows)return '';
+  return `<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:6px">פירוק ההתאמה</div>${rows}</div>`;
+}
+
+function ensureJHC(){
+  if(!S.jobHuntConfig)S.jobHuntConfig={
+    name:(typeof currentUser!=='undefined'&&currentUser&&currentUser.name)||'',
+    homeArea:'תל אביב',
+    summary:'',
+    skills:[],
+    bigPicture:'',
+    seniority:'student / junior / entry only (≤2 years)',
+    locations:"Tel Aviv best, then Petah Tikva / Herzliya / Ra'anana / center; rest of Israel lower; abroad = 0",
+    cv:'',
+    autorun:true,
+  };
+  return S.jobHuntConfig;
+}
+function saveJHC(){save();/* save() auto-pushes to the bot via /sync */}
+
+function renderJobHuntPanel(){
+  const page=document.getElementById('page-jobs');if(!page)return;
+  // hide the old static profile box — the panel replaces it
+  const oldPbox=page.querySelector('.pbox');if(oldPbox)oldPbox.style.display='none';
+  const c=ensureJHC();
+  let el=document.getElementById('jh-agent-panel');
+  if(!el){el=document.createElement('div');el.id='jh-agent-panel';el.className='card';page.insertBefore(el,page.firstChild);}
+  const connected=!!(window.POS_SYNC&&POS_SYNC.url);
+  el.innerHTML=`
+    <div class="ch">
+      <div class="ct">🤖 סוכן ציד המשרות</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn bp bsm" onclick="runJobHuntNow()">🎯 הפעל ציד עכשיו</button>
+        <button class="btn bs bxs" onclick="document.getElementById('jh-settings').style.display=document.getElementById('jh-settings').style.display==='none'?'block':'none'">⚙️ כוונון</button>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text2);line-height:1.7;padding:0 2px 4px">
+      הסוכן סורק לינקדאין + דפי דרושים של ~100 חברות, מנקד מול הפרופיל שלך ומעלה התאמות ≥70% לכאן. רץ אוטומטית ב-09:00 וב-17:00, ושולח דוח בוואטסאפ.
+      ${connected?'<span class="bdg bdg-g" style="font-size:9px">מחובר</span>':'<span class="bdg bdg-a" style="font-size:9px">לא מחובר לסנכרון — הקו״ח לא יגיעו לסוכן</span>'}
+    </div>
+    <div id="jh-settings" style="display:none;border-top:1px solid var(--border);margin-top:8px;padding-top:10px">
+      <div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:6px">פרופיל אישי (מזין את הניקוד החכם)</div>
+      <input class="inp inp-full" style="margin-bottom:7px" placeholder="שם" value="${escH(c.name)}" oninput="S.jobHuntConfig.name=this.value">
+      <input class="inp inp-full" style="margin-bottom:7px" placeholder="אזור מגורים (למשל תל אביב)" value="${escH(c.homeArea)}" oninput="S.jobHuntConfig.homeArea=this.value">
+      <input class="inp inp-full" style="margin-bottom:7px" placeholder="תקציר מקצועי קצר" value="${escH(c.summary)}" oninput="S.jobHuntConfig.summary=this.value">
+      <input class="inp inp-full" style="margin-bottom:7px" placeholder="מיומנויות מופרדות בפסיק (Python, SQL, ...)" value="${escH((c.skills||[]).join(', '))}" oninput="S.jobHuntConfig.skills=this.value.split(',').map(s=>s.trim()).filter(Boolean)">
+      <input class="inp inp-full" style="margin-bottom:7px" placeholder="תמונה גדולה / שאיפה (למשל: להקים סטארטאפ)" value="${escH(c.bigPicture)}" oninput="S.jobHuntConfig.bigPicture=this.value">
+      <div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin:8px 0 4px">קורות חיים (הדבק טקסט — לחיפוש חכם ומדויק)</div>
+      <textarea class="inp inp-full" rows="5" placeholder="הדבק כאן את הקו״ח שלך..." oninput="S.jobHuntConfig.cv=this.value" style="margin-bottom:8px;font-size:12px;line-height:1.6">${escH(c.cv)}</textarea>
+      <button class="btn bp bsm" onclick="saveJHC();showNotif('✓ הפרופיל נשמר וסונכרן לסוכן')">💾 שמור וסנכרן לסוכן</button>
+    </div>`;
+}
+
+async function runJobHuntNow(){
+  if(!(window.POS_SYNC&&POS_SYNC.url)){showNotif('⚠️ צריך להגדיר סנכרון לשרת קודם (כפתור הסנכרון)');return;}
+  showNotif('🔎 מפעיל ציד משרות...');
+  try{
+    const r=await fetch(POS_SYNC.url+'/run-jobhunt',{method:'POST',headers:{'Content-Type':'application/json'}});
+    const d=await r.json().catch(()=>({}));
+    showNotif(d.msg||'🎯 הציד הופעל — דוח יישלח לוואטסאפ');
+  }catch(e){showNotif('⚠️ שגיאה בהפעלת הסוכן: '+e.message);}
+}
+
+// Render the panel whenever the jobs page opens
+(function(){
+  const _gp=window.goPage;
+  if(typeof _gp==='function'){
+    window.goPage=function(p){const r=_gp.apply(this,arguments);if(p==='jobs')setTimeout(renderJobHuntPanel,60);return r;};
+  }
+  document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{if(document.getElementById('page-jobs')&&document.getElementById('page-jobs').classList.contains('active'))renderJobHuntPanel();},1500);});
+})();
 </script>
 </body>
 </html>
