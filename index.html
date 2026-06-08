@@ -2401,6 +2401,7 @@ function init(){
   renderFamWeek();renderRoadmap();renderReminders();renderIdeas();
   renderBodyProfile();renderWater();renderWorkouts();renderJEntries();renderLeads();
   updateWeekRing();checkCalToken();
+  if(currentUser&&!gat&&localStorage.getItem('pos_cal_granted')){setTimeout(()=>autoConnectCal(false),900);}
   renderUserProfile();
   loadDynProjects();
   renderNewsTopics();
@@ -2801,8 +2802,37 @@ function selDay(iso){
 
 // GOOGLE CALENDAR
 let gat=sessionStorage.getItem('pos_gat')||null;
+// ── Unified Google auth: one sign-in also grants Calendar/Gmail (GIS token client) ──
+let _calTC=null;
+function calTokenClient(){
+  if(_calTC)return _calTC;
+  if(!(window.google&&google.accounts&&google.accounts.oauth2))return null;
+  _calTC=google.accounts.oauth2.initTokenClient({
+    client_id:'786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com',
+    scope:'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send',
+    callback:(resp)=>{
+      if(resp&&resp.access_token){
+        gat=resp.access_token;sessionStorage.setItem('pos_gat',gat);
+        try{localStorage.setItem('pos_cal_granted','1');}catch(e){}
+        const b=document.getElementById('gcal-btn');if(b){b.textContent='📅 ✓';b.classList.add('ok');}
+        try{loadCalDay(new Date());}catch(e){}
+        try{updateDSCalBanner();}catch(e){}
+        showNotif('✓ Google Calendar מחובר אוטומטית');
+      }
+    },
+    error_callback:()=>{}
+  });
+  return _calTC;
+}
+// interactive=true → always show consent; false → silent if already granted
+function autoConnectCal(interactive){
+  const tc=calTokenClient();
+  if(!tc)return false;
+  try{tc.requestAccessToken({prompt:interactive?'consent':''});return true;}catch(e){return false;}
+}
 const CAL_REDIRECT=location.origin; // no trailing slash — must match Google Cloud Console exactly
 function connectCal(){
+  if(autoConnectCal(true))return; // unified popup; fall back to redirect below
   const CID='786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com';
   const SC='https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send';
   location.href=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${CID}&redirect_uri=${encodeURIComponent(CAL_REDIRECT)}&response_type=token&scope=${encodeURIComponent(SC)}&prompt=consent`;
@@ -4422,6 +4452,7 @@ function handleCredentialResponse(response){
     }
     save();renderAll();renderUserProfile();
     showNotif('✓ מחובר כ-'+currentUser.name);
+    if(!gat){setTimeout(()=>autoConnectCal(false),350);} // unify: connect Calendar in same login
     if(currentUser.email==='tklroei1@gmail.com'){
       // Roei: mark onboarding done, skip to dashboard
       if(!S.userProfile)S.userProfile={};
