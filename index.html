@@ -257,6 +257,16 @@ select.inp{cursor:pointer}
 .meal{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .macro-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
 .macro-c{text-align:center;background:var(--bg3);border-radius:var(--radius-xs);padding:8px 4px;border:1px solid var(--border)}
+.mtp-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;align-items:center}
+.mtp-btn{font-size:11px;padding:5px 9px;border-radius:14px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer}
+.mtp-btn.on{background:var(--green);color:#fff;border-color:var(--green)}
+.mtp-hint{font-size:10px;color:var(--text3);margin-inline-start:4px}
+.meal-grp{margin-bottom:10px}
+.meal-grp-h{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid var(--border)}
+.meal-grp-sub{font-size:10px;color:var(--text3);font-weight:500}
+.tmpl-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:5px 8px;margin:0 6px 6px 0;font-size:12px}
+.tmpl-chip .tc-eat{background:var(--green);color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;line-height:1}
+.tmpl-chip .tc-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px}
 /* WORKOUT */
 .wo{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px}
 .wo-ex{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
@@ -1334,7 +1344,8 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div style="display:flex;flex-direction:column;gap:14px">
       <!-- FOOD -->
       <div class="card">
-        <div class="ch"><div class="ct">🍽️ מה אכלתי <span style="font-size:10px;color:var(--text3);font-weight:400">(היום)</span></div><button class="btn bs bsm" onclick="addMealManual()">+ ידני</button></div>
+        <div class="ch"><div class="ct">🍽️ מה אכלתי <span style="font-size:10px;color:var(--text3);font-weight:400">(היום)</span></div><div style="display:flex;gap:6px"><button class="btn bs bsm" onclick="openNutritionHistory()">📅 היסטוריה</button><button class="btn bs bsm" onclick="addMealManual()">+ ידני</button></div></div>
+        <div class="mtp-row" id="meal-type-picker"></div>
         <div class="irow" style="margin-bottom:8px">
           <input class="inp" style="flex:1" id="meal-ai-inp" placeholder="תאר בעברית: '2 ביצים, פרוסת לחם וקפה'..." onkeydown="if(event.key==='Enter')logMealAI()">
           <button class="btn bp bsm" id="meal-ai-btn" onclick="logMealAI()">🤖 חשב והוסף</button>
@@ -1358,6 +1369,12 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
           </div>
           <div id="meal-sug" style="font-size:12px;color:var(--text2);min-height:30px"></div>
         </div>
+      </div>
+      <!-- RECURRING MEALS -->
+      <div class="card">
+        <div class="ch"><div class="ct">⭐ ארוחות קבועות</div><button class="btn bp bsm" onclick="addTemplate()">+ ארוחה קבועה</button></div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">סמן ✓ על ארוחה שאתה אוכל בקביעות והיא תיכנס ליום בלחיצה אחת</div>
+        <div id="tmpl-list"></div>
       </div>
       <!-- WEEKLY NUTRITION -->
       <div class="card">
@@ -1975,7 +1992,7 @@ function getDefaultState(){return{
     {text:'הגעה למשקל יעד',progress:0,emoji:'💪'},
     {text:'מציאת דירה בת"א',progress:15,emoji:'🏡'},
   ],
-  meals:[],workouts:[],water:0,
+  meals:[],mealTemplates:[],workouts:[],water:0,healthSync:[],
   bodyProfile:{weight:'',goal:'',height:'',age:'',sex:'',activity:'',goalType:'',kcal:'',protein:'',carb:'',fat:''},
   weekEvents:{},
   jobs:[
@@ -2873,6 +2890,13 @@ async function addCalEvent(){
 // ─── CALORIE / MACRO MODEL (Mifflin-St Jeor → TDEE → targets) ───
 const ACTIVITY_FACTORS={sedentary:1.2,light:1.375,moderate:1.55,active:1.725,very:1.9};
 const ACTIVITY_HE={sedentary:'יושבני (מעט/ללא פעילות)',light:'קל (1-3 אימונים/שבוע)',moderate:'בינוני (3-5)',active:'פעיל (6-7)',very:'מאוד פעיל (פיזי/2 ביום)'};
+const MEAL_TYPES=[{key:'בוקר',emoji:'🌅'},{key:'צהריים',emoji:'☀️'},{key:'ערב',emoji:'🌙'},{key:'בין-לבין',emoji:'🥤'},{key:'חטיף',emoji:'🍎'}];
+function mealTypeByHour(h){h=(h==null)?new Date().getHours():h;if(h<11)return'בוקר';if(h<15)return'צהריים';if(h<18)return'בין-לבין';if(h<22)return'ערב';return'חטיף';}
+function mealTypeMeta(k){return MEAL_TYPES.find(t=>t.key===k)||{key:k||'אחר',emoji:'🍽️'};}
+let CUR_MEAL_TYPE=null;
+function setMealType(k){CUR_MEAL_TYPE=(CUR_MEAL_TYPE===k)?null:k;renderMealTypePicker();}
+function curMealType(){return CUR_MEAL_TYPE||mealTypeByHour();}
+function renderMealTypePicker(){const el=document.getElementById('meal-type-picker');if(!el)return;el.innerHTML=MEAL_TYPES.map(t=>`<button class="mtp-btn${(CUR_MEAL_TYPE===t.key)?' on':''}" onclick="setMealType('${t.key}')">${t.emoji} ${t.key}</button>`).join('')+`<span class="mtp-hint">${CUR_MEAL_TYPE?'נבחר ידנית':'אוטומטי: '+mealTypeByHour()}</span>`;}
 function calcBMR(b){
   const w=parseFloat(b.weight),h=parseFloat(b.height),a=parseFloat(b.age);
   if(!w||!h||!a)return null;
@@ -2957,7 +2981,7 @@ async function logMealAI(){
     const m=reply.match(/\{[\s\S]*\}/);
     if(!m)throw new Error('no json');
     const j=JSON.parse(m[0]);
-    S.meals.push({name:j.name||text,kcal:Math.round(+j.kcal||0),protein:Math.round(+j.protein||0),carb:Math.round(+j.carb||0),fat:Math.round(+j.fat||0),date:mealDateKey(),time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
+    S.meals.push({name:j.name||text,kcal:Math.round(+j.kcal||0),protein:Math.round(+j.protein||0),carb:Math.round(+j.carb||0),fat:Math.round(+j.fat||0),mealType:curMealType(),date:mealDateKey(),time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});CUR_MEAL_TYPE=null;
     save();renderMeals();updateStats();
     inp.value='';
     showNotif(`✓ נוסף: ${j.name||text} — ${Math.round(+j.kcal||0)} קל׳`);
@@ -3010,15 +3034,82 @@ function renderWeeklyNutrition(){
   el.innerHTML=rows+`<div style="margin-top:6px;font-size:11px;color:var(--text3)">ממוצע יומי (ימים פעילים): <strong>${avg||'—'}</strong> קל׳${target?' · יעד '+target:''}</div>`;
 }
 function renderMeals(){
-  const el=document.getElementById('meals-list');if(!el)return;
-  const meals=todayMeals();
-  el.innerHTML=meals.length?meals.map((m)=>{const i=S.meals.indexOf(m);return `
-    <div class="meal">
-      <div><div style="font-size:13px;font-weight:500">${m.time} — ${m.name}</div>
-      <div style="font-size:11px;color:var(--text3)">${m.kcal}קל׳ | ${m.protein}g חלבון${m.carb?` | ${m.carb}g פחמ׳`:''}${m.fat?` | ${m.fat}g שומן`:''}</div></div>
-      <button class="bi" onclick="delMeal(${i})" style="font-size:11px">✕</button>
-    </div>`;}).join(''):'<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px">אין ארוחות היום — תאר מה אכלת למעלה 🤖</div>';
-  renderWeeklyNutrition();
+  const el=document.getElementById('meals-list');
+  if(el){
+    const meals=todayMeals();
+    if(!meals.length){
+      el.innerHTML='<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px">אין ארוחות היום — בחר סוג ותאר מה אכלת, או סמן ✓ על ארוחה קבועה 🤖</div>';
+    }else{
+      const order=MEAL_TYPES.map(t=>t.key).concat(['אחר']);
+      const groups={};meals.forEach(m=>{const k=m.mealType||'אחר';(groups[k]=groups[k]||[]).push(m);});
+      let html='';
+      order.forEach(k=>{const arr=groups[k];if(!arr||!arr.length)return;const meta=mealTypeMeta(k);
+        const sk=arr.reduce((a,m)=>a+(+m.kcal||0),0);const sp=arr.reduce((a,m)=>a+(+m.protein||0),0);
+        html+=`<div class="meal-grp"><div class="meal-grp-h"><span>${meta.emoji} ${k}</span><span class="meal-grp-sub">${sk} קל׳ · ${sp}g חלבון</span></div>`;
+        html+=arr.map(m=>{const i=S.meals.indexOf(m);return `<div class="meal"><div><div style="font-size:13px;font-weight:500">${m.time} — ${m.name}</div><div style="font-size:11px;color:var(--text3)">${m.kcal}קל׳ | ${m.protein}g חלבון${m.carb?` | ${m.carb}g פחמ׳`:''}${m.fat?` | ${m.fat}g שומן`:''}</div></div><div style="display:flex;gap:4px"><button class="bi" onclick="saveMealAsTemplate(${i})" title="שמור כארוחה קבועה" style="font-size:12px">⭐</button><button class="bi" onclick="delMeal(${i})" style="font-size:11px">✕</button></div></div>`;}).join('');
+        html+='</div>';});
+      el.innerHTML=html;
+    }
+  }
+  renderWeeklyNutrition();renderMealTypePicker();renderTemplates();
+}
+function renderTemplates(){
+  const el=document.getElementById('tmpl-list');if(!el)return;
+  const t=S.mealTemplates||[];
+  if(!t.length){el.innerHTML='<div style="text-align:center;padding:10px;color:var(--text3);font-size:12px">אין ארוחות קבועות — צור אחת כדי לסמן ✓ במהירות</div>';return;}
+  const order=MEAL_TYPES.map(x=>x.key).concat(['אחר']);let html='';
+  order.forEach(k=>{const arr=t.filter(x=>(x.mealType||'אחר')===k);if(!arr.length)return;const meta=mealTypeMeta(k);
+    html+=`<div style="font-size:11px;font-weight:700;color:var(--text2);margin:6px 0 3px">${meta.emoji} ${k}</div><div>`;
+    html+=arr.map(x=>`<span class="tmpl-chip"><button class="tc-eat" onclick="logTemplate('${x.id}')" title="סמן שאכלתי">✓</button><span>${x.emoji||'🍽️'} ${x.name} · ${x.kcal}קל׳</span><button class="tc-del" onclick="delTemplate('${x.id}')">✕</button></span>`).join('');
+    html+='</div>';});
+  el.innerHTML=html;
+}
+function addTemplate(){
+  showModal(`<h3>⭐ ארוחה קבועה חדשה</h3><div style="display:flex;flex-direction:column;gap:8px"><input class="inp inp-full" id="tpl-name" placeholder="שם (שייק חלבון, חביתה 3 ביצים...)"><select class="inp inp-full" id="tpl-type">${MEAL_TYPES.map(t=>`<option value="${t.key}">${t.emoji} ${t.key}</option>`).join('')}</select><div style="display:flex;gap:6px"><input class="inp" style="flex:1" id="tpl-kcal" type="number" placeholder="קלוריות"><input class="inp" style="flex:1" id="tpl-prot" type="number" placeholder="חלבון g"></div><div style="display:flex;gap:6px"><input class="inp" style="flex:1" id="tpl-carb" type="number" placeholder="פחמימות g"><input class="inp" style="flex:1" id="tpl-fat" type="number" placeholder="שומן g"></div><div style="font-size:11px;color:var(--text3)">טיפ: כתוב תיאור בשם ולחץ 🤖 כדי שה-AI יחשב את הערכים</div><div style="display:flex;gap:8px"><button class="btn bs bsm" onclick="aiFillTemplate()">🤖 חשב מהשם</button><button class="btn bp" style="flex:1" onclick="saveTemplate()">💾 שמור</button><button class="btn bs" onclick="closeModal()">ביטול</button></div></div>`);
+}
+async function aiFillTemplate(){
+  const name=(document.getElementById('tpl-name').value||'').trim();if(!name){showNotif('כתוב שם/תיאור קודם');return;}
+  showNotif('מחשב...');
+  try{const reply=await claude(`אתה מחשבון תזונה. החזר אך ורק JSON תקין: {"kcal":מספר,"protein":מספר,"carb":מספר,"fat":מספר} עבור: "${name}"`,'');
+    const j=JSON.parse(reply.match(/\{[\s\S]*\}/)[0]);
+    document.getElementById('tpl-kcal').value=Math.round(+j.kcal||0);
+    document.getElementById('tpl-prot').value=Math.round(+j.protein||0);
+    document.getElementById('tpl-carb').value=Math.round(+j.carb||0);
+    document.getElementById('tpl-fat').value=Math.round(+j.fat||0);
+    showNotif('✓ חושב — אפשר לשמור');
+  }catch(e){showNotif('⚠️ לא הצלחתי לחשב');}
+}
+function saveTemplate(){
+  const name=(document.getElementById('tpl-name').value||'').trim();if(!name){showNotif('חסר שם');return;}
+  if(!S.mealTemplates)S.mealTemplates=[];
+  const ty=document.getElementById('tpl-type').value;
+  S.mealTemplates.push({id:'t'+Date.now().toString(36),name,mealType:ty,kcal:parseInt(document.getElementById('tpl-kcal').value)||0,protein:parseInt(document.getElementById('tpl-prot').value)||0,carb:parseInt(document.getElementById('tpl-carb').value)||0,fat:parseInt(document.getElementById('tpl-fat').value)||0,emoji:mealTypeMeta(ty).emoji});
+  save();renderTemplates();closeModal();showNotif('✓ ארוחה קבועה נשמרה');
+}
+function logTemplate(id){
+  const x=(S.mealTemplates||[]).find(t=>t.id===id);if(!x)return;
+  S.meals.push({name:x.name,kcal:+x.kcal||0,protein:+x.protein||0,carb:+x.carb||0,fat:+x.fat||0,mealType:x.mealType||curMealType(),date:mealDateKey(),time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}),fromTemplate:id});
+  save();renderMeals();updateStats();showNotif(`✓ נרשם: ${x.name} — ${x.kcal} קל׳`);
+}
+function delTemplate(id){S.mealTemplates=(S.mealTemplates||[]).filter(t=>t.id!==id);save();renderTemplates();}
+function saveMealAsTemplate(i){
+  const m=S.meals[i];if(!m)return;
+  if(!S.mealTemplates)S.mealTemplates=[];
+  if(S.mealTemplates.some(t=>t.name===m.name&&t.kcal==m.kcal)){showNotif('כבר קיימת ארוחה קבועה דומה');return;}
+  S.mealTemplates.push({id:'t'+Date.now().toString(36),name:m.name,mealType:m.mealType||'אחר',kcal:+m.kcal||0,protein:+m.protein||0,carb:+m.carb||0,fat:+m.fat||0,emoji:mealTypeMeta(m.mealType).emoji});
+  save();renderTemplates();showNotif('⭐ נשמרה כארוחה קבועה');
+}
+function openNutritionHistory(){
+  const meals=S.meals||[];
+  if(!meals.length){showModal('<h3>📅 היסטוריית תזונה</h3><div style="color:var(--text3);font-size:13px;padding:10px">עדיין אין נתונים. תתחיל לרשום ארוחות וההיסטוריה תיבנה כאן לפי תאריך, לאורך כל השנה.</div><button class="btn bs" onclick="closeModal()">סגור</button>');return;}
+  const byDate={};meals.forEach(m=>{const k=m.date||mealDateKey();(byDate[k]=byDate[k]||[]).push(m);});
+  const dates=Object.keys(byDate).sort().reverse();
+  const target=parseInt(S.bodyProfile.kcal)||0;
+  const rows=dates.map(d=>{const ms=byDate[d];const k=ms.reduce((a,m)=>a+(+m.kcal||0),0);const p=ms.reduce((a,m)=>a+(+m.protein||0),0);
+    const dd=new Date(d);const lbl=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][dd.getDay()];const over=target&&k>target;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px;font-weight:600">${dd.toLocaleDateString('he-IL')} · ${lbl}</div><div style="font-size:11px;color:var(--text3)">${ms.length} ארוחות · ${p}g חלבון</div></div><div style="font-size:13px;font-weight:700;color:${over?'var(--orange)':'var(--green)'}">${k}${target?'/'+target:''} קל׳</div></div>`;}).join('');
+  const avg=Math.round(dates.reduce((a,d)=>a+byDate[d].reduce((x,m)=>x+(+m.kcal||0),0),0)/dates.length);
+  showModal(`<h3>📅 היסטוריית תזונה</h3><div style="font-size:12px;color:var(--text3);margin-bottom:8px">${dates.length} ימים · ממוצע ${avg} קל׳/יום</div><div style="max-height:50vh;overflow:auto">${rows}</div><button class="btn bs" style="margin-top:10px" onclick="closeModal()">סגור</button>`);
 }
 function addMealManual(){
   const name=prompt('מה אכלת?');if(!name)return;
@@ -3026,7 +3117,7 @@ function addMealManual(){
   const protein=parseInt(prompt('חלבון (g):','0')||0);
   const carb=parseInt(prompt('פחמימות (g):','0')||0);
   const fat=parseInt(prompt('שומן (g):','0')||0);
-  S.meals.push({name,kcal,protein,carb,fat,date:mealDateKey(),time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});
+  S.meals.push({name,kcal,protein,carb,fat,mealType:curMealType(),date:mealDateKey(),time:new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})});CUR_MEAL_TYPE=null;
   save();renderMeals();updateStats();showNotif('✓ ארוחה נוספה');
 }
 function delMeal(i){S.meals.splice(i,1);save();renderMeals();updateStats();}
@@ -4222,7 +4313,7 @@ function handleCredentialResponse(response){
     if(isNew){
       // Roei gets pre-seeded data; everyone else gets blank + template selection
       S=currentUser.email==='tklroei1@gmail.com'?getDefaultState():{
-        tasks:[],habits:[],projects:[],goals:[],meals:[],workouts:[],water:0,
+        tasks:[],habits:[],projects:[],goals:[],meals:[],mealTemplates:[],workouts:[],water:0,healthSync:[],
         bodyProfile:{weight:'',goal:'',height:'',age:'',sex:'',activity:'',goalType:'',kcal:'',protein:'',carb:'',fat:''},
         weekEvents:{},jobs:[],jobsV2:[],apts:[],leads:[],reminders:[],
         ideas:[],journalEntries:[],workspace:'',roadmap:[],
