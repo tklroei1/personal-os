@@ -341,6 +341,13 @@ select.inp{cursor:pointer}
 .login-tag{margin-top:7px;font-size:14px;color:#ff8a93}
 .login-sub{margin:20px 0 16px;font-size:13px;color:#9a8b90;line-height:1.55}
 #login-gbtn{display:flex;justify-content:center;min-height:46px}
+#login-unified-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:280px;max-width:100%;margin:0 auto 4px;padding:13px 18px;border:none;border-radius:30px;background:linear-gradient(135deg,#4285F4,#1a73e8);color:#fff;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(26,115,232,.35);transition:transform .12s,box-shadow .12s}
+#login-unified-btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(26,115,232,.45)}
+#login-unified-btn:active{transform:translateY(0)}
+.login-or{margin:10px auto 8px;color:var(--muted,#888);font-size:12px;position:relative;width:200px;text-align:center}
+.login-or::before,.login-or::after{content:"";position:absolute;top:50%;width:78px;height:1px;background:var(--border,#444)}
+.login-or::before{right:0}.login-or::after{left:0}
+#side-unified-btn{display:block;width:100%;margin-bottom:6px;padding:9px 10px;border:none;border-radius:8px;background:linear-gradient(135deg,#4285F4,#1a73e8);color:#fff;font-size:12.5px;font-weight:600;cursor:pointer}
 .login-foot{margin-top:22px;font-size:11px;color:#6a5b60}
 #webhook-badge{position:fixed;top:14px;right:50%;transform:translateX(50%);background:var(--teal);color:#fff;padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;z-index:1000;opacity:0;transition:opacity 0.3s;pointer-events:none}
 #webhook-badge.show{opacity:1}
@@ -727,6 +734,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
         data-use_fedcm_for_prompt="true"
         data-context="signin">
       </div>
+      <button id="side-unified-btn" onclick="signInUnified()">🔓 התחבר עם Google (כולל יומן)</button>
       <div class="g_id_signin"
         data-type="standard"
         data-theme="filled_blue"
@@ -1749,8 +1757,10 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <h1>Personal OS</h1>
     <div class="login-tag">העוזר האישי החכם שלך — זורו</div>
     <div class="login-sub">התחבר עם חשבון Google כדי להיכנס למערכת</div>
+    <button id="login-unified-btn" onclick="signInUnified()">🔓 התחבר עם Google &nbsp;<span style="opacity:.8;font-weight:400">(כולל יומן)</span></button>
+    <div class="login-or">או</div>
     <div id="login-gbtn"></div>
-    <div class="login-foot">המידע שלך נשמר מקומית במכשיר שלך</div>
+    <div class="login-foot">חיבור אחד מאשר גם זהות וגם Google Calendar. המידע שלך נשמר מקומית במכשיר שלך.</div>
   </div>
 </div>
 
@@ -2830,6 +2840,37 @@ function autoConnectCal(interactive){
   const tc=calTokenClient();
   if(!tc)return false;
   try{tc.requestAccessToken({prompt:interactive?'consent':''});return true;}catch(e){return false;}
+}
+// ── UNIFIED SIGN-IN: one click → identity + Calendar + Gmail in a single Google consent ──
+let _unifiedTC=null;
+function unifiedTokenClient(){
+  if(_unifiedTC)return _unifiedTC;
+  if(!(window.google&&google.accounts&&google.accounts.oauth2))return null;
+  _unifiedTC=google.accounts.oauth2.initTokenClient({
+    client_id:'786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com',
+    scope:'openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send',
+    callback:async(resp)=>{
+      if(!(resp&&resp.access_token)){showNotif('⚠️ ההתחברות בוטלה');return;}
+      gat=resp.access_token;sessionStorage.setItem('pos_gat',gat);
+      try{localStorage.setItem('pos_cal_granted','1');}catch(e){}
+      const b=document.getElementById('gcal-btn');if(b){b.textContent='📅 ✓';b.classList.add('ok');}
+      try{loadCalDay(new Date());}catch(e){}
+      try{updateDSCalBanner();}catch(e){}
+      try{
+        const u=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+gat}}).then(r=>r.json());
+        if(u&&u.sub){applyUserLogin({sub:u.sub,name:u.name||u.email,email:u.email,picture:u.picture||''},true);}
+        else{showNotif('⚠️ זיהוי נכשל — נסה את הכפתור הרגיל למטה');}
+      }catch(e){console.error('userinfo error',e);showNotif('⚠️ שגיאת זיהוי — נסה את הכפתור הרגיל למטה');}
+    },
+    error_callback:(err)=>{console.warn('unified auth error',err);showNotif('⚠️ ההתחברות נכשלה — נסה שוב');}
+  });
+  return _unifiedTC;
+}
+// Must be called from a real user click (so the consent popup is not blocked).
+function signInUnified(){
+  const tc=unifiedTokenClient();
+  if(!tc){showNotif('Google עדיין נטען — נסה שוב בעוד רגע');return;}
+  try{tc.requestAccessToken({prompt:''});}catch(e){try{tc.requestAccessToken({prompt:'consent'});}catch(e2){showNotif('⚠️ לא ניתן לפתוח חלון התחברות');}}
 }
 const CAL_REDIRECT=location.origin; // no trailing slash — must match Google Cloud Console exactly
 function connectCal(){
@@ -4432,38 +4473,43 @@ function handleCredentialResponse(response){
   try{
     const b64=response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
     const payload=JSON.parse(decodeURIComponent(escape(atob(b64))));
-    currentUser={sub:payload.sub,name:payload.name,email:payload.email,picture:payload.picture||''};
-    localStorage.setItem('pos_user',JSON.stringify(currentUser));
-    const saved=localStorage.getItem(storageKey());
-    const isNew=!saved;
-    if(isNew){
-      // Roei gets pre-seeded data; everyone else gets blank + template selection
-      S=currentUser.email==='tklroei1@gmail.com'?getDefaultState():{
-        tasks:[],habits:[],projects:[],goals:[],meals:[],mealTemplates:[],workouts:[],water:0,healthSync:[],
-        bodyProfile:{weight:'',goal:'',height:'',age:'',sex:'',activity:'',goalType:'',kcal:'',protein:'',carb:'',fat:'',bodyFat:'',bodyFatGoal:''},
-        weekEvents:{},jobs:[],jobsV2:[],apts:[],leads:[],reminders:[],
-        ideas:[],journalEntries:[],workspace:'',roadmap:[],
-        finance:[],notes:[],inbox:[],userProfile:{},
-      };
-    } else {
-      S=JSON.parse(saved);
-      if(!S.finance)S.finance=[];
-      if(!S.notes)S.notes=[];
-      if(!S.inbox)S.inbox=[];
-    }
-    save();renderAll();renderUserProfile();
-    showNotif('✓ מחובר כ-'+currentUser.name);
-    if(!gat){setTimeout(()=>autoConnectCal(false),350);} // unify: connect Calendar in same login
-    if(currentUser.email==='tklroei1@gmail.com'){
-      // Roei: mark onboarding done, skip to dashboard
-      if(!S.userProfile)S.userProfile={};
-      S.userProfile.onboardingComplete=true;S.userProfile.setupDone=true;save();
-    } else if(!S.userProfile?.onboardingComplete){
-      setTimeout(()=>showOnboarding(),400);
-    } else if(!S.userProfile?.name){
-      setTimeout(()=>openProfileSetupModal(false),400);
-    }
+    // id-token path = identity only; let it try to auto-connect Calendar afterwards (fallback path)
+    applyUserLogin({sub:payload.sub,name:payload.name,email:payload.email,picture:payload.picture||''},false);
   }catch(e){console.error('Sign-in error:',e);}
+}
+// Shared post-login routine. hasCal=true when Calendar was already granted in the same flow (unified sign-in).
+function applyUserLogin(user,hasCal){
+  currentUser={sub:user.sub,name:user.name,email:user.email,picture:user.picture||''};
+  localStorage.setItem('pos_user',JSON.stringify(currentUser));
+  const saved=localStorage.getItem(storageKey());
+  const isNew=!saved;
+  if(isNew){
+    // Roei gets pre-seeded data; everyone else gets blank + template selection
+    S=currentUser.email==='tklroei1@gmail.com'?getDefaultState():{
+      tasks:[],habits:[],projects:[],goals:[],meals:[],mealTemplates:[],workouts:[],water:0,healthSync:[],
+      bodyProfile:{weight:'',goal:'',height:'',age:'',sex:'',activity:'',goalType:'',kcal:'',protein:'',carb:'',fat:'',bodyFat:'',bodyFatGoal:''},
+      weekEvents:{},jobs:[],jobsV2:[],apts:[],leads:[],reminders:[],
+      ideas:[],journalEntries:[],workspace:'',roadmap:[],
+      finance:[],notes:[],inbox:[],userProfile:{},
+    };
+  } else {
+    S=JSON.parse(saved);
+    if(!S.finance)S.finance=[];
+    if(!S.notes)S.notes=[];
+    if(!S.inbox)S.inbox=[];
+  }
+  save();renderAll();renderUserProfile();
+  showNotif('✓ מחובר כ-'+currentUser.name);
+  // Only the id-token fallback path needs a separate Calendar connect; unified sign-in already has it.
+  if(!hasCal&&!gat){setTimeout(()=>autoConnectCal(false),350);}
+  if(currentUser.email==='tklroei1@gmail.com'){
+    if(!S.userProfile)S.userProfile={};
+    S.userProfile.onboardingComplete=true;S.userProfile.setupDone=true;save();
+  } else if(!S.userProfile?.onboardingComplete){
+    setTimeout(()=>showOnboarding(),400);
+  } else if(!S.userProfile?.name){
+    setTimeout(()=>openProfileSetupModal(false),400);
+  }
 }
 function signOut(){
   if(window.google)google.accounts.id.disableAutoSelect();
