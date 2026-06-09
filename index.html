@@ -1987,9 +1987,16 @@ const PROJ_COLORS={jobs:'var(--blue)',upselles:'var(--purple)',health:'var(--gre
 const PROJ_NAMES={jobs:'💼 חיפוש עבודה',upselles:'🚀 Upselles',health:'💪 כושר',apartment:'🏡 דירה',family:'👨‍👩‍👧 משפחה',none:'כללי'};
 
 // MULTI-USER: each user's data keyed by their Google sub ID
-let currentUser=JSON.parse(localStorage.getItem('pos_user')||'null');
-// If the user is already signed in, hide the full-screen login overlay
-// immediately — before any of the dashboard scripts run — so there's no flash.
+// SESSION GATE: every entry returns to the login screen for real account separation,
+// EXCEPT when the previous login was recent (grace window) on this same device.
+const POS_SESSION_GRACE_MS=30*60*1000; // 30 minutes — after this idle gap, login is required again
+let _posPersistedUser=JSON.parse(localStorage.getItem('pos_user')||'null');
+let _posLastActive=parseInt(localStorage.getItem('pos_last_active')||'0',10);
+let _posSessionFresh=!!_posPersistedUser&&(Date.now()-_posLastActive<POS_SESSION_GRACE_MS);
+let currentUser=_posSessionFresh?_posPersistedUser:null;
+function posTouchSession(){try{localStorage.setItem('pos_last_active',String(Date.now()));}catch(e){}}
+if(_posSessionFresh)posTouchSession();
+// Only hide the full-screen login overlay immediately when the session is still fresh (no flash).
 if(currentUser){try{var __ls=document.getElementById('login-screen');if(__ls)__ls.style.display='none';}catch(e){}}
 function storageKey(){return currentUser?`pos3_${currentUser.sub}`:'pos3';}
 
@@ -2417,6 +2424,8 @@ function init(){
   loadDynProjects();
   renderNewsTopics();
   initClearMemoryBtns();
+  // Keep a fresh same-device session alive while the app is open (heartbeat + on focus)
+  if(currentUser){posTouchSession();setInterval(()=>{if(currentUser)posTouchSession();},60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden&&currentUser)posTouchSession();});}
   // Init Kanban after DOM is ready
   setTimeout(()=>{if(typeof renderKanban==='function')renderKanban();},100);
   // Auto-fetch dashboard news if topics configured
@@ -4481,6 +4490,7 @@ function handleCredentialResponse(response){
 function applyUserLogin(user,hasCal){
   currentUser={sub:user.sub,name:user.name,email:user.email,picture:user.picture||''};
   localStorage.setItem('pos_user',JSON.stringify(currentUser));
+  posTouchSession();
   const saved=localStorage.getItem(storageKey());
   const isNew=!saved;
   if(isNew){
@@ -4515,6 +4525,8 @@ function signOut(){
   if(window.google)google.accounts.id.disableAutoSelect();
   currentUser=null;
   localStorage.removeItem('pos_user');
+  try{localStorage.removeItem('pos_last_active');}catch(e){}
+  try{sessionStorage.removeItem('pos_gat');}catch(e){}
   location.reload();
 }
 function showLoginScreen(){
