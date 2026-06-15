@@ -416,6 +416,11 @@ select.inp{cursor:pointer}
 .kb-card-desc{font-size:10px;color:var(--text3);line-height:1.4;margin-top:4px}
 .jh-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:4px 9px;cursor:pointer}
 .jh-chip input{margin:0;cursor:pointer}
+.agent-why{margin-top:5px;font-size:11px;line-height:1.5}
+.agent-why summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:10px;list-style:none}
+.agent-why summary::-webkit-details-marker{display:none}
+.agent-why[open] summary{margin-bottom:3px}
+.agent-why>div{background:var(--bg3);border-radius:6px;padding:4px 7px;color:var(--text2)}
 .kb-flag{position:absolute;top:6px;left:6px;font-size:8px;font-weight:700;color:#fff;padding:1px 5px;border-radius:7px;letter-spacing:.2px}
 .kb-link{font-size:11px;text-decoration:none;margin-right:2px}
 .kb-nolink{font-size:10px;margin-right:2px;opacity:.8}
@@ -2417,6 +2422,8 @@ function init(){
   if((S.newsTopics||[]).length)setTimeout(dashFetchNews,1500);
   // Auto-run job/apartment agent on load (throttled to once per 3h)
   setTimeout(autoRefreshAgentResults,2500);
+  // Maintain the 2x/day job-check reminders (re-armed daily)
+  if(typeof ensureJobCheckReminders==='function')ensureJobCheckReminders();
   // WhatsApp command polling + deadline state push
   setTimeout(pushStateToServer,3000);
   setInterval(pollWebhook,30000);
@@ -2606,13 +2613,14 @@ function buildWeekGrid(){
     const isToday=i===today;
     html+=`<div class="wg-hdr" style="${isToday?'background:var(--accent-light);color:var(--accent)':''}">${d}${isToday?' ●':''}</div>`;
   });
+  const ivEvents=jobInterviewEvents();
   HRS.forEach((h,hi)=>{
     html+=`<div class="wg-time">${h}</div>`;
     for(let d=0;d<7;d++){
       const key=`${d}-${h}`;
-      const evs=S.weekEvents[key]||[];
-      html+=`<div class="wg-cell" id="wc-${d}-${hi}" 
-        onmousedown="startSel(${d},${hi})" 
+      const evs=(S.weekEvents[key]||[]).concat(ivEvents[key]||[]);
+      html+=`<div class="wg-cell" id="wc-${d}-${hi}"
+        onmousedown="startSel(${d},${hi})"
         onmousemove="moveSel(${d},${hi})"
         onmouseup="endSel(${d},${hi},'${h}')"
         ondblclick="editCellEvents(${d},'${h}')"
@@ -2622,13 +2630,39 @@ function buildWeekGrid(){
         ontouchend="endSel(${d},${hi},'${h}')">
         ${evs.map(e=>`<div class="wg-ev" style="background:${e.color||'var(--accent)'}">
           <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${e.text}</span>
-          <button class="wg-ev-del" onclick="event.stopPropagation();delWeekEv('${key}',${e.id})">✕</button>
+          ${e.interview?'':`<button class="wg-ev-del" onclick="event.stopPropagation();delWeekEv('${key}',${e.id})">✕</button>`}
         </div>`).join('')}
       </div>`;
     }
   });
   g.innerHTML=html;
   buildWeekMobile();
+}
+
+// ── Job interviews overlay: show in the weekly grid ONLY for the current week,
+//    auto-drops after the date passes (derived from jobsV2, never stored in the grid).
+function _weekRange(){
+  const now=new Date();const start=new Date(now);start.setDate(now.getDate()-now.getDay());start.setHours(0,0,0,0);
+  const end=new Date(start);end.setDate(start.getDate()+7);return [start,end];
+}
+function _snapHR(time){
+  const mins=t=>{const p=String(t).split(':');return (+p[0])*60+(+(p[1]||0));};
+  const target=mins(time||'09:00');let best=HRS[0],bd=1e9;
+  HRS.forEach(h=>{const d=Math.abs(mins(h)-target);if(d<bd){bd=d;best=h;}});
+  return best;
+}
+function jobInterviewEvents(){
+  const out={};
+  if(typeof getJobsV2!=='function')return out;
+  const [start,end]=_weekRange();
+  getJobsV2().forEach(j=>{
+    const iv=j.interview;if(!iv||!iv.date)return;
+    const dt=new Date(iv.date+'T'+(iv.time||'09:00'));
+    if(isNaN(dt)||dt<start||dt>=end)return; // current week only → auto-expires
+    const key=`${dt.getDay()}-${_snapHR(iv.time)}`;
+    (out[key]=out[key]||[]).push({id:'iv_'+j.id,text:`🗓 ${iv.type||'ראיון'}: ${escH(j.company||j.title||'משרה')}`,color:'#8b5cf6',interview:true});
+  });
+  return out;
 }
 
 // ── Mobile weekly view: day tabs + single-day agenda (phone-friendly) ──
@@ -2641,12 +2675,13 @@ function buildWeekMobile(){
   const today=new Date().getDay();
   tabs.innerHTML=DF.map((d,i)=>`<div class="wg-daytab ${i===wgDay?'active':''}" onclick="setWgDay(${i})">${DH[i]}${i===today?' ●':''}<small>${d}</small></div>`).join('');
   let rows='';
+  const ivEvents=jobInterviewEvents();
   HRS.forEach(h=>{
     const key=`${wgDay}-${h}`;
-    const evs=S.weekEvents[key]||[];
+    const evs=(S.weekEvents[key]||[]).concat(ivEvents[key]||[]);
     if(!evs.length)return;
     rows+=`<div class="wg-dl-row"><div class="wg-dl-time">${h}</div><div class="wg-dl-evs">`+
-      evs.map(e=>`<div class="wg-dl-ev" style="background:${e.color||'var(--accent)'}"><span style="flex:1">${e.text}</span><button class="wg-ev-del" onclick="event.stopPropagation();delWeekEv('${key}',${e.id})">✕</button></div>`).join('')+
+      evs.map(e=>`<div class="wg-dl-ev" style="background:${e.color||'var(--accent)'}"><span style="flex:1">${e.text}</span>${e.interview?'':`<button class="wg-ev-del" onclick="event.stopPropagation();delWeekEv('${key}',${e.id})">✕</button>`}</div>`).join('')+
       `</div></div>`;
   });
   if(!rows)rows='<div class="wg-dl-row"><div class="wg-dl-empty">אין אירועים ביום זה — הוסף דרך "הוסף לקאלנדר" למטה, או לחץ "📅 סנכרן יומן".</div></div>';
@@ -3562,6 +3597,47 @@ function addReminder(){
 }
 function doneRem(i){S.reminders[i].done=!S.reminders[i].done;save();renderReminders();renderDashReminders();}
 function delRem(i){S.reminders.splice(i,1);save();renderReminders();renderDashReminders();}
+
+// ── JOB-CHECK REMINDERS — 2x/day, auto re-armed so they fire daily ──────────
+function ensureJobCheckReminders(){
+  if(!S.reminders)S.reminders=[];
+  const c=(typeof ensureJHC==='function')?ensureJHC():{};
+  if(c.jobReminders===false){ // user turned them off → remove
+    S.reminders=S.reminders.filter(r=>!r.jobCheck);return;
+  }
+  const today=new Date().toISOString().split('T')[0];
+  const slots=[['jobcheck_am','11:00','🔍 בדוק משרות חדשות (בוקר)'],['jobcheck_pm','17:00','🔍 בדוק משרות חדשות (אחה״צ)']];
+  let changed=false;
+  slots.forEach(([key,time,text])=>{
+    let r=S.reminders.find(x=>x.key===key);
+    if(!r){S.reminders.push({id:Date.now()+Math.floor(Math.random()*1e6),key,jobCheck:true,text,date:today,time,done:false,repeat:'daily'});changed=true;}
+    else if(r.date!==today){r.date=today;r.notified=false;r.done=false;changed=true;} // re-arm for today
+  });
+  if(changed)save();
+  // Best-effort: mirror to Google Calendar as recurring events (once)
+  if(typeof gat!=='undefined'&&gat&&!c._jobCalAdded&&typeof createCalendarEvent==='function'){
+    c._jobCalAdded=true;saveJHC&&saveJHC();
+    createCalendarEvent('🔍 בדיקת משרות',today+'T11:00','תזכורת יומית לבדוק משרות חדשות',{durationMins:15,recurrence:['RRULE:FREQ=DAILY']});
+    createCalendarEvent('🔍 בדיקת משרות',today+'T17:00','תזכורת יומית לבדוק משרות חדשות',{durationMins:15,recurrence:['RRULE:FREQ=DAILY']});
+  }
+}
+// Fire a special alert when the agent finds strong matches.
+function alertStrongMatches(data){
+  const n=data&&data.strongCount||0;
+  if(!n)return;
+  const top=(data.jobs||[]).find(j=>(j.match||0)>=75);
+  const msg=`${n} משרות עם התאמה גבוהה${top?` — למשל ${top.heading} (${top.match}%)`:''}`;
+  if(typeof posNotify==='function')posNotify('🔥 משרה מתאימה עבורך!',msg);
+  if(typeof showNotif==='function')showNotif('🔥 '+msg);
+  // Persist a one-time reminder so it isn't missed
+  if(!S.reminders)S.reminders=[];
+  const today=new Date().toISOString().split('T')[0];
+  if(!S.reminders.some(r=>r.strongAlert&&r.date===today)){
+    const now=new Date();const t=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    S.reminders.push({id:Date.now(),strongAlert:true,text:'🔥 '+msg+' — מרכז הפיקוד',date:today,time:t,done:false,notified:true});
+    save();renderDashReminders&&renderDashReminders();
+  }
+}
 
 // IDEAS
 function renderIdeas(){
@@ -4866,6 +4942,16 @@ function openJobDrawer(jobId){
     <input id="drawer-status-inp" class="inp inp-full" type="text" placeholder="לדוגמה: הוגש 8/6, ממתין לתשובה..." value="${escH(job.user_status||'')}" style="margin-bottom:8px">
     <div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">הערות אישיות</div>
     <textarea id="drawer-notes-inp" class="inp inp-full" rows="3" placeholder="הערות אישיות..." style="margin-bottom:10px">${escH(job.user_notes||'')}</textarea>
+    <div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin:6px 0 4px">🗓 ראיון / פגישה ${job.interview&&job.interview.date?`<span class="bdg bdg-b" style="font-size:9px">${escH(job.interview.date)} ${escH(job.interview.time||'')}</span>`:''}</div>
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <input id="drawer-iv-date" class="inp" type="date" value="${(job.interview&&job.interview.date)||''}" style="flex:1">
+      <input id="drawer-iv-time" class="inp" type="time" value="${(job.interview&&job.interview.time)||'10:00'}" style="width:96px">
+    </div>
+    <input id="drawer-iv-type" class="inp inp-full" type="text" placeholder="סוג (ראיון טלפוני / ראיון / מבחן בית...)" value="${escH((job.interview&&job.interview.type)||'')}" style="margin-bottom:6px">
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button class="btn bs bsm" style="flex:1" onclick="saveJobInterview('${job.id}')">📅 שמור פגישה + יומן ולוז</button>
+      ${job.interview&&job.interview.date?`<button class="btn bs bsm" onclick="clearJobInterview('${job.id}')">בטל</button>`:''}
+    </div>
     <div style="display:flex;gap:7px">
       <button class="btn bp bsm" style="flex:1" onclick="saveJobDrawer('${job.id}')">💾 שמור שינויים</button>
       <button class="btn bs bsm" onclick="deleteJobFromDrawer('${job.id}')">🗑 ארכב</button>
@@ -4912,6 +4998,38 @@ function saveJobDrawer(jobId){
   S.jobsV2=jobs;save();
   showNotif('✓ נשמר');
   renderJobs();
+}
+// Set/update an interview for a job → stores it, adds a Google Calendar event,
+// and the weekly grid shows it for the relevant week (auto-expires after the date).
+async function saveJobInterview(jobId){
+  const jobs=getJobsV2();const job=jobs.find(j=>j.id===jobId);if(!job)return;
+  const date=document.getElementById('drawer-iv-date')?.value||'';
+  const time=document.getElementById('drawer-iv-time')?.value||'10:00';
+  const type=(document.getElementById('drawer-iv-type')?.value||'').trim()||'ראיון';
+  if(!date){showNotif('בחר תאריך לפגישה');return;}
+  if(job.interview&&job.interview.gcalId&&typeof deleteCalendarEvent==='function'){try{await deleteCalendarEvent(job.interview.gcalId);}catch(e){}}
+  job.interview={date,time,type};
+  let gcalId=null;
+  if(typeof createCalendarEvent==='function'&&typeof gat!=='undefined'&&gat){
+    gcalId=await createCalendarEvent(`🗓 ${type}: ${job.company||job.title||'משרה'}`,date+'T'+time,`ראיון/פגישה למשרה: ${job.title||''} ${job.company?'@'+job.company:''}\n${job.url||''}`,{durationMins:60,reminderMins:[1440,120,30]});
+  }
+  if(gcalId)job.interview.gcalId=gcalId;
+  // Auto-advance stage to "interview" if currently earlier
+  if(['discovered','saved','applied','phone_screen'].includes(job.stage)){
+    job.stage='interview';if(!job.stage_history)job.stage_history=[];job.stage_history.push({stage:'interview',at:new Date().toISOString()});
+  }
+  job.updated_at=new Date().toISOString();S.jobsV2=jobs;save();
+  if(typeof buildWeekGrid==='function')buildWeekGrid();
+  renderJobs();
+  showNotif(gcalId?'✓ הפגישה נשמרה — נוספה ליומן Google וללוז השבועי':'✓ הפגישה נשמרה ובלוז השבועי');
+  openJobDrawer(jobId);
+}
+async function clearJobInterview(jobId){
+  const jobs=getJobsV2();const job=jobs.find(j=>j.id===jobId);if(!job)return;
+  if(job.interview&&job.interview.gcalId&&typeof deleteCalendarEvent==='function'){try{await deleteCalendarEvent(job.interview.gcalId);}catch(e){}}
+  job.interview=null;job.updated_at=new Date().toISOString();S.jobsV2=jobs;save();
+  if(typeof buildWeekGrid==='function')buildWeekGrid();
+  renderJobs();showNotif('הפגישה בוטלה');openJobDrawer(jobId);
 }
 
 function deleteJobFromDrawer(jobId){
@@ -6295,14 +6413,22 @@ function renderAgentActivity(data){
   if(jobsEl){
     // MANDATORY: only show jobs that have a real link.
     const jobs=(data.jobs||[]).filter(j=>/^https?:\/\//i.test(j.url||''));
-    jobsEl.innerHTML=jobs.length?('<div style="font-size:11px;color:var(--text3);margin-bottom:3px">💼 משרות</div>'+
-      jobs.slice(0,4).map(j=>{
+    const hdr=`<div style="font-size:11px;color:var(--text3);margin-bottom:3px">💼 משרות${data.strongCount?` · <span style="color:var(--green);font-weight:700">${data.strongCount} 🔥 התאמה גבוהה</span>`:''}</div>`;
+    jobsEl.innerHTML=jobs.length?(hdr+
+      jobs.slice(0,6).map(j=>{
         const fresh=agentFreshness(j.published_date);
+        const m=typeof j.match==='number'?j.match:null;
+        const mcol=m==null?'var(--text3)':m>=75?'#16a34a':m>=50?'#d97706':'#dc2626';
+        const matchBdg=m==null?'':`<span style="font-size:9px;font-weight:700;color:#fff;background:${mcol};padding:1px 6px;border-radius:8px;margin-inline-start:5px">${m}%${m>=75?' 🔥':''}</span>`;
         const type=j.type?`<span style="font-size:9px;font-weight:600;color:#fff;background:${fresh.color};padding:1px 5px;border-radius:6px;margin-inline-start:5px">${escH(j.type)}</span>`:'';
-        const desc=escH(j.snippet||'');
+        const co=j.company?`<span style="font-size:10px;color:var(--text3)"> · ${escH(j.company)}</span>`:'';
+        const desc=escH((j.snippet||'').slice(0,120));
+        const why=escH(j.why||''),gap=escH(j.gap||'');
+        const expl=(why||gap)?`<details class="agent-why"><summary>למה המשרה הזאת? 💡</summary>${why?`<div style="margin-top:4px"><b>מתאים כי:</b> ${why}</div>`:''}${gap?`<div style="margin-top:3px;color:var(--amber)"><b>מה כדאי לחזק:</b> ${gap}</div>`:''}</details>`:'';
         return`<div class="agent-item" style="box-shadow:inset 4px 0 0 ${fresh.color};padding-inline-start:8px">
-          <a href="${escH(j.url)}" target="_blank" class="agent-result-link">${escH(j.heading)}</a>${type}
-          ${desc?`<div style="color:var(--text3);font-size:11px">${desc}</div>`:''}</div>`;
+          <div><a href="${escH(j.url)}" target="_blank" class="agent-result-link">${escH(j.heading)}</a>${matchBdg}${type}${co}</div>
+          ${desc?`<div style="color:var(--text3);font-size:11px">${desc}</div>`:''}
+          ${expl}</div>`;
       }).join('')):'<div style="font-size:11px;color:var(--text3)">לא נמצאו משרות עם קישור</div>';
   }
   if(aptsEl&&data.apartments?.length){
@@ -6328,6 +6454,7 @@ async function refreshAgentResults(opts){
     const r=await fetch('/api/get-agent-results',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
     renderAgentActivity(d);
+    if(typeof alertStrongMatches==='function')alertStrongMatches(d);
   }catch{
     if(tsEl)tsEl.textContent='שגיאה — בדוק TAVILY_API_KEY';
   }
@@ -6392,7 +6519,7 @@ function updateDSCalBanner(){
 
 async function createCalendarEvent(title,dateStr,description,opts={}){
   if(!gat)return null;
-  const {durationMins=120,allDay=false,reminderMins=[1440,60]}=opts;
+  const {durationMins=120,allDay=false,reminderMins=[1440,60],recurrence=null}=opts;
   let start,end;
   if(allDay){
     // All-day: use date format
@@ -6408,10 +6535,10 @@ async function createCalendarEvent(title,dateStr,description,opts={}){
     const r=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${gat}`},
-      body:JSON.stringify({
+      body:JSON.stringify(Object.assign({
         summary:title,description:description||'',start,end,
         reminders:{useDefault:false,overrides:reminderMins.map(m=>({method:'popup',minutes:m}))}
-      })
+      },recurrence?{recurrence}:{}))
     });
     if(!r.ok){
       const err=await r.json().catch(()=>({}));
