@@ -257,6 +257,16 @@ select.inp{cursor:pointer}
 .meal{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .macro-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
 .macro-c{text-align:center;background:var(--bg3);border-radius:var(--radius-xs);padding:8px 4px;border:1px solid var(--border)}
+.mtp-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;align-items:center}
+.mtp-btn{font-size:11px;padding:5px 9px;border-radius:14px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer}
+.mtp-btn.on{background:var(--green);color:#fff;border-color:var(--green)}
+.mtp-hint{font-size:10px;color:var(--text3);margin-inline-start:4px}
+.meal-grp{margin-bottom:10px}
+.meal-grp-h{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid var(--border)}
+.meal-grp-sub{font-size:10px;color:var(--text3);font-weight:500}
+.tmpl-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:5px 8px;margin:0 6px 6px 0;font-size:12px}
+.tmpl-chip .tc-eat{background:var(--green);color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;line-height:1}
+.tmpl-chip .tc-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px}
 /* WORKOUT */
 .wo{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px}
 .wo-ex{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
@@ -726,6 +736,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
         data-use_fedcm_for_prompt="true"
         data-context="signin">
       </div>
+      <button id="side-unified-btn" onclick="signInUnified()">🔓 התחבר עם Google (כולל יומן)</button>
       <div class="g_id_signin"
         data-type="standard"
         data-theme="filled_blue"
@@ -744,6 +755,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   <div><div class="tb-title" id="pt">דשבורד</div><div class="tb-date" id="td"></div></div>
   <div class="tb-space"></div>
   <input class="tb-search inp" placeholder="חיפוש...">
+  <button class="gcal-btn" id="topbar-sync" onclick="posSyncNow()" title="סנכרן עכשיו" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green)">🔄</button>
   <button class="gcal-btn" id="gcal-btn" onclick="connectCal()" oncontextmenu="event.preventDefault();showCalHelper()">📅 Calendar</button>
   <div class="ava" id="ava" title="פרופיל" onclick="openProfileModal()">ר</div>
 </header>
@@ -1330,7 +1342,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
           <div><div style="font-size:10px;color:var(--text3)">TDEE</div><div style="font-size:18px;font-weight:700;color:var(--green)" id="hp-tdee">—</div></div>
         </div>
       </div>
-      <button class="btn bg bsm" onclick="editBodyProfile()">✏️ עדכן</button>
+      <button class="btn bg bsm" onclick="editGoalsModal()">🎯 יעדים</button> <button class="btn bg bsm" onclick="editBodyProfile()">✏️ עדכן</button>
     </div>
   </div>
   <div class="sr s4">
@@ -1339,8 +1351,23 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div class="sc sc-a"><div class="sl">אימונים</div><div class="sv" id="h-wo">0</div><div class="ss">יעד: 4/שבוע</div></div>
     <div class="sc sc-t"><div class="sl">מים</div><div class="sv" id="h-water">0/8</div><div class="ss">כוסות</div></div>
   </div>
+  <div id="nutri-insight" style="margin:0 0 12px"></div>
   <div class="g2">
     <div style="display:flex;flex-direction:column;gap:14px">
+      <!-- GOALS -->
+      <div class="card">
+        <div class="ch"><div class="ct">🎯 יעדים</div><button class="btn bs bsm" onclick="editGoalsModal()">✏️ עדכן יעדים</button></div>
+        <div id="goals-box"></div>
+      </div>
+      <!-- AI DIETITIAN -->
+      <div class="card">
+        <div class="ch"><div class="ct">🧠 דיאטן AI</div></div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">ניתוח חכם של מה שאכלת + איזון קלוריות על היום והשבוע</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn bp bsm" style="flex:1" onclick="analyzeNutritionAI('today')">📅 נתח את היום</button>
+          <button class="btn bs bsm" style="flex:1" onclick="analyzeNutritionAI('week')">📊 נתח את השבוע</button>
+        </div>
+      </div>
       <!-- FOOD -->
       <div class="card">
         <div class="ch"><div class="ct">🍽️ מה אכלתי <span style="font-size:10px;color:var(--text3);font-weight:400">(היום)</span></div><button class="btn bs bsm" onclick="addMealManual()">+ ידני</button></div>
@@ -2377,10 +2404,13 @@ function init(){
   renderFamWeek();renderRoadmap();renderReminders();renderIdeas();
   renderBodyProfile();renderWater();renderWorkouts();renderJEntries();renderLeads();
   updateWeekRing();checkCalToken();
+  if(currentUser&&!gat&&localStorage.getItem('pos_cal_granted')){setTimeout(()=>autoConnectCal(false),900);}
   renderUserProfile();
   loadDynProjects();
   renderNewsTopics();
   initClearMemoryBtns();
+  // Keep a fresh same-device session alive while the app is open (heartbeat + on focus)
+  if(currentUser){posTouchSession();setInterval(()=>{if(currentUser)posTouchSession();},60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden&&currentUser)posTouchSession();});}
   // Init Kanban after DOM is ready
   setTimeout(()=>{if(typeof renderKanban==='function')renderKanban();},100);
   // Auto-fetch dashboard news if topics configured
@@ -2778,8 +2808,68 @@ function selDay(iso){
 
 // GOOGLE CALENDAR
 let gat=sessionStorage.getItem('pos_gat')||null;
+// ── Unified Google auth: one sign-in also grants Calendar/Gmail (GIS token client) ──
+let _calTC=null;
+function calTokenClient(){
+  if(_calTC)return _calTC;
+  if(!(window.google&&google.accounts&&google.accounts.oauth2))return null;
+  _calTC=google.accounts.oauth2.initTokenClient({
+    client_id:'786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com',
+    scope:'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send',
+    callback:(resp)=>{
+      if(resp&&resp.access_token){
+        gat=resp.access_token;sessionStorage.setItem('pos_gat',gat);
+        try{localStorage.setItem('pos_cal_granted','1');}catch(e){}
+        const b=document.getElementById('gcal-btn');if(b){b.textContent='📅 ✓';b.classList.add('ok');}
+        try{loadCalDay(new Date());}catch(e){}
+        try{updateDSCalBanner();}catch(e){}
+        showNotif('✓ Google Calendar מחובר אוטומטית');
+      }
+    },
+    error_callback:()=>{}
+  });
+  return _calTC;
+}
+// interactive=true → always show consent; false → silent if already granted
+function autoConnectCal(interactive){
+  const tc=calTokenClient();
+  if(!tc)return false;
+  try{tc.requestAccessToken({prompt:interactive?'consent':''});return true;}catch(e){return false;}
+}
+// ── UNIFIED SIGN-IN: one click → identity + Calendar + Gmail in a single Google consent ──
+let _unifiedTC=null;
+function unifiedTokenClient(){
+  if(_unifiedTC)return _unifiedTC;
+  if(!(window.google&&google.accounts&&google.accounts.oauth2))return null;
+  _unifiedTC=google.accounts.oauth2.initTokenClient({
+    client_id:'786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com',
+    scope:'openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send',
+    callback:async(resp)=>{
+      if(!(resp&&resp.access_token)){showNotif('⚠️ ההתחברות בוטלה');return;}
+      gat=resp.access_token;sessionStorage.setItem('pos_gat',gat);
+      try{localStorage.setItem('pos_cal_granted','1');}catch(e){}
+      const b=document.getElementById('gcal-btn');if(b){b.textContent='📅 ✓';b.classList.add('ok');}
+      try{loadCalDay(new Date());}catch(e){}
+      try{updateDSCalBanner();}catch(e){}
+      try{
+        const u=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+gat}}).then(r=>r.json());
+        if(u&&u.sub){applyUserLogin({sub:u.sub,name:u.name||u.email,email:u.email,picture:u.picture||''},true);}
+        else{showNotif('⚠️ זיהוי נכשל — נסה את הכפתור הרגיל למטה');}
+      }catch(e){console.error('userinfo error',e);showNotif('⚠️ שגיאת זיהוי — נסה את הכפתור הרגיל למטה');}
+    },
+    error_callback:(err)=>{console.warn('unified auth error',err);showNotif('⚠️ ההתחברות נכשלה — נסה שוב');}
+  });
+  return _unifiedTC;
+}
+// Must be called from a real user click (so the consent popup is not blocked).
+function signInUnified(){
+  const tc=unifiedTokenClient();
+  if(!tc){showNotif('Google עדיין נטען — נסה שוב בעוד רגע');return;}
+  try{tc.requestAccessToken({prompt:''});}catch(e){try{tc.requestAccessToken({prompt:'consent'});}catch(e2){showNotif('⚠️ לא ניתן לפתוח חלון התחברות');}}
+}
 const CAL_REDIRECT=location.origin; // no trailing slash — must match Google Cloud Console exactly
 function connectCal(){
+  if(autoConnectCal(true))return; // unified popup; fall back to redirect below
   const CID='786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com';
   const SC='https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send';
   location.href=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${CID}&redirect_uri=${encodeURIComponent(CAL_REDIRECT)}&response_type=token&scope=${encodeURIComponent(SC)}&prompt=consent`;
@@ -4258,10 +4348,47 @@ function handleCredentialResponse(response){
     }
   }catch(e){console.error('Sign-in error:',e);}
 }
+// Shared post-login routine. hasCal=true when Calendar was already granted in the same flow (unified sign-in).
+function applyUserLogin(user,hasCal){
+  currentUser={sub:user.sub,name:user.name,email:user.email,picture:user.picture||''};
+  localStorage.setItem('pos_user',JSON.stringify(currentUser));
+  posTouchSession();
+  const saved=localStorage.getItem(storageKey());
+  const isNew=!saved;
+  if(isNew){
+    // Roei gets pre-seeded data; everyone else gets blank + template selection
+    S=currentUser.email==='tklroei1@gmail.com'?getDefaultState():{
+      tasks:[],habits:[],projects:[],goals:[],meals:[],mealTemplates:[],workouts:[],water:0,healthSync:[],
+      bodyProfile:{weight:'',goal:'',height:'',age:'',sex:'',activity:'',goalType:'',kcal:'',protein:'',carb:'',fat:'',bodyFat:'',bodyFatGoal:''},
+      weekEvents:{},jobs:[],jobsV2:[],apts:[],leads:[],reminders:[],
+      ideas:[],journalEntries:[],workspace:'',roadmap:[],
+      finance:[],notes:[],inbox:[],userProfile:{},
+    };
+  } else {
+    S=JSON.parse(saved);
+    if(!S.finance)S.finance=[];
+    if(!S.notes)S.notes=[];
+    if(!S.inbox)S.inbox=[];
+  }
+  save();renderAll();renderUserProfile();
+  showNotif('✓ מחובר כ-'+currentUser.name);
+  // Only the id-token fallback path needs a separate Calendar connect; unified sign-in already has it.
+  if(!hasCal&&!gat){setTimeout(()=>autoConnectCal(false),350);}
+  if(currentUser.email==='tklroei1@gmail.com'){
+    if(!S.userProfile)S.userProfile={};
+    S.userProfile.onboardingComplete=true;S.userProfile.setupDone=true;save();
+  } else if(!S.userProfile?.onboardingComplete){
+    setTimeout(()=>showOnboarding(),400);
+  } else if(!S.userProfile?.name){
+    setTimeout(()=>openProfileSetupModal(false),400);
+  }
+}
 function signOut(){
   if(window.google)google.accounts.id.disableAutoSelect();
   currentUser=null;
   localStorage.removeItem('pos_user');
+  try{localStorage.removeItem('pos_last_active');}catch(e){}
+  try{sessionStorage.removeItem('pos_gat');}catch(e){}
   location.reload();
 }
 function showLoginScreen(){
