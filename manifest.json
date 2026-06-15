@@ -1,18 +1,29 @@
 {
-  "name": "Personal OS",
-  "short_name": "POS",
-  "description": "פלטפורמת ניהול אישי של רואי קליין",
-  "start_url": "/",
+  "name": "Personal OS — רואי קליין",
+  "short_name": "Personal OS",
+  "description": "פלטפורמת ניהול אישי של רואי קליין — משימות, פיננסים, עבודה, תזכורות וזורו",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
   "theme_color": "#6c63ff",
-  "background_color": "#f7f6f2",
+  "background_color": "#0e0e16",
+  "categories": ["productivity", "lifestyle", "utilities"],
   "icons": [
     {
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ],
   "share_target": {
@@ -26,6 +37,7 @@
     "enctype": "application/x-www-form-urlencoded"
   },
   "shortcuts": [
+    { "name": "זורו", "short_name": "זורו", "url": "/?page=voice", "icons": [{ "src": "/icon.svg", "sizes": "any" }] },
     { "name": "חיפוש עבודה", "url": "/?page=jobs", "icons": [{ "src": "/icon.svg", "sizes": "any" }] },
     { "name": "פתק חדש", "url": "/?page=notes&new=1", "icons": [{ "src": "/icon.svg", "sizes": "any" }] },
     { "name": "פיננסים", "url": "/?page=finance", "icons": [{ "src": "/icon.svg", "sizes": "any" }] }

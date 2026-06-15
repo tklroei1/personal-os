@@ -1,0 +1,409 @@
+// Personal OS — Zoro MCP + state sync server (Cloudflare Worker edition)
+// Replaces the Railway bot's HTTP roles for free, on Cloudflare's permanent free
+// tier. Reminder delivery is handled by Personal OS's existing Google Calendar
+// sync (so this Worker doesn't need a long-running scheduler).
+
+const MCP_TOOLS = [
+  {
+    name: 'set_reminder',
+    description: 'קובע תזכורת שתופיע ב-Personal OS וגם תקפוץ ב-Google Calendar באייפון.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'תוכן התזכורת' },
+        datetime: { type: 'string', description: 'מועד בפורמט ISO 8601 מקומי, למשל 2026-05-23T18:00' },
+      },
+      required: ['text', 'datetime'],
+    },
+  },
+  {
+    name: 'list_reminders',
+    description: 'מחזיר את כל התזכורות העתידיות שטרם נשלחו.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'cancel_reminder',
+    description: 'מבטל תזכורת לפי המזהה שלה.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'מזהה התזכורת' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'add_journal_entry',
+    description: 'מוסיף רשומה ליומן האישי של רואי ב-Personal OS.',
+    inputSchema: {
+      type: 'object',
+      properties: { text: { type: 'string' } },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'add_expense',
+    description: 'רושם הוצאה ב-Personal OS.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        amount: { type: 'number', description: 'סכום בשקלים' },
+        description: { type: 'string', description: 'תיאור ההוצאה' },
+      },
+      required: ['amount', 'description'],
+    },
+  },
+  {
+    name: 'add_exam',
+    description: 'מוסיף מבחן ל-Personal OS עם תאריך.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'שם הקורס/המבחן' },
+        date: { type: 'string', description: 'תאריך בפורמט YYYY-MM-DD' },
+      },
+      required: ['title', 'date'],
+    },
+  },
+  {
+    name: 'add_homework',
+    description: 'מוסיף שיעורי בית עם דדליין ל-Personal OS.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'תיאור המשימה' },
+        dueDate: { type: 'string', description: 'תאריך אחרון בפורמט YYYY-MM-DD' },
+      },
+      required: ['title', 'dueDate'],
+    },
+  },
+  {
+    name: 'get_deadlines',
+    description: 'מחזיר את כל הדדליינים הקרובים מ-Personal OS (מבחנים ושיעורי בית).',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'add_task',
+    description: 'מוסיף משימה חדשה לרשימת המשימות של רואי.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'תיאור המשימה' },
+        proj: { type: 'string', description: 'פרויקט (jobs/health/family/apartment/none)' },
+        cat:  { type: 'string', description: 'קטגוריה (work/health/family/home/project)' },
+      },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'add_event',
+    description: 'מוסיף אירוע ללוז השבועי של רואי.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        date:  { type: 'string', description: 'YYYY-MM-DD' },
+        time:  { type: 'string', description: 'HH:MM' },
+      },
+      required: ['title', 'date'],
+    },
+  },
+  {
+    name: 'add_note',
+    description: 'שומר פתק.',
+    inputSchema: {
+      type: 'object',
+      properties: { title: { type: 'string' }, content: { type: 'string' } },
+      required: ['content'],
+    },
+  },
+  {
+    name: 'add_idea',
+    description: 'שומר רעיון.',
+    inputSchema: {
+      type: 'object',
+      properties: { text: { type: 'string' } },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'add_goal',
+    description: 'מוסיף מטרה.',
+    inputSchema: {
+      type: 'object',
+      properties: { text: { type: 'string' } },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'add_job',
+    description: 'מוסיף משרה למעקב חיפוש העבודה.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title:   { type: 'string' },
+        company: { type: 'string' },
+        status:  { type: 'string' },
+        link:    { type: 'string' },
+      },
+      required: ['title'],
+    },
+  },
+  {
+    name: 'add_apartment',
+    description: 'מוסיף דירה למעקב חיפוש הדירה.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'כתובת/תיאור' },
+        price: { type: 'string' },
+        area:  { type: 'string' },
+        link:  { type: 'string' },
+      },
+      required: ['title'],
+    },
+  },
+];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function corsHeaders(extra) {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400',
+    ...(extra || {}),
+  };
+}
+function unauthorized() {
+  return new Response(JSON.stringify({ error: 'unauthorized' }), {
+    status: 401,
+    headers: { ...corsHeaders(), 'Content-Type': 'application/json', 'WWW-Authenticate': 'Bearer' },
+  });
+}
+function checkAuth(req, env) {
+  if (!env.MCP_TOKEN) return true;
+  const auth = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  const url  = new URL(req.url);
+  const qs   = url.searchParams.get('token') || '';
+  return auth === env.MCP_TOKEN || qs === env.MCP_TOKEN;
+}
+function jsonResponse(body, status) {
+  return new Response(JSON.stringify(body), {
+    status: status || 200,
+    headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
+  });
+}
+function fmtWhen(iso) {
+  try {
+    return new Date(iso).toLocaleString('he-IL', {
+      timeZone: 'Asia/Jerusalem',
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    });
+  } catch { return iso; }
+}
+async function forwardToPersonalOs(env, action, params) {
+  try {
+    const r = await fetch(env.PERSONAL_OS_URL + '/api/whatsapp-command', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, params: params || {} }),
+    });
+    const d = await r.json().catch(() => ({}));
+    return d.response || '✓';
+  } catch (e) {
+    return 'שגיאת רשת: ' + e.message;
+  }
+}
+
+// ── MCP tools ────────────────────────────────────────────────────────────────
+const ACTION_MAP = {
+  add_expense:  'finance_add_expense',
+  add_exam:     'ds_add_exam',
+  add_homework: 'ds_add_hw',
+};
+
+async function mcpRunTool(env, name, args) {
+  args = args || {};
+  let text;
+  let isError = false;
+  try {
+    if (name === 'set_reminder') {
+      if (!args.text || !args.datetime) text = 'חסרים פרטים';
+      else {
+        const list = JSON.parse(await env.KV.get('reminders') || '[]');
+        const rec = {
+          id: Date.now().toString(36),
+          text: args.text,
+          datetime: args.datetime,
+          done: false,
+          created: new Date().toISOString(),
+        };
+        list.push(rec);
+        await env.KV.put('reminders', JSON.stringify(list));
+        // Dual-deliver: also push into Personal OS so the PWA picks it up via
+        // its 30s webhook polling and creates a Google Calendar event with a
+        // 0-minute popup — that's what actually rings the iPhone.
+        const dt = new Date(args.datetime);
+        const date = isNaN(dt.getTime()) ? '' : dt.toISOString().split('T')[0];
+        const time = isNaN(dt.getTime()) ? '' : dt.toTimeString().slice(0, 5);
+        await forwardToPersonalOs(env, 'add_reminder', { text: args.text, date, time });
+        text = `נקבעה תזכורת (${rec.id}) ל-${fmtWhen(rec.datetime)}: ${rec.text}`;
+      }
+    } else if (name === 'list_reminders') {
+      const list = JSON.parse(await env.KV.get('reminders') || '[]').filter(r => !r.done);
+      text = list.length
+        ? list.map(r => `• [${r.id}] ${fmtWhen(r.datetime)} — ${r.text}`).join('\n')
+        : 'אין תזכורות עתידיות.';
+    } else if (name === 'cancel_reminder') {
+      const list = JSON.parse(await env.KV.get('reminders') || '[]');
+      const r = list.find(x => x.id === args.id && !x.done);
+      if (!r) text = 'תזכורת לא נמצאה';
+      else { r.done = true; await env.KV.put('reminders', JSON.stringify(list)); text = `בוטלה: ${r.text}`; }
+    } else if (name === 'get_deadlines') {
+      try {
+        const r = await fetch(`${env.PERSONAL_OS_URL}/api/whatsapp-command?action=get_deadlines`);
+        const d = await r.json().catch(() => ({}));
+        text = d.response || 'אין מידע על דדליינים.';
+      } catch (e) { text = 'שגיאה: ' + e.message; isError = true; }
+    } else if (MCP_TOOLS.some(t => t.name === name)) {
+      const action = ACTION_MAP[name] || name;
+      text = await forwardToPersonalOs(env, action, args);
+    } else {
+      text = 'כלי לא מוכר: ' + name;
+      isError = true;
+    }
+  } catch (e) {
+    text = 'שגיאה: ' + e.message;
+    isError = true;
+  }
+  return { content: [{ type: 'text', text: String(text) }], isError };
+}
+
+// ── MCP endpoint (JSON-RPC over HTTP) ────────────────────────────────────────
+async function handleMcp(req, env) {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders() });
+  if (!checkAuth(req, env)) return unauthorized();
+
+  if (req.method === 'GET') {
+    // Minimal SSE stream — Claude.ai opens this briefly.
+    const enc = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(enc.encode(': mcp-stream\n\n'));
+        setTimeout(() => controller.close(), 100);
+      },
+    });
+    return new Response(stream, {
+      status: 200,
+      headers: { ...corsHeaders(), 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
+    });
+  }
+
+  if (req.method !== 'POST') {
+    return new Response('method not allowed', { status: 405, headers: corsHeaders() });
+  }
+
+  let msg;
+  try { msg = await req.json(); }
+  catch { return new Response('bad json', { status: 400, headers: corsHeaders() }); }
+
+  const batch = Array.isArray(msg) ? msg : [msg];
+  const responses = [];
+  for (const m of batch) {
+    const id = m.id;
+    let result, error;
+    try {
+      switch (m.method) {
+        case 'initialize':
+          result = {
+            protocolVersion: '2024-11-05',
+            capabilities: { tools: {} },
+            serverInfo: { name: 'personal-os-mcp', version: '2.0.0-cf' },
+          };
+          break;
+        case 'notifications/initialized':
+          continue;
+        case 'tools/list':
+          result = { tools: MCP_TOOLS };
+          break;
+        case 'tools/call': {
+          const { name, arguments: args } = m.params || {};
+          result = await mcpRunTool(env, name, args);
+          break;
+        }
+        case 'ping':
+          result = {};
+          break;
+        default:
+          error = { code: -32601, message: 'method not found: ' + m.method };
+      }
+    } catch (e) {
+      error = { code: -32603, message: e.message };
+    }
+    if (id !== undefined) {
+      responses.push(error
+        ? { jsonrpc: '2.0', id, error }
+        : { jsonrpc: '2.0', id, result });
+    }
+  }
+  return new Response(
+    responses.length ? JSON.stringify(Array.isArray(msg) ? responses : responses[0]) : '',
+    { status: 200, headers: { ...corsHeaders(), 'Content-Type': 'application/json' } }
+  );
+}
+
+// ── State sync endpoint ──────────────────────────────────────────────────────
+async function handleSync(req, env) {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders() });
+  if (!checkAuth(req, env)) return unauthorized();
+
+  if (req.method === 'GET') {
+    const stored = await env.KV.get('pos_state', { type: 'json' });
+    return jsonResponse(stored || { state: null, ts: 0 });
+  }
+
+  if (req.method === 'POST') {
+    let body;
+    try { body = await req.json(); }
+    catch { return new Response('bad json', { status: 400, headers: corsHeaders() }); }
+    if (!body || typeof body !== 'object' || !body.state) {
+      return new Response('missing state', { status: 400, headers: corsHeaders() });
+    }
+    const ts = Number(body.ts) || Date.now();
+    await env.KV.put('pos_state', JSON.stringify({ state: body.state, ts }));
+    return jsonResponse({ ok: true, ts });
+  }
+
+  return new Response('method not allowed', { status: 405, headers: corsHeaders() });
+}
+
+// ── Router ───────────────────────────────────────────────────────────────────
+export default {
+  async fetch(req, env, ctx) {
+    const url = new URL(req.url);
+
+    if (req.method === 'GET' && url.pathname === '/') {
+      return new Response('Personal OS MCP + sync (Cloudflare Worker) — ok', {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain', ...corsHeaders() },
+      });
+    }
+    if (url.pathname === '/mcp' || url.pathname === '/sse') return handleMcp(req, env);
+    if (url.pathname === '/sync')                            return handleSync(req, env);
+
+    // Meta WhatsApp webhook (placeholder — not used until Meta verification done)
+    if (url.pathname === '/webhook') {
+      if (req.method === 'GET') {
+        const mode      = url.searchParams.get('hub.mode');
+        const token     = url.searchParams.get('hub.verify_token');
+        const challenge = url.searchParams.get('hub.challenge');
+        if (mode === 'subscribe' && env.VERIFY_TOKEN && token === env.VERIFY_TOKEN) {
+          return new Response(challenge || '', { status: 200 });
+        }
+        return new Response('forbidden', { status: 403 });
+      }
+      if (req.method === 'POST') return new Response('ok', { status: 200 });
+    }
+
+    return new Response('not found', { status: 404 });
+  },
+};

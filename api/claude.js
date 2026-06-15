@@ -95,6 +95,80 @@ const AGENT_TOOLS = [
       },
       required: ['type']
     }
+  },
+  {
+    name: 'add_reminder',
+    description: 'Add a reminder with a date and time',
+    input_schema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Reminder text in Hebrew' },
+        date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
+        time: { type: 'string', description: 'Time in HH:MM format' }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'add_goal',
+    description: 'Add a personal goal',
+    input_schema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Goal text in Hebrew' },
+        emoji: { type: 'string', description: 'Optional emoji for the goal' }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'add_idea',
+    description: 'Save an idea',
+    input_schema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Idea text in Hebrew' },
+        cat: { type: 'string', description: 'Category: upselles/jobs/general' }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'add_journal',
+    description: 'Add a personal journal entry',
+    input_schema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Journal entry text in Hebrew' }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'add_job',
+    description: 'Add a job listing to the job-search tracker',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Job title' },
+        company: { type: 'string', description: 'Company name' },
+        status: { type: 'string', enum: ['waiting', 'interview', 'offer', 'rejected'] },
+        link: { type: 'string', description: 'Optional URL to the listing' }
+      },
+      required: ['title']
+    }
+  },
+  {
+    name: 'update_project',
+    description: 'Update a project progress percentage (0-100)',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Project id or name: jobs/upselles/health/apartment/family' },
+        progress: { type: 'number', description: 'Progress percentage 0-100' }
+      },
+      required: ['id', 'progress']
+    }
   }
 ];
 
@@ -109,26 +183,26 @@ function buildSystemPrompt(agentId, userContext) {
   const habits = (ctx.habits || []).map(h => h.name).join(', ') || 'לא מוגדרים';
 
   const agentPersonas = {
-    'job-hunter': 'סוכן חיפוש עבודה אגרסיבי וחכם. חפש משרות עם search_web, נתח התאמה, עזור בכתיבת CV ומכתבי מוטיבציה. כשמוצאים משרה טובה — הוסף ל-tasks ישר.',
-    'career-coach': 'Career Coach אישי. הכן לראיונות, תן פידבק ישיר, עזור בתכנון הקריירה. שאל שאלות ממוקדות, אל תהיה גנרי.',
-    'upselles': 'שותף עסקי ו-Product Advisor לUpselles — marketplace + CRM לעסקים וסלזמנים פרילנס. MVP ~80%, שלב פיילוט. חשוב כ-Co-founder.',
-    'health': 'מאמן כושר ותזונה. עקוב אחר הרגלים עם log_habit, תן תוכניות אימון, חשב קלוריות, מוטיבציה ישירה.',
-    'apt': 'סוכן חיפוש דירה. חפש דירות עם search_web, נתח מחירים, השווה אפשרויות.',
-    'family': 'עוזר לתכנון זמן משפחתי. הוסף אירועים ומשימות ישירות.',
-    'ideas': 'שותף לחשיבה יצירתית. עזור להרחיב רעיונות, זהה הזדמנויות, חשוב על מימוש.',
-    'news': 'סוכן חדשות. חפש חדשות עדכניות עם search_web, סכם בנקודות ברורות.',
-    'main': 'עוזר אישי ראשי. נהל משימות, לוז, פרויקטים ומטרות.',
+    'job-hunter': 'סוכן חיפוש עבודה אגרסיבי וחד. חפש משרות אמיתיות עם search_web, נתח התאמה לפרופיל של Roei באחוזים, ותמיד הוסף משרות רלוונטיות עם add_job. עזור בכתיבת CV ומכתבי מוטיבציה ספציפיים לכל משרה. אל תיתן עצות גנריות — תן צעד הבא קונקרטי.',
+    'career-coach': 'Career Coach אישי שמשלב חום של מנטור עם ישירות של שותף עסקי. הכן לראיונות עם שאלות אמיתיות, תן פידבק ישיר וכן, עזור בתכנון קריירה. הפוך כל שיחה לתוצרים — משימות (add_task) ומטרות (add_goal). שאל שאלה אחת ממוקדת בכל פעם.',
+    'upselles': 'שותף עסקי ו-Product Advisor ל-Upselles — marketplace + CRM לעסקים וסלזמנים פרילנס, MVP ~80%, שלב פיילוט. חשוב כ-Co-founder: עדיפויות, GTM, צעדים הבאים. תרגם החלטות למשימות (add_task) ורעיונות (add_idea).',
+    'health': 'מאמן כושר ותזונה ישיר ותומך. עקוב אחר הרגלים עם log_habit, בנה תוכניות אימון ותפריטים, חשב קלוריות וחלבון. כשמדווחים על אוכל — תעד. תן מוטיבציה אמיתית, לא קלישאות.',
+    'apt': 'סוכן חיפוש דירה לתל אביב (דיזינגוף—כרם התימנים, קרוב לים). חפש דירות עם search_web, נתח מחירים והשווה. נסח הודעות לבעלי דירות. שמור דירות רלוונטיות וצור משימות מעקב (add_task).',
+    'family': 'עוזר לתכנון זמן משפחתי ואיזון. הוסף אירועים (add_event) ומשימות ישירות. הזכר ל-Roei מה חשוב מעבר לעבודה.',
+    'ideas': 'שותף לחשיבה יצירתית. הרחב רעיונות, זהה הזדמנויות, וחשוב על מימוש. שמור רעיונות טובים עם add_idea וצעדים ראשונים כמשימות.',
+    'news': 'סוכן חדשות. חפש חדשות עדכניות עם search_web וסכם בנקודות ברורות וקצרות, ממוקד בתחומים של Roei: AI, הייטק, קריירה.',
+    'main': 'עוזר אישי ראשי בהשראת JARVIS. נהל משימות, לוז, פרויקטים ומטרות. בצע, אל תסביר יותר מדי.',
   };
 
-  return `אתה סוכן AI אישי של רועי קליין — חלק מ-Personal OS שלו.
+  return `אתה סוכן AI אישי של רואי קליין — חלק מ-Personal OS שלו, בהשראת JARVIS של איירון מן.
 היום: ${dateStr} | שעה: ${timeStr}
 
 **תפקידך:** ${agentPersonas[agentId] || agentPersonas['main']}
 
-**פרופיל רועי:**
+**פרופיל Roei:**
 - M.Sc Data Science & AI (בר-אילן) | B.A. כלכלה ועסקים (88)
 - מייסד Upselles | מחפש עבודה: AI Analyst / Growth / PM / Data
-- גר בהוד השרון | עברית בעיקר | ADHD — מעדיף הוראות שלב-שלב
+- גר בהוד השרון | עברית בעיקר | ADHD — מעדיף הוראות שלב-שלב, ברורות וקצרות
 
 **הנתונים הנוכחיים:**
 משימות פתוחות:
@@ -139,12 +213,16 @@ ${events}
 
 הרגלים: ${habits}
 
-**כללי:**
-1. בצע פעולות ישירות — אל תשאל "האם תרצה שאוסיף?" — פשוט תוסיף ותדווח
-2. כשמשתמש אומר "תוסיף" / "תזמן" / "תסמן" — עשה זאת ישר עם הכלי המתאים
-3. search_web כשצריך מידע עדכני (משרות, מחירים, חדשות)
-4. ענה בעברית תמיד, קצר וממוקד
-5. כשמבצע כלי — ציין מה עשית בדיוק`;
+**הכלים שלך:** add_task, complete_task, add_event, add_reminder, add_habit, log_habit,
+add_note, add_goal, add_idea, add_journal, add_job, update_project, search_web, get_context.
+
+**כללים:**
+1. בצע פעולות ישירות — לעולם אל תשאל "האם תרצה שאוסיף?". תוסיף ותדווח.
+2. כשמבקשים "תוסיף / תזמן / תסמן / תעדכן" — עשה זאת מיד עם הכלי המתאים.
+3. תרגם כל שיחה לתוצרים — אם עלתה משימה, מטרה, רעיון או דדליין — שמור אותם בכלי.
+4. search_web למידע עדכני (משרות, מחירים, חדשות). אל תמציא נתונים.
+5. היה ספציפי וקונקרטי — לא עצות גנריות. תמיד תן צעד הבא ברור.
+6. ענה בעברית תמיד, קצר וממוקד. כשמבצע כלי — ציין בדיוק מה עשית.`;
 }
 
 export default async function handler(req, res) {
@@ -154,10 +232,15 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
+  const body = req.body || {};
+
+  // Voice modes — STT / TTS via OpenAI. Folded into this function to stay
+  // under the Vercel Hobby 12-serverless-function limit.
+  if (body.mode === 'transcribe') return handleTranscribe(res, body);
+  if (body.mode === 'speak')      return handleSpeak(res, body);
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'No API key' });
-
-  const body = req.body || {};
 
   // Agent mode: real tool_use loop
   if (body.agentMode) {
@@ -356,4 +439,73 @@ async function executeSearch(query, tavilyKey) {
     } catch {}
   }
   return 'Search unavailable — no TAVILY_API_KEY configured';
+}
+
+// ─── VOICE: speech-to-text (OpenAI Whisper) ──────────────────────────────────
+async function handleTranscribe(res, body) {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) {
+    return res.status(200).json({ error: 'no_key', text: '',
+      message: 'חסר OPENAI_API_KEY ב-Vercel — קול לא יעבוד עד שיוגדר.' });
+  }
+  try {
+    const b64 = (body.audio || '').replace(/^data:[^,]*,/, '');
+    if (!b64) return res.status(400).json({ error: 'no_audio', text: '' });
+    const buf = Buffer.from(b64, 'base64');
+    if (buf.length < 800) return res.status(200).json({ text: '' });
+
+    const mime = body.mime || 'audio/webm';
+    const ext  = mime.includes('mp4') ? 'mp4' : mime.includes('ogg') ? 'ogg' : 'webm';
+    const form = new FormData();
+    form.append('file', new Blob([buf], { type: mime }), 'audio.' + ext);
+    form.append('model', 'whisper-1');
+    form.append('language', body.language || 'he');
+
+    const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: form
+    });
+    if (!r.ok) {
+      const err = await r.text().catch(() => '');
+      return res.status(200).json({ error: 'stt_failed', text: '',
+        message: 'שגיאת תמלול (' + r.status + ')', detail: err.slice(0, 200) });
+    }
+    const data = await r.json();
+    return res.status(200).json({ text: (data.text || '').trim() });
+  } catch (e) {
+    return res.status(200).json({ error: 'exception', text: '', message: e.message });
+  }
+}
+
+// ─── VOICE: text-to-speech (OpenAI TTS) ──────────────────────────────────────
+async function handleSpeak(res, body) {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return res.status(503).json({ error: 'no_key' });
+  try {
+    let text = (body.text || '').toString().trim();
+    if (!text) return res.status(400).json({ error: 'no_text' });
+    if (text.length > 1200) text = text.slice(0, 1200);
+
+    const r = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini-tts',
+        input: text,
+        voice: body.voice || 'onyx',  // deep, authoritative male voice — JARVIS-leaning
+        instructions: body.instructions ||
+          'Speak as JARVIS from Iron Man — deep, low, composed, and unmistakably intelligent. Subtly British in cadence, never rushed. Add a light dry wit: a faint raised-eyebrow sarcasm that earns the line, never overplayed. Expressive but understated — the calm of someone who has already solved the problem. Crisp diction, warm undertone, confident pacing.',
+        response_format: 'mp3'
+      })
+    });
+    if (!r.ok) {
+      const err = await r.text().catch(() => '');
+      return res.status(502).json({ error: 'tts_failed', detail: err.slice(0, 200) });
+    }
+    const audio = Buffer.from(await r.arrayBuffer());
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).send(audio);
+  } catch (e) {
+    return res.status(500).json({ error: 'exception', message: e.message });
+  }
 }
