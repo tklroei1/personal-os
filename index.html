@@ -5781,7 +5781,47 @@ function deleteDynProj(id){
   goPage('dashboard',null);showNotif('פרויקט נמחק');
 }
 function loadDynProjects(){
+  if(typeof ensureLinkedInProject==='function')ensureLinkedInProject();
   S.projects.filter(p=>p.id.startsWith('proj_')).forEach(proj=>{addDynNavItem(proj);addDynPage(proj);});
+}
+// Seed a "LinkedIn" personal-branding project + a note holding the content plan.
+const LI_PLAN_NOTE=`מיתוג אישי שמושך משרות ב-AI / AI Growth / סטארטאפים / VC·PE.
+
+עמודי תוכן:
+1. 🤖 AI & AI Growth — תובנות ודעות
+2. 🛠 Building in Public — Clarity Mode & Personal OS
+3. 🧬 Longevity × AI
+4. 💸 Startup / VC / PE thinking
+5. 🚀 מסע סטודנט→בילדר
+
+קצב: 3 פוסטים בשבוע (ג'/ד'/ה' בבוקר).
+
+12 פוסטים לחודש הראשון:
+1. בניתי עוזר אישי עם AI agents — 3 לקחים (Personal OS)
+2. מה זה באמת "AI Growth"
+3. למה בחרתי לבנות מוצרים ולא רק ללמוד
+4. הצגת Clarity Mode — הבעיה והפתרון
+5. AI × לונגיביטי — 3 חברות ישראליות
+6. איך אנליסט מסתכל על סטארטאפ ב-60 שניות
+7. Carousel: 5 כלי AI שמשנים צמיחת מוצר
+8. טעות שעשיתי ב-Personal OS ומה למדתי
+9. למה חברות קטנות הן ההימור הכי טוב לג'וניור
+10. Deep-dive על החלטה בפרויקט Clarity Mode
+11. מה AI עדיין לא יכול בבריאות — הזדמנות
+12. "Open to work" חכם: 3 חודשים, 2 מוצרים, הצעד הבא
+
+(התוכנית המלאה בקובץ LinkedIn-Content-Plan.md)`;
+function ensureLinkedInProject(){
+  if(!S.projects)S.projects=[];
+  if(!S.projects.some(p=>p.id==='proj_linkedin')){
+    S.projects.push({id:'proj_linkedin',name:'LinkedIn',templateId:'',icon:'📣',color:'#0a66c2',progress:0,createdAt:new Date().toISOString()});
+  }
+  if(!S.notes)S.notes=[];
+  if(!S.notes.some(n=>n&&n.id==='note_li_plan')){
+    const now=new Date().toISOString();
+    S.notes.unshift({id:'note_li_plan',title:'📣 LinkedIn — תוכנית פוסטים',content:LI_PLAN_NOTE,created:now,updated:now});
+  }
+  save();
 }
 
 // ─── PROJECT BUILDER (D&D) ───────────────────────────────────────────────────
