@@ -737,19 +737,12 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
         data-client_id="786576755989-7cr0hvf95q0f5oc5rq40ocpsv3lolkii.apps.googleusercontent.com"
         data-callback="handleCredentialResponse"
         data-auto_select="false"
+        data-auto_prompt="false"
         data-cancel_on_tap_outside="false"
         data-use_fedcm_for_prompt="true"
         data-context="signin">
       </div>
       <button id="side-unified-btn" onclick="signInUnified()">🔓 התחבר עם Google (כולל יומן)</button>
-      <div class="g_id_signin"
-        data-type="standard"
-        data-theme="filled_blue"
-        data-text="signin_with"
-        data-size="medium"
-        data-locale="he"
-        style="width:100%">
-      </div>
     </div>
     <button class="vbtn" id="vbtn" onclick="toggleVoice()">🎙 <span id="vlbl">דבר עם הסוכן</span></button>
   </div>
@@ -761,7 +754,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   <div class="tb-space"></div>
   <input class="tb-search inp" placeholder="חיפוש...">
   <button class="gcal-btn" id="topbar-sync" onclick="posSyncNow()" title="סנכרן עכשיו" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green)">🔄</button>
-  <button class="gcal-btn" id="gcal-btn" onclick="connectCal()" oncontextmenu="event.preventDefault();showCalHelper()">📅 Calendar</button>
+  <span class="gcal-btn" id="gcal-btn" title="יומן Google מחובר יחד עם החשבון" style="display:inline-flex;align-items:center;cursor:default">📅</span>
   <div class="ava" id="ava" title="פרופיל" onclick="openProfileModal()">ר</div>
 </header>
 <div id="webhook-badge">📡 עדכון התקבל</div>
@@ -850,8 +843,8 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 <!-- DATA SCIENCE & AI -->
 <div class="page" id="page-ds-ai">
   <div id="ds-cal-banner" style="display:none;align-items:center;gap:10px;background:var(--accent-light);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:13px">
-    <span style="flex:1">📅 חבר Google Calendar כדי לסנכרן מבחנים ושיעורי בית אוטומטית</span>
-    <button class="gcal-btn" onclick="connectCal()">חבר Calendar</button>
+    <span style="flex:1">📅 התחבר עם Google כדי לסנכרן מבחנים ושיעורי בית אוטומטית</span>
+    <button class="gcal-btn" onclick="signInUnified()">התחבר</button>
     <button class="bi" onclick="document.getElementById('ds-cal-banner').style.display='none'">✕</button>
   </div>
   <div id="ds-cal-ok" style="display:none;align-items:center;gap:8px;background:#43e97b11;border:1px solid #43e97b44;border-radius:var(--radius-sm);padding:8px 14px;margin-bottom:14px;font-size:12px;color:#43e97b">
@@ -1755,8 +1748,9 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div class="login-logo">◆</div>
     <h1>Personal OS</h1>
     <div class="login-tag">העוזר האישי החכם שלך — זורו</div>
-    <div class="login-sub">התחבר עם חשבון Google כדי להיכנס למערכת</div>
-    <div id="login-gbtn"></div>
+    <div class="login-sub">חיבור אחד לכל המערכת — כולל יומן Google</div>
+    <button id="login-unified-btn" onclick="signInUnified()" style="display:inline-flex;align-items:center;gap:8px;justify-content:center;background:#4285f4;color:#fff;border:none;border-radius:24px;padding:12px 22px;font-family:'Heebo',sans-serif;font-weight:600;font-size:15px;cursor:pointer;width:280px;max-width:90%">🔓 התחבר עם Google (כולל יומן)</button>
+    <div id="login-gbtn" style="display:none"></div>
     <div class="login-foot">המידע שלך נשמר מקומית במכשיר שלך</div>
   </div>
 </div>
@@ -4413,6 +4407,8 @@ function handleCredentialResponse(response){
     }
     save();renderAll();renderUserProfile();
     showNotif('✓ מחובר כ-'+currentUser.name);
+    // Calendar is part of the account: connect it together with the login.
+    if(!gat)setTimeout(()=>autoConnectCal(false),350);
     if(currentUser.email==='tklroei1@gmail.com'){
       // Roei: mark onboarding done, skip to dashboard
       if(!S.userProfile)S.userProfile={};
