@@ -25,6 +25,9 @@
     },
     "api/cron/job-hunt.js": {
       "maxDuration": 60
+    },
+    "api/job-coach.js": {
+      "maxDuration": 30
     }
   },
   "routes": [
@@ -75,6 +78,10 @@
     {
       "src": "/api/get-agent-results",
       "dest": "/api/get-agent-results.js"
+    },
+    {
+      "src": "/api/job-coach",
+      "dest": "/api/job-coach.js"
     },
     {
       "src": "/manifest.json",

@@ -11,6 +11,7 @@ const ROEI_PROFILE =
   'מחפש תפקידים עם סיכויי קבלה גבוהים לרמת סטודנט/ג\'וניור/התמחות. מעדיף תל אביב והמרכז.';
 
 const DEFAULT_ROLES = [
+  'AI Growth', 'AI Product Manager', 'AI Operations', 'Generative AI', 'Machine Learning Analyst',
   'AI Analyst', 'Data Analyst', 'Junior Data Analyst', 'Business Analyst', 'Business Intelligence Analyst',
   'BI Analyst', 'Analytics Specialist', 'Insights Analyst', 'Reporting Analyst', 'Operations Analyst',
   'Revenue Operations Analyst', 'Marketing Analyst', 'Growth Analyst', 'Strategy Analyst', 'Research Analyst',
@@ -21,6 +22,7 @@ const DEFAULT_ROLES = [
   'Customer Success Associate', 'Solutions Analyst',
   'Growth Marketing', 'Growth Associate', 'Marketing Operations',
   'Venture Capital Analyst', 'Investment Analyst', 'VC Associate', 'Investment Associate', 'Platform Associate',
+  'Private Equity Analyst', 'Private Equity Associate', 'Investment Banking Analyst',
 ];
 
 const DEFAULT_COMPANIES = [
