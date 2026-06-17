@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grammarly for Technical Teams — Technical Clarity Mode</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #F9F9F7;
+      --bg-card: #FFFFFF;
+      --text-primary: #111111;
+      --text-secondary: #555555;
+      --text-muted: #888888;
+      --accent: #11EE91;
+      --accent-dark: #0DC87A;
+      --indigo: #5C6AC4;
+      --border: #E5E5E0;
+      --border-light: #F0F0EC;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.05);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.09), 0 4px 12px rgba(0,0,0,0.06);
+      --radius: 12px;
+      --radius-lg: 20px;
+      --font: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 64px;
+      background: rgba(249,249,247,0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: -0.3px;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+
+    .nav-logo-icon {
+      width: 32px; height: 32px;
+      background: var(--text-primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-logo-icon svg { width: 18px; height: 18px; fill: var(--accent); }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text-primary); }
+
+    .nav-cta {
+      background: var(--text-primary);
+      color: #fff !important;
+      padding: 9px 20px;
+      border-radius: 8px;
+      font-weight: 600 !important;
+      font-size: 14px !important;
+      transition: background 0.2s, transform 0.15s !important;
+    }
+    .nav-cta:hover { background: #222 !important; transform: translateY(-1px); }
+
+    /* ── SECTIONS ── */
+    section { padding: 120px 48px; max-width: 1200px; margin: 0 auto; }
+    .section-full { max-width: 100%; padding-left: 0; padding-right: 0; }
+    .section-full > .inner { max-width: 1200px; margin: 0 auto; padding: 0 48px; }
+
+    /* ── HERO ── */
+    #hero {
+      padding-top: 180px;
+      padding-bottom: 120px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(17,238,145,0.1);
+      border: 1px solid rgba(17,238,145,0.3);
+      color: #0BAF6A;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 100px;
+      margin-bottom: 32px;
+    }
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: #11EE91;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero-eyebrow {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: clamp(42px, 6vw, 76px);
+      font-weight: 800;
+      letter-spacing: -2.5px;
+      line-height: 1.05;
+      color: var(--text-primary);
+      max-width: 900px;
+      margin: 0 auto 28px;
+    }
+
+    h1 .highlight {
+      background: linear-gradient(120deg, #0fcc7c 0%, #11EE91 50%, #5CF0B8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: clamp(17px, 2vw, 21px);
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 48px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--text-primary);
+      color: #fff;
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px 32px;
+      border-radius: 10px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.14);
+      letter-spacing: -0.2px;
+    }
+    .btn-primary:hover {
+      background: #1a1a1a;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    }
+    .btn-primary svg { width: 18px; height: 18px; }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 500;
+      padding: 16px 24px;
+      border-radius: 10px;
+      text-decoration: none;
+      border: 1.5px solid var(--border);
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s, transform 0.15s;
+    }
+    .btn-secondary:hover {
+      border-color: var(--text-primary);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+
+    .hero-trust {
+      margin-top: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+    .hero-trust strong { color: var(--text-secondary); }
+    .trust-divider { width: 1px; height: 14px; background: var(--border); }
+
+    /* ── HERO VISUAL ── */
+    .hero-visual {
+      margin-top: 80px;
+      position: relative;
+      max-width: 880px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    .hero-card-header {
+      background: #FAFAF8;
+      border-bottom: 1px solid var(--border-light);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-red { background: #FF5F57; }
+    .dot-yellow { background: #FEBC2E; }
+    .dot-green { background: #28C840; }
+
+    .hero-card-title {
+      margin-left: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .hero-card-body {
+      padding: 32px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .card-before, .card-after {
+      padding: 24px;
+      border-radius: var(--radius);
+    }
+    .card-before {
+      background: #FFF8F8;
+      border: 1px solid #FFE5E5;
+    }
+    .card-after {
+      background: #F0FFF8;
+      border: 1px solid rgba(17,238,145,0.2);
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .card-before .card-label { color: #E05252; }
+    .card-after .card-label { color: #0BAF6A; }
+
+    .card-text {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+    .tag {
+      display: inline-block;
+      background: rgba(224,82,82,0.1);
+      color: #C04040;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin: 2px 1px;
+    }
+
+    .arrow-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .arrow-circle {
+      width: 44px; height: 44px;
+      background: var(--text-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .arrow-circle svg { width: 18px; height: 18px; fill: var(--accent); }
+    .arrow-label { font-size: 11px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.05em; }
+
+    /* ── SECTION LABELS ── */
+    .section-tag {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 800;
+      letter-spacing: -1.8px;
+      line-height: 1.1;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+    }
+
+    .section-intro {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      line-height: 1.65;
+    }
+
+    /* ── PROBLEM SECTION ── */
+    #problem { padding-top: 0; }
+
+    .problem-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 64px;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .problem-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px 32px;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .problem-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent) 0%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .problem-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: #ddd; }
+    .problem-card:hover::before { opacity: 1; }
+
+    .problem-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      font-size: 22px;
+    }
+    .icon-red { background: #FFF0F0; }
+    .icon-orange { background: #FFF5EC; }
+    .icon-purple { background: #F3F0FF; }
+
+    .problem-term {
+      display: inline-block;
+      background: #F3F3F0;
+      color: var(--text-secondary);
+      font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+    }
+
+    .problem-card h3 {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      margin-bottom: 12px;
+    }
+
+    .problem-card p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .problem-stat {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .stat-number {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--text-primary);
+    }
+    .stat-label { font-size: 13px; color: var(--text-muted); }
+
+    /* ── FEATURE SECTION ── */
+    #feature {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+
+    .feature-content { }
+
+    .feature-list { margin-top: 40px; display: flex; flex-direction: column; gap: 20px; }
+
+    .feature-item {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .feature-check {
+      width: 28px; height: 28px;
+      min-width: 28px;
+      background: rgba(17,238,145,0.15);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+    }
+    .feature-check svg { width: 14px; height: 14px; stroke: #0BAF6A; stroke-width: 2.5; fill: none; }
+
+    .feature-item-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .feature-item-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+    .feature-visual {
+      position: relative;
+    }
+
+    .feature-visual-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .audience-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .audience-tab {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 16px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      background: transparent;
+      font-family: var(--font);
+    }
+    .audience-tab.active {
+      background: var(--text-primary);
+      color: #fff;
+      border-color: var(--text-primary);
+    }
+
+    .audience-output {
+      background: #F9F9F7;
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      padding: 20px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      min-height: 80px;
+    }
+
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--text-primary);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 100px;
+      margin-bottom: 20px;
+    }
+    .mode-dot { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; }
+
+    /* ── COMPARISON SECTION ── */
+    #comparison {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border-light);
+      border-bottom: 1px solid var(--border-light);
+      max-width: 100%;
+      padding: 120px 48px;
+    }
+    #comparison .inner { max-width: 1200px; margin: 0 auto; }
+
+    .comparison-header { text-align: center; margin-bottom: 72px; }
+    .comparison-header h2 { margin-bottom: 16px; }
+    .comparison-header p { font-size: 18px; color: var(--text-secondary); max-width: 520px; margin: 0 auto; }
+
+    .comparison-table {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .comp-col {
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .comp-col-header {
+      padding: 18px 28px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .comp-before .comp-col-header { background: #FFF3F3; color: #C04040; border-bottom: 1px solid #FFE0E0; }
+    .comp-after .comp-col-header { background: #F0FFF8; color: #0BAF6A; border-bottom: 1px solid rgba(17,238,145,0.2); }
+
+    .comp-col-header-icon {
+      width: 24px; height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+    .comp-before .comp-col-header-icon { background: rgba(192,64,64,0.1); }
+    .comp-after .comp-col-header-icon { background: rgba(17,238,145,0.15); }
+
+    .comp-message {
+      padding: 24px 28px;
+      display: flex;
+      gap: 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .comp-message:last-child { border-bottom: none; }
+
+    .comp-avatar {
+      width: 36px; height: 36px; min-width: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .avatar-blue { background: #5C6AC4; }
+    .avatar-green { background: #11A87A; }
+    .avatar-orange { background: #E07B39; }
+
+    .comp-message-content { flex: 1; }
+    .comp-sender { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    .comp-text { font-size: 14px; line-height: 1.65; color: var(--text-secondary); }
+    .comp-text code {
+      background: #F0F0EC;
+      color: #C04040;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    /* ── PERSONAS ── */
+    #personas { }
+
+    .personas-header { text-align: center; margin-bottom: 72px; }
+
+    .personas-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .persona-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px 32px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .persona-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+
+    .persona-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 4px;
+    }
+    .persona-card:nth-child(1)::after { background: linear-gradient(90deg, #5C6AC4, #8B93D6); }
+    .persona-card:nth-child(2)::after { background: linear-gradient(90deg, #11EE91, #0DC87A); }
+    .persona-card:nth-child(3)::after { background: linear-gradient(90deg, #E07B39, #F0A060); }
+
+    .persona-avatar {
+      width: 56px; height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin-bottom: 24px;
+    }
+    .pa-blue { background: #EEF0FF; }
+    .pa-green { background: #EDFFF7; }
+    .pa-orange { background: #FFF4EE; }
+
+    .persona-role {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .persona-card h3 {
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      margin-bottom: 14px;
+    }
+
+    .persona-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 28px;
+    }
+
+    .persona-quote {
+      background: #F9F9F7;
+      border-left: 3px solid var(--accent);
+      padding: 14px 16px;
+      border-radius: 0 8px 8px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-style: italic;
+      line-height: 1.6;
+    }
+
+    .persona-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 24px;
+    }
+
+    .persona-tag {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: #F3F3F0;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    /* ── FINAL CTA ── */
+    #cta {
+      text-align: center;
+      padding: 120px 48px 160px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #cta::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 800px; height: 800px;
+      background: radial-gradient(circle, rgba(17,238,145,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-inner { position: relative; z-index: 1; max-width: 700px; margin: 0 auto; }
+
+    .cta-eyebrow {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #0BAF6A;
+      margin-bottom: 20px;
+    }
+
+    #cta h2 {
+      font-size: clamp(38px, 5vw, 62px);
+      margin-bottom: 24px;
+    }
+
+    #cta p {
+      font-size: 18px;
+      color: var(--text-secondary);
+      margin-bottom: 48px;
+      line-height: 1.65;
+    }
+
+    .cta-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-accent {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent);
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 700;
+      padding: 18px 36px;
+      border-radius: 10px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(17,238,145,0.35);
+      letter-spacing: -0.2px;
+    }
+    .btn-accent:hover {
+      background: var(--accent-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(17,238,145,0.45);
+    }
+
+    .cta-note {
+      margin-top: 24px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .cta-note a { color: var(--text-muted); text-decoration: underline; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border-light);
+      padding: 40px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-logo { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+    .footer-copy { font-size: 13px; color: var(--text-muted); }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { font-size: 13px; color: var(--text-muted); text-decoration: none; }
+    .footer-links a:hover { color: var(--text-primary); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      section { padding: 80px 24px; }
+      #comparison { padding: 80px 24px; }
+      #cta { padding: 80px 24px 120px; }
+      h1 { font-size: 38px; letter-spacing: -1.5px; }
+      h2 { font-size: 32px; letter-spacing: -1px; }
+      .problem-grid { grid-template-columns: 1fr; }
+      .personas-grid { grid-template-columns: 1fr; }
+      #feature { grid-template-columns: 1fr; gap: 48px; }
+      .comparison-table { grid-template-columns: 1fr; }
+      .hero-card-body { grid-template-columns: 1fr; }
+      .arrow-icon { transform: rotate(90deg); }
+      footer { padding: 32px 24px; flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (max-width: 600px) {
+      .hero-actions { flex-direction: column; align-items: stretch; }
+      .hero-actions a, .hero-actions button { text-align: center; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-icon">
+        <svg viewBox="0 0 20 20"><path d="M10 2C5.58 2 2 5.58 2 10s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm.5 11.5h-1v-5h1v5zm0-6.5h-1V5.5h1V7z"/></svg>
+      </div>
+      Grammarly
+    </a>
+    <ul class="nav-links">
+      <li><a href="#problem">The Problem</a></li>
+      <li><a href="#feature">The Feature</a></li>
+      <li><a href="#comparison">See It In Action</a></li>
+      <li><a href="#personas">Who It's For</a></li>
+      <li><a href="onboarding.html" class="nav-cta">Try It Free</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-badge">New Feature</div>
+    <p class="hero-eyebrow">Grammarly for Technical Teams</p>
+    <h1>Your Code Is Flawless.<br><span class="highlight">Your Communication Should Be Too.</span></h1>
+    <p class="hero-sub">Technical Clarity Mode translates your engineering language into precise, audience-ready communication — so deals close faster and customers stay confident.</p>
+    <div class="hero-actions">
+      <a href="onboarding.html" class="btn-primary">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17l7-7-7-7M3 10h14"/></svg>
+        Try Technical Clarity Mode
+      </a>
+      <a href="#comparison" class="btn-secondary">See it in action</a>
+    </div>
+    <div class="hero-trust">
+      <strong>Trusted by 50,000+ technical teams</strong>
+      <div class="trust-divider"></div>
+      <span>Works in Slack, Gmail, Notion, Jira & more</span>
+      <div class="trust-divider"></div>
+      <span>Free 14-day trial</span>
+    </div>
+
+    <div class="hero-visual">
+      <div class="hero-card">
+        <div class="hero-card-header">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+          <span class="hero-card-title">Technical Clarity Mode — Live Preview</span>
+        </div>
+        <div class="hero-card-body">
+          <div class="card-before">
+            <div class="card-label">Raw Technical Draft</div>
+            <div class="card-text">
+              The <span class="tag">OAuth2.0 token refresh</span> failed due to an expired <span class="tag">JWT</span>. You'll need to re-authenticate via the <span class="tag">REST endpoint</span> and update the <span class="tag">webhook</span> config before the <span class="tag">async queue</span> can resume processing.
+            </div>
+          </div>
+          <div class="arrow-icon">
+            <div class="arrow-circle">
+              <svg viewBox="0 0 20 20"><path d="M10 3l7 7-7 7M3 10h14"/></svg>
+            </div>
+            <span class="arrow-label">AI</span>
+          </div>
+          <div class="card-after">
+            <div class="card-label">Stakeholder-Ready</div>
+            <div class="card-text">
+              Your login session expired and needs a quick refresh. Once you sign back in, we'll automatically update the notification settings and resume processing in the background — no action needed on your end after that.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROBLEM -->
+  <section id="problem">
+    <div class="problem-header">
+      <div>
+        <span class="section-tag">The Problem</span>
+        <h2>Technical jargon is<br/>costing you deals.</h2>
+      </div>
+      <p class="section-intro">When engineers talk to customers, the language gap creates confusion, erodes trust, and slows everything down. Here's where it breaks.</p>
+    </div>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="problem-icon icon-red">🔗</div>
+        <span class="problem-term">APIs &amp; Webhooks</span>
+        <h3>Integration talks stall at "API"</h3>
+        <p>Solutions Engineers spend half the demo explaining what an API is instead of showcasing value. Prospects disengage before seeing what matters.</p>
+        <div class="problem-stat">
+          <span class="stat-number">67%</span>
+          <span class="stat-label">of technical demos lose the decision-maker in the first 5 minutes</span>
+        </div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon icon-orange">🔐</div>
+        <span class="problem-term">JWT &amp; Auth Tokens</span>
+        <h3>Security features become blockers</h3>
+        <p>Customer Success Managers struggle to explain security architecture to procurement. "JWT validation" becomes a red flag instead of a green light.</p>
+        <div class="problem-stat">
+          <span class="stat-number">43%</span>
+          <span class="stat-label">of enterprise deals delayed due to security communication issues</span>
+        </div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon icon-purple">⚡</div>
+        <span class="problem-term">Event Queues &amp; Async</span>
+        <h3>Async architecture sounds unreliable</h3>
+        <p>Product Managers translating roadmaps to executives lose credibility when "asynchronous processing" is mistaken for "sometimes it works."</p>
+        <div class="problem-stat">
+          <span class="stat-number">3.2x</span>
+          <span class="stat-label">more follow-up cycles when technical concepts aren't translated</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURE -->
+  <section id="feature">
+    <div class="feature-content">
+      <span class="section-tag">Technical Clarity Mode</span>
+      <h2>AI that speaks every stakeholder's language.</h2>
+      <p class="section-intro">Technical Clarity Mode is an AI-powered translation layer built into your workflow. It reads context, detects your audience, and rewrites your message — without losing the precision that matters.</p>
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-check">
+            <svg viewBox="0 0 16 16"><polyline points="2,8 6,12 14,4"/></svg>
+          </div>
+          <div>
+            <div class="feature-item-title">Audience-Aware Translation</div>
+            <div class="feature-item-desc">Detects whether you're writing to a developer, executive, or end customer and adjusts language, depth, and tone automatically.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-check">
+            <svg viewBox="0 0 16 16"><polyline points="2,8 6,12 14,4"/></svg>
+          </div>
+          <div>
+            <div class="feature-item-title">Jargon Identification Engine</div>
+            <div class="feature-item-desc">Flags technical terms like JWT, REST, async, and OAuth before you hit send — with plain-language alternatives for each.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-check">
+            <svg viewBox="0 0 16 16"><polyline points="2,8 6,12 14,4"/></svg>
+          </div>
+          <div>
+            <div class="feature-item-title">Works Where You Work</div>
+            <div class="feature-item-desc">Natively integrated with Slack, Gmail, Notion, Confluence, and Jira. One click transforms your draft without switching tools.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-check">
+            <svg viewBox="0 0 16 16"><polyline points="2,8 6,12 14,4"/></svg>
+          </div>
+          <div>
+            <div class="feature-item-title">Technical Accuracy Preserved</div>
+            <div class="feature-item-desc">Simplification doesn't mean dumbing down. The AI retains meaning and nuance — it just removes the friction.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="feature-visual">
+      <div class="feature-visual-card">
+        <div class="mode-badge"><span class="mode-dot"></span> Technical Clarity Mode</div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">Adapts in real time to your audience</p>
+        <div class="audience-tabs">
+          <button class="audience-tab active" onclick="switchTab(this,'customer')">End Customer</button>
+          <button class="audience-tab" onclick="switchTab(this,'executive')">Executive</button>
+          <button class="audience-tab" onclick="switchTab(this,'developer')">Developer</button>
+        </div>
+        <div style="font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;">Original Input</div>
+        <div style="background:#F3F3F0;border-radius:8px;padding:14px 16px;font-size:13px;color:var(--text-secondary);font-family:'SF Mono','Fira Code',monospace;margin-bottom:20px;line-height:1.6;">
+          Webhook triggers async processing with JWT validation and event queue handling.
+        </div>
+        <div style="font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#0BAF6A;margin-bottom:10px;">Clarity Mode Output</div>
+        <div class="audience-output" id="feature-output">
+          When an action happens, it sends a secure notification. We verify the request and process it automatically in the background.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARISON -->
+  <div id="comparison" style="background:var(--bg-card);border-top:1px solid var(--border-light);border-bottom:1px solid var(--border-light);">
+    <div style="max-width:1200px;margin:0 auto;padding:120px 48px;">
+      <div class="comparison-header">
+        <span class="section-tag">Visual Proof</span>
+        <h2>Before and after, side by side.</h2>
+        <p>See exactly how Technical Clarity Mode transforms real-world messages — same information, better communication.</p>
+      </div>
+      <div class="comparison-table">
+        <div class="comp-col comp-before">
+          <div class="comp-col-header">
+            <div class="comp-col-header-icon">✗</div>
+            Without Technical Clarity Mode
+          </div>
+          <div class="comp-message">
+            <div class="comp-avatar avatar-blue">SE</div>
+            <div class="comp-message-content">
+              <div class="comp-sender">Solutions Engineer → Enterprise Prospect</div>
+              <div class="comp-text">The integration uses <code>OAuth2.0</code> with <code>PKCE flow</code> for auth. Our <code>REST API</code> exposes endpoints at <code>/v2/events</code> with <code>JSON payloads</code>, and the <code>webhook</code> dispatcher handles retry logic via an <code>exponential backoff</code> algorithm.</div>
+            </div>
+          </div>
+          <div class="comp-message">
+            <div class="comp-avatar avatar-orange">PM</div>
+            <div class="comp-message-content">
+              <div class="comp-sender">Product Manager → VP of Sales</div>
+              <div class="comp-text">The Q3 roadmap prioritizes <code>async microservice</code> decoupling with a move toward <code>event-driven architecture</code>. The <code>Kafka consumer group</code> refactor should reduce <code>P99 latency</code> by approximately 40ms.</div>
+            </div>
+          </div>
+          <div class="comp-message">
+            <div class="comp-avatar avatar-green">CS</div>
+            <div class="comp-message-content">
+              <div class="comp-sender">CSM → Enterprise Client</div>
+              <div class="comp-text">The <code>SSO configuration</code> requires your IdP to support <code>SAML 2.0</code> with a valid <code>X.509 certificate</code>. Once provisioned, <code>SCIM</code> handles automated user lifecycle management.</div>
+            </div>
+          </div>
+        </div>
+        <div class="comp-col comp-after">
+          <div class="comp-col-header">
+            <div class="comp-col-header-icon">✓</div>
+            With Technical Clarity Mode
+          </div>
+          <div class="comp-message">
+            <div class="comp-avatar avatar-blue">SE</div>
+            <div class="comp-message-content">
+              <div class="comp-sender">Solutions Engineer → Enterprise Prospect</div>
+              <div class="comp-text">The integration uses a secure, industry-standard login flow. It connects to our platform through a simple data connection, and any alerts or notifications are automatically retried if something goes wrong — no manual effort required on your end.</div>
+            </div>
+          </div>
+          <div class="comp-message">
+            <div class="comp-avatar avatar-orange">PM</div>
+            <div class="comp-message-content">
+              <div class="comp-sender">Product Manager → VP of Sales</div>
+              <div class="comp-text">In Q3, we're updating our backend systems to handle tasks more efficiently. This means faster response times for end users — we're expecting a significant performance improvement that will directly reduce customer wait times.</div>
+            </div>
+          </div>
+          <div class="comp-message">
+            <div class="comp-avatar avatar-green">CS</div>
+            <div class="comp-message-content">
+              <div class="comp-sender">CSM → Enterprise Client</div>
+              <div class="comp-text">To set up single sign-on, your IT team will connect Grammarly to your existing company login system. Once that's done, new employees are added and removed automatically — no manual account management needed.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERSONAS -->
+  <section id="personas">
+    <div class="personas-header">
+      <span class="section-tag">Who It's For</span>
+      <h2>Built for the people caught in the middle.</h2>
+      <p style="font-size:18px;color:var(--text-secondary);max-width:520px;margin:16px auto 0;">Every technical team has communicators who bridge the gap. Technical Clarity Mode is their superpower.</p>
+    </div>
+    <div class="personas-grid">
+      <div class="persona-card">
+        <div class="persona-avatar pa-blue">⚡</div>
+        <div class="persona-role">Persona 01</div>
+        <h3>Solutions Engineer</h3>
+        <p>You know the product inside out — but translating that depth to a non-technical VP in a 30-minute demo is a different skill entirely. Technical Clarity Mode bridges that gap in real time.</p>
+        <div class="persona-quote">"I stopped losing executives halfway through my demos. Now I lead with the outcome and let the AI handle the translation."</div>
+        <div class="persona-tags">
+          <span class="persona-tag">Pre-sales</span>
+          <span class="persona-tag">Demo decks</span>
+          <span class="persona-tag">Technical proposals</span>
+        </div>
+      </div>
+      <div class="persona-card">
+        <div class="persona-avatar pa-green">🗺️</div>
+        <div class="persona-role">Persona 02</div>
+        <h3>Product Manager</h3>
+        <p>You sit between engineering and the business. Every roadmap update, every release note, every stakeholder email demands you translate what developers built into what business leaders care about.</p>
+        <div class="persona-quote">"My executive updates used to take 2 hours to write. Now I draft in 10 minutes and let Grammarly make it boardroom-ready."</div>
+        <div class="persona-tags">
+          <span class="persona-tag">Roadmaps</span>
+          <span class="persona-tag">Release notes</span>
+          <span class="persona-tag">Stakeholder updates</span>
+        </div>
+      </div>
+      <div class="persona-card">
+        <div class="persona-avatar pa-orange">✍️</div>
+        <div class="persona-role">Persona 03</div>
+        <h3>Technical Writer</h3>
+        <p>You already know how to write for humans. Technical Clarity Mode helps you get there faster — intelligently flagging where SME input got too dense and suggesting alternatives that preserve accuracy.</p>
+        <div class="persona-quote">"It's like having a second brain that catches the jargon I got too close to the material to notice anymore."</div>
+        <div class="persona-tags">
+          <span class="persona-tag">API docs</span>
+          <span class="persona-tag">Help center</span>
+          <span class="persona-tag">User guides</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section id="cta">
+    <div class="cta-inner">
+      <div class="cta-eyebrow">Start for free — no card required</div>
+      <h2>Stop losing people at "API." Start closing with clarity.</h2>
+      <p>Technical Clarity Mode takes 60 seconds to set up and works inside every tool your team already uses. The first transformation is on us.</p>
+      <div class="cta-actions">
+        <a href="onboarding.html" class="btn-accent">
+          Try Technical Clarity Mode Free
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 17l7-7-7-7M3 10h14"/></svg>
+        </a>
+        <a href="#comparison" class="btn-secondary">Watch a demo</a>
+      </div>
+      <p class="cta-note">Already using Grammarly? <a href="onboarding.html">Activate Technical Clarity Mode</a> from your dashboard.</p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <span class="footer-logo">Grammarly</span>
+    <span class="footer-copy">© 2026 Grammarly, Inc. All rights reserved.</span>
+    <div class="footer-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Security</a>
+      <a href="#">Contact</a>
+    </div>
+  </footer>
+
+  <script>
+    const tabOutputs = {
+      customer: "When an action happens, it sends a secure notification. We verify the request and process it automatically in the background.",
+      executive: "Secure, real-time communication that automates background tasks, improving efficiency and reducing manual work.",
+      developer: "Uses webhooks for asynchronous processing. Requests are validated via JWT before being pushed to an event queue."
+    };
+
+    function switchTab(el, key) {
+      document.querySelectorAll('.audience-tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      const output = document.getElementById('feature-output');
+      output.style.opacity = '0';
+      setTimeout(() => {
+        output.textContent = tabOutputs[key];
+        output.style.opacity = '1';
+      }, 180);
+      output.style.transition = 'opacity 0.18s ease';
+    }
+
+    // Intersection observer for subtle fade-in
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.problem-card, .persona-card, .comp-col, .feature-visual-card').forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(24px)';
+      el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      observer.observe(el);
+    });
+  </script>
+</body>
+</html>

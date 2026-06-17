@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Grammarly — Performance Analytics Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0D0F14;
+      --bg-card:   #13161F;
+      --bg-hover:  #1A1D2A;
+      --border:    #1F2235;
+      --accent:    #11EE91;
+      --accent-d:  rgba(17,238,145,0.12);
+      --indigo:    #6B78E0;
+      --indigo-d:  rgba(107,120,224,0.14);
+      --amber:     #F59E0B;
+      --amber-d:   rgba(245,158,11,0.14);
+      --purple:    #A78BFA;
+      --purple-d:  rgba(167,139,250,0.14);
+      --text:      #EFF1F6;
+      --text-2:    #8890AA;
+      --text-3:    #454C63;
+      --font:      'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 32px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 50;
+    }
+    .h-left { display: flex; align-items: center; gap: 18px; }
+    .logo { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 15px; }
+    .logo-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: var(--accent); display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 15px; color: #000;
+    }
+    .page-label {
+      font-size: 13px; color: var(--text-2);
+      padding-left: 18px; border-left: 1px solid var(--border);
+    }
+    .h-right { display: flex; align-items: center; gap: 10px; }
+    .date-chip {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 7px 14px; font-size: 13px; color: var(--text-2);
+    }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1}50%{opacity:.3} }
+
+    /* ── LAYOUT ── */
+    main { padding: 28px 32px 48px; max-width: 1360px; margin: 0 auto; }
+
+    .section-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--text-3);
+      margin: 28px 0 14px;
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    /* ── KPI GRID ── */
+    .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+
+    .kpi {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 22px 20px; position: relative; overflow: hidden;
+    }
+    .kpi::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    }
+    .kpi.g::after { background: var(--accent); }
+    .kpi.i::after { background: var(--indigo); }
+    .kpi.a::after { background: var(--amber); }
+    .kpi.p::after { background: var(--purple); }
+
+    .kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .kpi-name { font-size: 12px; color: var(--text-2); font-weight: 500; }
+    .kpi-ico {
+      width: 28px; height: 28px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center; font-size: 13px;
+    }
+    .kpi.g .kpi-ico { background: var(--accent-d); }
+    .kpi.i .kpi-ico { background: var(--indigo-d); }
+    .kpi.a .kpi-ico { background: var(--amber-d); }
+    .kpi.p .kpi-ico { background: var(--purple-d); }
+
+    .kpi-val { font-size: 38px; font-weight: 800; letter-spacing: -1.5px; line-height: 1; margin-bottom: 8px; }
+    .kpi.g .kpi-val { color: var(--accent); }
+    .kpi.i .kpi-val { color: var(--indigo); }
+    .kpi.a .kpi-val { color: var(--amber); }
+    .kpi.p .kpi-val { color: var(--purple); }
+
+    .kpi-note { font-size: 11.5px; color: var(--text-3); line-height: 1.5; }
+    .kpi-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 100px;
+      background: var(--accent-d); color: var(--accent); margin-top: 6px;
+    }
+
+    /* ── CHART ROW ── */
+    .row-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+    .row-1-1 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 22px 22px 18px;
+    }
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+    .card-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+    .card-sub { font-size: 11.5px; color: var(--text-3); }
+    .card-tag {
+      font-size: 11px; font-weight: 700; padding: 4px 10px;
+      border-radius: 100px; white-space: nowrap;
+    }
+    .tag-g { background: var(--accent-d); color: var(--accent); }
+    .tag-a { background: var(--amber-d); color: var(--amber); }
+    .tag-i { background: var(--indigo-d); color: var(--indigo); }
+
+    /* ── LEGEND ── */
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-2); }
+    .l-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+    /* ── INSIGHTS ── */
+    .insights-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .insight {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px; display: flex; gap: 14px;
+    }
+    .ins-ico {
+      width: 36px; min-width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 17px;
+    }
+    .ins-ico.g { background: var(--accent-d); }
+    .ins-ico.a { background: var(--amber-d); }
+    .ins-ico.i { background: var(--indigo-d); }
+    .ins-title { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+    .ins-body { font-size: 12px; color: var(--text-2); line-height: 1.65; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center; padding: 20px 32px;
+      font-size: 12px; color: var(--text-3);
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:1024px) {
+      .kpi-row { grid-template-columns: repeat(2,1fr); }
+      .row-2-1, .row-1-1 { grid-template-columns: 1fr; }
+      .insights-row { grid-template-columns: 1fr; }
+    }
+    @media(max-width:600px) {
+      header { padding: 14px 16px; }
+      main { padding: 18px 16px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="h-left">
+    <div class="logo">
+      <div class="logo-icon">G</div>
+      Grammarly
+    </div>
+    <span class="page-label">Performance Analytics Dashboard</span>
+  </div>
+  <div class="h-right">
+    <div class="date-chip">
+      <div class="live-dot"></div>
+      Feb 1 – Feb 5, 2026
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- KPIs -->
+  <div class="section-title">Key Performance Indicators</div>
+  <div class="kpi-row">
+    <div class="kpi g">
+      <div class="kpi-top">
+        <span class="kpi-name">Total Sessions</span>
+        <div class="kpi-ico">📊</div>
+      </div>
+      <div class="kpi-val">1,000</div>
+      <div class="kpi-note">Feb 1–5, 2026 · 5-day window</div>
+      <div class="kpi-badge">↑ 200/day avg.</div>
+    </div>
+    <div class="kpi i">
+      <div class="kpi-top">
+        <span class="kpi-name">Unique Users</span>
+        <div class="kpi-ico">👤</div>
+      </div>
+      <div class="kpi-val">550</div>
+      <div class="kpi-note">~1.8 sessions per user avg.</div>
+    </div>
+    <div class="kpi a">
+      <div class="kpi-top">
+        <span class="kpi-name">LP → Install Rate</span>
+        <div class="kpi-ico">⬇</div>
+      </div>
+      <div class="kpi-val">75%</div>
+      <div class="kpi-note">300 installs from 400 LP clicks</div>
+      <div class="kpi-badge" style="background:var(--amber-d);color:var(--amber);">3× industry avg.</div>
+    </div>
+    <div class="kpi p">
+      <div class="kpi-top">
+        <span class="kpi-name">Activation Rate</span>
+        <div class="kpi-ico">🚀</div>
+      </div>
+      <div class="kpi-val">100%</div>
+      <div class="kpi-note">300 trials from 300 installs</div>
+      <div class="kpi-badge" style="background:var(--purple-d);color:var(--purple);">Zero drop-off</div>
+    </div>
+  </div>
+
+  <!-- Row: Funnel + LP Split -->
+  <div class="section-title">Conversion Funnel & Traffic Sources</div>
+  <div class="row-2-1">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Full Acquisition Funnel</div>
+          <div class="card-sub">LP Click → Install → Feature Trial</div>
+        </div>
+        <span class="card-tag tag-g">75% install rate</span>
+      </div>
+      <div id="funnel"></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Landing Page Split</div>
+          <div class="card-sub">Event share by LP variant</div>
+        </div>
+      </div>
+      <div id="lp-donut" style="display:flex;flex-direction:column;align-items:center;gap:18px;"></div>
+    </div>
+  </div>
+
+  <!-- Row: Daily + Feature -->
+  <div class="section-title">Daily Volume & Feature Adoption</div>
+  <div class="row-1-1">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Daily Event Breakdown</div>
+          <div class="card-sub">Stacked by action type · Feb 1–5</div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="l-dot" style="background:#6B78E0"></div>LP Click</div>
+          <div class="legend-item"><div class="l-dot" style="background:#11EE91"></div>Install</div>
+          <div class="legend-item"><div class="l-dot" style="background:#F59E0B"></div>Trial</div>
+        </div>
+      </div>
+      <div id="daily"></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Feature Adoption</div>
+          <div class="card-sub">try_grammarly events by feature</div>
+        </div>
+        <span class="card-tag tag-i">300 total trials</span>
+      </div>
+      <div id="features"></div>
+    </div>
+  </div>
+
+  <!-- Insights -->
+  <div class="section-title">Automated Insights</div>
+  <div class="insights-row">
+    <div class="insight">
+      <div class="ins-ico g">✅</div>
+      <div>
+        <div class="ins-title">Best-in-Class Install Rate</div>
+        <div class="ins-body">75% of LP visitors convert to installs. SaaS industry benchmark is 20–35%. Both LP variants are driving equally strong conversion — no leaky funnel stages detected.</div>
+      </div>
+    </div>
+    <div class="insight">
+      <div class="ins-ico a">⚡</div>
+      <div>
+        <div class="ins-title">100% Install-to-Trial Activation</div>
+        <div class="ins-body">Every single user who installs Grammarly immediately tries a feature. Zero post-install abandonment. The onboarding flow is delivering a frictionless first experience.</div>
+      </div>
+    </div>
+    <div class="insight">
+      <div class="ins-ico i">📊</div>
+      <div>
+        <div class="ins-title">Perfectly Balanced Distribution</div>
+        <div class="ins-body">Both LPs and both features show exact 50/50 splits. Consistent 200 events/day across all 5 days. Stable, predictable acquisition — no single source dominates.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Grammarly Internal Analytics · Dataset: Feb 1–5, 2026 · 1,000 sessions · 550 unique users
+</footer>
+
+<script>
+// ─── HELPERS ────────────────────────────────────────────────────
+function polar(cx, cy, r, deg) {
+  const rad = (deg - 90) * Math.PI / 180;
+  return { x: +(cx + r * Math.cos(rad)).toFixed(3), y: +(cy + r * Math.sin(rad)).toFixed(3) };
+}
+
+function donutArc(cx, cy, ro, ri, a0, a1) {
+  const s  = polar(cx, cy, ro, a0), e  = polar(cx, cy, ro, a1);
+  const si = polar(cx, cy, ri, a1), ei = polar(cx, cy, ri, a0);
+  const lg = (a1 - a0) > 180 ? 1 : 0;
+  return `M${s.x} ${s.y} A${ro} ${ro} 0 ${lg} 1 ${e.x} ${e.y} L${si.x} ${si.y} A${ri} ${ri} 0 ${lg} 0 ${ei.x} ${ei.y}Z`;
+}
+
+// ─── FUNNEL ─────────────────────────────────────────────────────
+(function() {
+  const stages = [
+    { label: 'LP Click',       value: 400, color: '#6B78E0', pct: null,   note: 'Users who clicked a landing page CTA' },
+    { label: 'Install',        value: 300, color: '#11EE91', pct: '75%',  note: 'Converted from LP click' },
+    { label: 'Feature Trial',  value: 300, color: '#F59E0B', pct: '100%', note: 'Activated after install' }
+  ];
+
+  const W = 580, H = 230;
+  const maxW = 440, bH = 58, gap = 14, cx = W / 2;
+  const labelX = cx + maxW / 2 + 16;
+  const topPad = 10;
+
+  let s = `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  stages.forEach((st, i) => {
+    const w    = (st.value / 400) * maxW;
+    const nx   = i < stages.length - 1 ? (stages[i+1].value / 400) * maxW : w;
+    const x    = cx - w / 2;
+    const y    = topPad + i * (bH + gap);
+    const ny   = y + bH;
+    const nxOff = cx - nx / 2;
+
+    // Trapezoid body
+    s += `<path d="M${x} ${y} L${x+w} ${y} L${nxOff+nx} ${ny} L${nxOff} ${ny} Z" fill="${st.color}" opacity="0.18"/>`;
+    // Filled bar inside trapezoid
+    s += `<rect x="${x+2}" y="${y+2}" width="${w-4}" height="${bH-4}" rx="8" fill="${st.color}" opacity="0.85"/>`;
+
+    // Stage label + value
+    s += `<text x="${cx}" y="${y+bH/2-6}" text-anchor="middle" fill="rgba(255,255,255,0.65)" font-size="12" font-weight="600" font-family="Inter,-apple-system,sans-serif">${st.label}</text>`;
+    s += `<text x="${cx}" y="${y+bH/2+13}" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" letter-spacing="-0.5" font-family="Inter,-apple-system,sans-serif">${st.value.toLocaleString()}</text>`;
+
+    // Right-side conversion badge
+    if (st.pct) {
+      s += `<rect x="${labelX}" y="${y+12}" width="48" height="22" rx="6" fill="${st.color}" opacity="0.18"/>`;
+      s += `<text x="${labelX+24}" y="${y+27}" text-anchor="middle" fill="${st.color}" font-size="13" font-weight="800" font-family="Inter,-apple-system,sans-serif">${st.pct}</text>`;
+      s += `<text x="${labelX+24}" y="${y+44}" text-anchor="middle" fill="#454C63" font-size="10" font-family="Inter,-apple-system,sans-serif">${st.note}</text>`;
+    }
+  });
+
+  s += '</svg>';
+  document.getElementById('funnel').innerHTML = s;
+})();
+
+// ─── LP DONUT ────────────────────────────────────────────────────
+(function() {
+  const data = [
+    { label: 'Business Emails', value: 500, color: '#11EE91', key: 'lp_business_emails' },
+    { label: 'Academic Writing', value: 500, color: '#6B78E0', key: 'lp_academic_writing' }
+  ];
+  const total = 1000;
+  const cx = 86, cy = 86, ro = 68, ri = 44, W = 172, H = 172;
+  const gap = 1.5;
+
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Background circle
+  s += `<circle cx="${cx}" cy="${cy}" r="${ro}" fill="none" stroke="#1F2235" stroke-width="${ro - ri}"/>`;
+
+  let start = 0;
+  data.forEach(d => {
+    const sweep = (d.value / total) * 360;
+    s += `<path d="${donutArc(cx, cy, ro, ri, start + gap, start + sweep - gap)}" fill="${d.color}"/>`;
+    start += sweep;
+  });
+
+  // Center
+  s += `<text x="${cx}" y="${cy-7}" text-anchor="middle" fill="#EFF1F6" font-size="22" font-weight="800" font-family="Inter,-apple-system,sans-serif">50/50</text>`;
+  s += `<text x="${cx}" y="${cy+11}" text-anchor="middle" fill="#454C63" font-size="11" font-family="Inter,-apple-system,sans-serif">LP split</text>`;
+  s += '</svg>';
+
+  const legend = data.map(d => `
+    <div style="display:flex;align-items:center;gap:10px;width:100%;max-width:220px">
+      <div style="width:10px;height:10px;border-radius:3px;background:${d.color};flex-shrink:0"></div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#EFF1F6">${d.label}</div>
+        <div style="font-size:11px;color:#454C63">${d.value.toLocaleString()} events · 50%</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('lp-donut').innerHTML = s +
+    `<div style="display:flex;flex-direction:column;gap:12px;width:100%">${legend}</div>`;
+})();
+
+// ─── DAILY STACKED BAR ───────────────────────────────────────────
+(function() {
+  const days = ['Feb 1','Feb 2','Feb 3','Feb 4','Feb 5'];
+  // 200 events/day → 80 LP click + 60 install + 60 trial
+  const segs = [
+    { color: '#6B78E0', vals: [80,80,80,80,80], label: 'LP Click'  },
+    { color: '#11EE91', vals: [60,60,60,60,60], label: 'Install'   },
+    { color: '#F59E0B', vals: [60,60,60,60,60], label: 'Trial'     }
+  ];
+
+  const W = 500, H = 210;
+  const pL = 36, pB = 36, pR = 12, pT = 10;
+  const cW = W - pL - pR, cH = H - pB - pT;
+  const n = days.length, slot = cW / n, bW = 42;
+  const maxV = 220;
+
+  let s = `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Grid
+  [0,50,100,150,200].forEach(v => {
+    const gy = pT + cH - (v / maxV) * cH;
+    s += `<line x1="${pL}" y1="${gy}" x2="${W-pR}" y2="${gy}" stroke="#1F2235" stroke-width="1"/>`;
+    if (v > 0) s += `<text x="${pL-5}" y="${gy+4}" text-anchor="end" fill="#454C63" font-size="10" font-family="Inter,-apple-system,sans-serif">${v}</text>`;
+  });
+
+  days.forEach((day, di) => {
+    const bx = pL + di * slot + (slot - bW) / 2;
+    let stackY = pT + cH;
+
+    segs.forEach((seg, si) => {
+      const v = seg.vals[di];
+      const bh = (v / maxV) * cH;
+      stackY -= bh;
+      const rx = si === 0 ? 0 : (si === segs.length - 1 ? 6 : 0); // rounded top
+      s += `<rect x="${bx}" y="${stackY}" width="${bW}" height="${bh}" fill="${seg.color}" opacity="0.85"
+              rx="${si === segs.length-1 ? 6 : 0}" ry="${si === segs.length-1 ? 6 : 0}"/>`;
+    });
+
+    // Total label above bar
+    const topY = pT + cH - (200 / maxV) * cH;
+    s += `<text x="${bx + bW/2}" y="${topY-6}" text-anchor="middle" fill="#8890AA" font-size="11" font-weight="600" font-family="Inter,-apple-system,sans-serif">200</text>`;
+
+    // Day label
+    s += `<text x="${bx + bW/2}" y="${pT+cH+22}" text-anchor="middle" fill="#454C63" font-size="11" font-family="Inter,-apple-system,sans-serif">${day}</text>`;
+  });
+
+  s += '</svg>';
+  document.getElementById('daily').innerHTML = s;
+})();
+
+// ─── FEATURE ADOPTION ────────────────────────────────────────────
+(function() {
+  const features = [
+    { label: 'Smart Email Reply',       sub: 'smart_email_reply',          value: 250, color: '#11EE91' },
+    { label: 'Academic Citation Helper',sub: 'academic_citation_helper',   value: 250, color: '#6B78E0' }
+  ];
+  const maxV = 300; // slight headroom so bars aren't 100% wide
+
+  const W = 460, H = 190;
+  const pL = 14, pR = 14, pT = 10;
+  const trackW = W - pL - pR;
+  const bH = 58, gap = 24;
+
+  let s = `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  features.forEach((f, i) => {
+    const y = pT + i * (bH + gap);
+    const filled = (f.value / maxV) * trackW;
+
+    // Track
+    s += `<rect x="${pL}" y="${y}" width="${trackW}" height="${bH}" rx="10" fill="#1A1D2A"/>`;
+    // Fill
+    s += `<rect x="${pL}" y="${y}" width="${filled}" height="${bH}" rx="10" fill="${f.color}" opacity="0.85"/>`;
+
+    // Label inside bar
+    s += `<text x="${pL+16}" y="${y+bH/2-5}" fill="white" font-size="13" font-weight="700" font-family="Inter,-apple-system,sans-serif">${f.label}</text>`;
+    s += `<text x="${pL+16}" y="${y+bH/2+13}" fill="rgba(255,255,255,0.45)" font-size="10.5" font-family="Inter,-apple-system,sans-serif">${f.sub}</text>`;
+
+    // Value badge
+    const badgeX = pL + filled - 60;
+    s += `<text x="${pL + filled - 12}" y="${y+bH/2-5}" text-anchor="end" fill="white" font-size="22" font-weight="800" letter-spacing="-0.8" font-family="Inter,-apple-system,sans-serif">${f.value}</text>`;
+    s += `<text x="${pL + filled - 12}" y="${y+bH/2+14}" text-anchor="end" fill="rgba(255,255,255,0.45)" font-size="11" font-family="Inter,-apple-system,sans-serif">50% share</text>`;
+  });
+
+  // Shared note
+  s += `<text x="${W/2}" y="${pT + 2*(bH+gap) + 2}" text-anchor="middle" fill="#454C63" font-size="11" font-family="Inter,-apple-system,sans-serif">Equal adoption across both features — no preference signal detected.</text>`;
+
+  s += '</svg>';
+  document.getElementById('features').innerHTML = s;
+})();
+</script>
+</body>
+</html>

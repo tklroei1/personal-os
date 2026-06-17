@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Technical Clarity Mode — Onboarding</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #F9F9F7;
+      --bg-card: #FFFFFF;
+      --text-primary: #111111;
+      --text-secondary: #555555;
+      --text-muted: #888888;
+      --accent: #11EE91;
+      --accent-dark: #0DC87A;
+      --accent-glow: rgba(17,238,145,0.25);
+      --border: #E5E5E0;
+      --border-light: #F0F0EC;
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+      --shadow-lg: 0 16px 48px rgba(0,0,0,0.1);
+      --radius: 12px;
+      --radius-lg: 20px;
+      --font: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 64px;
+      border-bottom: 1px solid var(--border-light);
+      background: rgba(249,249,247,0.92);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+
+    .nav-logo-icon {
+      width: 30px; height: 30px;
+      background: var(--text-primary);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-logo-icon svg { width: 16px; height: 16px; fill: var(--accent); }
+
+    .nav-right { display: flex; align-items: center; gap: 20px; }
+
+    .nav-step-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .step-pip {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .step-pip.active { background: var(--text-primary); }
+    .step-pip.done { background: var(--accent); }
+
+    .nav-skip {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-skip:hover { color: var(--text-primary); }
+
+    /* ── LAYOUT ── */
+    .page-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 72px 24px 80px;
+    }
+
+    .progress-bar-track {
+      width: 100%;
+      max-width: 680px;
+      height: 3px;
+      background: var(--border-light);
+      border-radius: 2px;
+      margin-bottom: 56px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── STEP HEADER ── */
+    .step-header {
+      width: 100%;
+      max-width: 680px;
+      margin-bottom: 40px;
+    }
+
+    .step-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+    .step-count {
+      background: var(--text-primary);
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.08em;
+    }
+
+    .step-title {
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 800;
+      letter-spacing: -1.2px;
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+
+    .step-subtitle {
+      font-size: 16px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ── MAIN CARD ── */
+    .main-card {
+      width: 100%;
+      max-width: 680px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      transition: box-shadow 0.3s;
+    }
+    .main-card:focus-within { box-shadow: var(--shadow-lg); }
+
+    /* ── CARD HEADER ── */
+    .card-header {
+      background: #FAFAF8;
+      border-bottom: 1px solid var(--border-light);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-header-left { display: flex; align-items: center; gap: 8px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-red { background: #FF5F57; }
+    .dot-yellow { background: #FEBC2E; }
+    .dot-green { background: #28C840; }
+
+    .card-header-title {
+      margin-left: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .mode-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #0BAF6A;
+    }
+    .mode-dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse-dot 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(0.7); }
+    }
+
+    /* ── INPUT AREA ── */
+    .input-section { padding: 28px 28px 20px; }
+
+    .input-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .input-label span {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .char-count {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    #input-text {
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      background: #F9F9F7;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #input-text:focus {
+      border-color: #BBBBBB;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
+    }
+
+    /* ── AUDIENCE SELECTOR ── */
+    .controls-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      padding: 0 28px 28px;
+      flex-wrap: wrap;
+    }
+
+    .select-group { flex: 1; min-width: 200px; }
+
+    .select-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .select-wrapper {
+      position: relative;
+    }
+
+    #audience-select {
+      width: 100%;
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 40px 12px 16px;
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #audience-select:focus {
+      border-color: #BBBBBB;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
+    }
+
+    .select-arrow {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--text-muted);
+    }
+    .select-arrow svg { width: 16px; height: 16px; }
+
+    /* ── AUDIENCE PILLS ── */
+    .audience-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 100px;
+      border: 1.5px solid var(--border);
+      color: var(--text-muted);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font);
+    }
+    .pill:hover { border-color: var(--text-secondary); color: var(--text-secondary); }
+    .pill.active {
+      background: var(--text-primary);
+      border-color: var(--text-primary);
+      color: #fff;
+    }
+    .pill-icon { font-size: 13px; }
+
+    /* ── SUBMIT BUTTON ── */
+    .submit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      background: var(--text-primary);
+      color: #fff;
+      border: none;
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px 32px;
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: -0.2px;
+      position: relative;
+      overflow: hidden;
+    }
+    .submit-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+      transition: left 0.5s;
+    }
+    .submit-btn:hover::before { left: 100%; }
+    .submit-btn:hover { background: #1a1a1a; }
+    .submit-btn:active { transform: scale(0.99); }
+    .submit-btn:disabled { background: #888; cursor: not-allowed; transform: none; }
+
+    .btn-spark {
+      display: inline-block;
+      animation: spin 2s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── OUTPUT SECTION ── */
+    .output-section {
+      width: 100%;
+      max-width: 680px;
+      margin-top: 28px;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      pointer-events: none;
+    }
+    .output-section.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .output-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }
+
+    .output-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-light);
+      background: #F0FFF8;
+    }
+
+    .output-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .output-label-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(17,238,145,0.15);
+      border: 1px solid rgba(17,238,145,0.3);
+      color: #0BAF6A;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 100px;
+    }
+
+    .output-audience-badge {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .output-actions { display: flex; gap: 8px; }
+
+    .icon-btn {
+      width: 32px; height: 32px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-card);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      color: var(--text-muted);
+    }
+    .icon-btn:hover { border-color: var(--text-secondary); color: var(--text-primary); background: #F5F5F2; }
+    .icon-btn svg { width: 14px; height: 14px; }
+    .icon-btn.copied { background: rgba(17,238,145,0.1); border-color: rgba(17,238,145,0.4); color: #0BAF6A; }
+
+    .output-body { padding: 28px 28px 24px; }
+
+    #output-text {
+      font-size: 16px;
+      line-height: 1.75;
+      color: var(--text-primary);
+      min-height: 60px;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.1em;
+      background: var(--accent);
+      margin-left: 1px;
+      vertical-align: text-bottom;
+      animation: blink 0.8s step-end infinite;
+      border-radius: 1px;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .output-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-light);
+      background: #FAFAF8;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .clarity-score {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .clarity-score-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .score-track {
+      width: 80px;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .score-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-dark), var(--accent));
+      border-radius: 3px;
+      width: 0%;
+      transition: width 1s ease 0.5s;
+    }
+
+    .score-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0BAF6A;
+    }
+
+    .output-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-decoration: none;
+      border: 1.5px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 8px;
+      transition: all 0.2s;
+      cursor: pointer;
+      background: var(--bg-card);
+      font-family: var(--font);
+    }
+    .output-cta:hover { border-color: var(--text-primary); color: var(--text-primary); }
+
+    /* ── COMPARISON STRIP ── */
+    .compare-strip {
+      margin-top: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      display: none;
+    }
+    .compare-strip.visible { display: block; }
+
+    .compare-strip-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .compare-item { }
+    .compare-item-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .compare-item-label.before { color: #C04040; }
+    .compare-item-label.after { color: #0BAF6A; }
+
+    .compare-item-text {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      background: #F9F9F7;
+      padding: 12px 14px;
+      border-radius: 8px;
+    }
+
+    .compare-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .compare-arrow-circle {
+      width: 32px; height: 32px;
+      background: var(--text-primary);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .compare-arrow-circle svg { width: 14px; height: 14px; fill: var(--accent); }
+
+    /* ── NEXT STEPS ── */
+    .next-steps {
+      width: 100%;
+      max-width: 680px;
+      margin-top: 48px;
+    }
+
+    .next-steps-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .next-steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .next-step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 18px;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+    .next-step-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: #ccc; }
+
+    .next-step-icon {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    .next-step-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .next-step-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ── LOADING STATE ── */
+    .loading-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .loading-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: bounce-dot 1.2s ease-in-out infinite;
+    }
+    .loading-dot:nth-child(2) { animation-delay: 0.15s; }
+    .loading-dot:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce-dot {
+      0%, 80%, 100% { transform: scale(0.7); opacity: 0.5; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 720px) {
+      nav { padding: 0 20px; }
+      .page-wrap { padding: 40px 16px 60px; }
+      .controls-row { flex-direction: column; gap: 14px; }
+      .compare-grid { grid-template-columns: 1fr; }
+      .compare-arrow { transform: rotate(90deg); }
+      .next-steps-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 480px) {
+      .step-title { font-size: 24px; }
+      .output-card-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="landing.html" class="nav-logo">
+      <div class="nav-logo-icon">
+        <svg viewBox="0 0 20 20"><path d="M10 2C5.58 2 2 5.58 2 10s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm.5 11.5h-1v-5h1v5zm0-6.5h-1V5.5h1V7z"/></svg>
+      </div>
+      Grammarly
+    </a>
+    <div class="nav-right">
+      <div class="nav-step-indicator" id="step-indicator">
+        <div class="step-pip active" data-step="1"></div>
+        <div class="step-pip" data-step="2"></div>
+        <div class="step-pip" data-step="3"></div>
+      </div>
+      <a href="landing.html" class="nav-skip">Back to overview</a>
+    </div>
+  </nav>
+
+  <div class="page-wrap">
+
+    <!-- PROGRESS BAR -->
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+
+    <!-- STEP HEADER -->
+    <div class="step-header" id="step-header">
+      <div class="step-eyebrow">
+        <span class="step-count">STEP 1 of 3</span>
+        60-Second Experience
+      </div>
+      <div class="step-title">See Technical Clarity Mode in action.</div>
+      <div class="step-subtitle">Below is a real-world technical message. Select your audience and watch the AI transform it — no setup required.</div>
+    </div>
+
+    <!-- MAIN CARD -->
+    <div class="main-card" id="main-card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+          <span class="card-header-title">Technical Clarity Mode — Live Transformer</span>
+        </div>
+        <div class="mode-status">
+          <div class="mode-dot"></div>
+          Active
+        </div>
+      </div>
+
+      <!-- INPUT -->
+      <div class="input-section">
+        <div class="input-label">
+          <span>Your Technical Input</span>
+          <span class="char-count" id="char-count">0 characters</span>
+        </div>
+        <textarea id="input-text" spellcheck="false" placeholder="Paste or type your technical message here...">Webhook triggers async processing with JWT validation and event queue handling</textarea>
+      </div>
+
+      <!-- AUDIENCE SELECTOR -->
+      <div class="controls-row">
+        <div class="select-group">
+          <label class="select-label" for="audience-select">Select Your Audience</label>
+          <div class="select-wrapper">
+            <select id="audience-select">
+              <option value="" disabled>Choose an audience...</option>
+              <option value="customer" selected>End Customer</option>
+              <option value="executive">Business Executive</option>
+              <option value="developer">Fellow Developer</option>
+            </select>
+            <div class="select-arrow">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6l4 4 4-4"/></svg>
+            </div>
+          </div>
+          <div class="audience-pills" style="margin-top:12px;">
+            <button class="pill active" data-val="customer" onclick="selectPill(this,'customer')">
+              <span class="pill-icon">👤</span> End Customer
+            </button>
+            <button class="pill" data-val="executive" onclick="selectPill(this,'executive')">
+              <span class="pill-icon">💼</span> Business Executive
+            </button>
+            <button class="pill" data-val="developer" onclick="selectPill(this,'developer')">
+              <span class="pill-icon">💻</span> Fellow Developer
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBMIT -->
+      <button class="submit-btn" id="submit-btn" onclick="runTransform()">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,10 5,17 5,3" fill="currentColor" stroke="none"/></svg>
+        Transform with Grammarly AI
+      </button>
+    </div>
+
+    <!-- OUTPUT SECTION -->
+    <div class="output-section" id="output-section">
+      <div class="output-card">
+        <div class="output-card-header">
+          <div class="output-header-left">
+            <div class="output-label-pill">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="4"/></svg>
+              Clarity Mode Output
+            </div>
+            <span class="output-audience-badge" id="output-audience-label">For End Customer</span>
+          </div>
+          <div class="output-actions">
+            <button class="icon-btn" id="copy-btn" title="Copy to clipboard" onclick="copyOutput()">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11H2a1 1 0 01-1-1V2a1 1 0 011-1h8a1 1 0 011 1v1"/></svg>
+            </button>
+            <button class="icon-btn" title="Run again" onclick="runTransform()">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13.5 8A5.5 5.5 0 113 5.5"/><path d="M7 2l-4 3.5 4 3.5"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="output-body">
+          <div id="output-text"></div>
+        </div>
+
+        <div class="output-footer">
+          <div class="clarity-score">
+            <span class="clarity-score-label">Clarity Score</span>
+            <div class="score-track">
+              <div class="score-fill" id="score-fill"></div>
+            </div>
+            <span class="score-value" id="score-value">—</span>
+          </div>
+          <button class="output-cta" onclick="showCompare()">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M8 3l5 5-5 5"/></svg>
+            Compare side-by-side
+          </button>
+        </div>
+      </div>
+
+      <!-- COMPARE STRIP -->
+      <div class="compare-strip" id="compare-strip">
+        <div class="compare-strip-title">Before &amp; After Comparison</div>
+        <div class="compare-grid">
+          <div class="compare-item">
+            <div class="compare-item-label before">Original</div>
+            <div class="compare-item-text" id="compare-before">Webhook triggers async processing with JWT validation and event queue handling</div>
+          </div>
+          <div class="compare-arrow">
+            <div class="compare-arrow-circle">
+              <svg viewBox="0 0 20 20"><path d="M10 3l7 7-7 7M3 10h14"/></svg>
+            </div>
+          </div>
+          <div class="compare-item">
+            <div class="compare-item-label after">Transformed</div>
+            <div class="compare-item-text" id="compare-after"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEXT STEPS -->
+    <div class="next-steps" id="next-steps" style="display:none;">
+      <div class="next-steps-label">What's next</div>
+      <div class="next-steps-grid">
+        <a href="landing.html" class="next-step-card">
+          <div class="next-step-icon">🔌</div>
+          <div class="next-step-title">Install the Extension</div>
+          <div class="next-step-desc">Bring Clarity Mode to Gmail, Slack, and Notion in one click.</div>
+        </a>
+        <a href="landing.html" class="next-step-card">
+          <div class="next-step-icon">👥</div>
+          <div class="next-step-title">Invite Your Team</div>
+          <div class="next-step-desc">Share Technical Clarity Mode with your Solutions and CS teams.</div>
+        </a>
+        <a href="landing.html" class="next-step-card">
+          <div class="next-step-icon">⚙️</div>
+          <div class="next-step-title">Customize Tone Rules</div>
+          <div class="next-step-desc">Set company-specific terminology and communication guidelines.</div>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── OUTPUTS ──
+    const outputs = {
+      customer: {
+        text: "When an action happens, it sends a secure notification. We verify the request and process it automatically in the background.",
+        audience: "For End Customer",
+        score: 94
+      },
+      executive: {
+        text: "Secure, real-time communication that automates background tasks, improving efficiency and reducing manual work.",
+        audience: "For Business Executive",
+        score: 91
+      },
+      developer: {
+        text: "Uses webhooks for asynchronous processing. Requests are validated via JWT before being pushed to an event queue.",
+        audience: "For Fellow Developer",
+        score: 88
+      }
+    };
+
+    // ── SELECTED AUDIENCE ──
+    let selectedAudience = 'customer';
+    let isRunning = false;
+    let typewriterTimer = null;
+    let compareVisible = false;
+
+    // ── SYNC SELECT & PILLS ──
+    document.getElementById('audience-select').addEventListener('change', function () {
+      selectedAudience = this.value;
+      syncPills();
+    });
+
+    function selectPill(el, val) {
+      selectedAudience = val;
+      document.getElementById('audience-select').value = val;
+      syncPills();
+    }
+
+    function syncPills() {
+      document.querySelectorAll('.pill').forEach(p => {
+        p.classList.toggle('active', p.dataset.val === selectedAudience);
+      });
+    }
+
+    // ── CHAR COUNT ──
+    const inputEl = document.getElementById('input-text');
+    const charCountEl = document.getElementById('char-count');
+
+    function updateCharCount() {
+      const len = inputEl.value.trim().length;
+      charCountEl.textContent = len + ' character' + (len !== 1 ? 's' : '');
+    }
+
+    inputEl.addEventListener('input', updateCharCount);
+    updateCharCount();
+
+    // ── TRANSFORM ──
+    function runTransform() {
+      if (isRunning) return;
+
+      const audience = selectedAudience || 'customer';
+      const result = outputs[audience];
+
+      // Update progress + step indicator
+      setProgress(66);
+      setStepActive(2);
+
+      // Show output section
+      const outputSection = document.getElementById('output-section');
+      outputSection.classList.add('visible');
+
+      // Update audience label
+      document.getElementById('output-audience-label').textContent = result.audience;
+
+      // Reset output
+      const outputEl = document.getElementById('output-text');
+      outputEl.innerHTML = '';
+      document.getElementById('score-fill').style.width = '0%';
+      document.getElementById('score-value').textContent = '—';
+      compareVisible = false;
+      document.getElementById('compare-strip').classList.remove('visible');
+
+      // Show loading first
+      isRunning = true;
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.innerHTML = `
+        <div class="loading-dots">
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+        </div>
+        Transforming...`;
+
+      // Simulate AI latency then typewrite
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,10 5,17 5,3" fill="currentColor" stroke="none"/></svg>
+          Transform with Grammarly AI`;
+
+        // Scroll to output
+        outputSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        typewrite(outputEl, result.text, () => {
+          isRunning = false;
+          // Show score
+          setTimeout(() => {
+            document.getElementById('score-fill').style.width = result.score + '%';
+            document.getElementById('score-value').textContent = result.score + '/100';
+          }, 100);
+
+          // Update compare after
+          document.getElementById('compare-after').textContent = result.text;
+
+          // Show next steps after completion
+          setTimeout(() => {
+            const ns = document.getElementById('next-steps');
+            ns.style.display = 'block';
+            ns.style.opacity = '0';
+            ns.style.transform = 'translateY(16px)';
+            ns.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            requestAnimationFrame(() => {
+              ns.style.opacity = '1';
+              ns.style.transform = 'translateY(0)';
+            });
+            setProgress(100);
+            setStepActive(3);
+          }, 600);
+        });
+      }, 820);
+    }
+
+    // ── TYPEWRITER ──
+    function typewrite(el, text, onComplete) {
+      if (typewriterTimer) clearTimeout(typewriterTimer);
+      let i = 0;
+      const cursor = '<span class="cursor"></span>';
+
+      function tick() {
+        if (i <= text.length) {
+          el.innerHTML = text.slice(0, i) + cursor;
+          i++;
+          const delay = i === 1 ? 30 : (Math.random() * 22 + 16);
+          typewriterTimer = setTimeout(tick, delay);
+        } else {
+          // Remove cursor after a beat
+          setTimeout(() => {
+            el.innerHTML = text;
+            if (onComplete) onComplete();
+          }, 600);
+        }
+      }
+      tick();
+    }
+
+    // ── COMPARE ──
+    function showCompare() {
+      const strip = document.getElementById('compare-strip');
+      compareVisible = !compareVisible;
+      if (compareVisible) {
+        strip.classList.add('visible');
+        strip.style.display = 'block';
+        strip.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        strip.classList.remove('visible');
+      }
+    }
+
+    // ── COPY ──
+    function copyOutput() {
+      const text = document.getElementById('output-text').textContent;
+      if (!text) return;
+      navigator.clipboard.writeText(text).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      });
+      const btn = document.getElementById('copy-btn');
+      btn.classList.add('copied');
+      btn.title = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.title = 'Copy to clipboard';
+      }, 2000);
+    }
+
+    // ── PROGRESS ──
+    function setProgress(pct) {
+      document.getElementById('progress-fill').style.width = pct + '%';
+    }
+
+    function setStepActive(n) {
+      document.querySelectorAll('.step-pip').forEach((pip, i) => {
+        pip.classList.remove('active', 'done');
+        if (i + 1 < n) pip.classList.add('done');
+        else if (i + 1 === n) pip.classList.add('active');
+      });
+
+      const headers = {
+        1: {
+          count: 'STEP 1 of 3',
+          title: 'See Technical Clarity Mode in action.',
+          sub: 'Below is a real-world technical message. Select your audience and watch the AI transform it — no setup required.'
+        },
+        2: {
+          count: 'STEP 2 of 3',
+          title: 'Here\'s your transformed message.',
+          sub: 'Watch how the same technical content reads differently based on your audience. Precision preserved — jargon removed.'
+        },
+        3: {
+          count: 'STEP 3 of 3',
+          title: 'You\'ve seen the difference.',
+          sub: 'Install the Grammarly extension to use Technical Clarity Mode in every tool your team already uses.'
+        }
+      };
+
+      const h = headers[n];
+      if (h) {
+        const header = document.getElementById('step-header');
+        header.style.transition = 'opacity 0.25s ease';
+        header.style.opacity = '0';
+        setTimeout(() => {
+          header.querySelector('.step-count').textContent = h.count;
+          header.querySelector('.step-title').textContent = h.title;
+          header.querySelector('.step-subtitle').textContent = h.sub;
+          header.style.opacity = '1';
+        }, 200);
+      }
+    }
+
+    // Init progress
+    setProgress(33);
+  </script>
+
+</body>
+</html>

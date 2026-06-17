@@ -92,6 +92,10 @@
       "dest": "/sw.js"
     },
     {
+      "src": "/voice-hotspot",
+      "dest": "/showcase/voice-hotspot.html"
+    },
+    {
       "src": "/icon.svg",
       "dest": "/icon.svg"
     },

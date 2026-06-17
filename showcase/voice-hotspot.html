@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Voice Hotspot — Live Sales Co-pilot</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0D0F14;--card:#13161F;--hover:#1A1D2A;--border:#1F2235;--accent:#11EE91;--accentd:rgba(17,238,145,.12);
+--indigo:#6B78E0;--amber:#F59E0B;--amberd:rgba(245,158,11,.14);--red:#F06548;--redd:rgba(240,101,72,.14);
+--purple:#A78BFA;--text:#EFF1F6;--t2:#8890AA;--t3:#454C63;--font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px}
+.logo-icon{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#000}
+.tag{font-size:13px;color:var(--t2);padding-left:16px;margin-left:4px;border-left:1px solid var(--border)}
+.live{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--t2);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 13px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+main{max-width:1180px;margin:0 auto;padding:24px 28px 60px;display:grid;grid-template-columns:1fr 360px;gap:20px}
+@media(max-width:880px){main{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px}
+.ptitle{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:14px}
+.callbar{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.avatar{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#6B78E0,#A78BFA);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px}
+.who{font-weight:600}.who small{display:block;color:var(--t2);font-size:12px;font-weight:400;margin-top:2px}
+.wave{flex:1;display:flex;align-items:center;gap:3px;height:34px;justify-content:flex-end}
+.wave span{width:3px;border-radius:2px;background:var(--t3);height:8px}
+.wave.on span{background:var(--accent);animation:w .9s ease-in-out infinite}
+.wave span:nth-child(2n){animation-delay:.15s}.wave span:nth-child(3n){animation-delay:.3s}.wave span:nth-child(4n){animation-delay:.45s}
+@keyframes w{0%,100%{height:8px}50%{height:28px}}
+.btn{appearance:none;border:none;cursor:pointer;font-family:var(--font);font-weight:700;font-size:14px;border-radius:10px;padding:11px 18px;background:var(--accent);color:#000}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.ghost{background:transparent;color:var(--t2);border:1px solid var(--border)}
+.transcript{margin-top:8px;min-height:320px;display:flex;flex-direction:column;gap:12px}
+.turn{display:flex;gap:10px;opacity:0;transform:translateY(6px);animation:rise .4s forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.bub{max-width:82%;padding:10px 13px;border-radius:12px;font-size:14px;line-height:1.5}
+.turn.rep{flex-direction:row-reverse}
+.turn.rep .bub{background:var(--accentd);border:1px solid rgba(17,238,145,.25)}
+.turn.prospect .bub{background:var(--hover);border:1px solid var(--border)}
+.tone{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:6px}
+.tone.warn{background:var(--amberd);color:var(--amber)}.tone.neg{background:var(--redd);color:var(--red)}
+.tone.pos{background:var(--accentd);color:var(--accent)}.tone.info{background:rgba(107,120,224,.16);color:var(--indigo)}
+.lbl{font-size:11px;color:var(--t3);margin-bottom:3px}
+.meter{margin-bottom:16px}
+.meter-bar{height:8px;border-radius:6px;background:var(--bg);overflow:hidden;border:1px solid var(--border)}
+.meter-fill{height:100%;width:50%;background:linear-gradient(90deg,var(--red),var(--amber),var(--accent));transition:width .5s}
+.meter-now{font-size:12px;color:var(--t2);margin-top:6px}
+.cards{display:flex;flex-direction:column;gap:12px;min-height:120px}
+.card{border:1px solid var(--border);border-radius:12px;padding:13px;background:var(--bg);opacity:0;transform:translateX(10px);animation:slidein .45s forwards;border-left:3px solid var(--indigo)}
+@keyframes slidein{to{opacity:1;transform:none}}
+.card.warn{border-left-color:var(--amber)}.card.pos{border-left-color:var(--accent)}.card.info{border-left-color:var(--indigo)}
+.card-h{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin-bottom:6px}
+.card-b{font-size:13px;line-height:1.5}
+.empty{color:var(--t3);font-size:13px;text-align:center;padding:30px 10px}
+.foot{max-width:1180px;margin:0 auto;padding:0 28px 40px;color:var(--t3);font-size:12px;line-height:1.6}
+</style>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center">
+    <div class="logo"><div class="logo-icon">VH</div>Voice&nbsp;Hotspot</div>
+    <span class="tag">Live Sales Co-pilot — reads the room in real time</span>
+  </div>
+  <div class="live"><span class="dot"></span><span id="clock">00:00</span> · Live</div>
+</header>
+<main>
+  <div class="panel">
+    <div class="callbar">
+      <div class="avatar">D</div>
+      <div class="who">Dana — VP Operations, Acme Co.<small id="callstatus">Discovery call · not started</small></div>
+      <div class="wave" id="wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:6px">
+      <button class="btn" id="play" onclick="playCall()">▶ Play simulated call</button>
+      <button class="btn ghost" onclick="resetCall()">Reset</button>
+    </div>
+    <div class="ptitle" style="margin-top:18px">Live transcript</div>
+    <div class="transcript" id="transcript"><div class="empty">Press play to start the call. Voice Hotspot listens, transcribes, and reads the room in real time.</div></div>
+  </div>
+  <div>
+    <div class="panel" style="margin-bottom:20px">
+      <div class="ptitle">Prospect emotional register</div>
+      <div class="meter">
+        <div class="meter-bar"><div class="meter-fill" id="meter"></div></div>
+        <div class="meter-now" id="meternow">Waiting for signal…</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">⚡ Real-time insight cards</div>
+      <div class="cards" id="cards"><div class="empty">Suggestions appear here as the conversation unfolds.</div></div>
+    </div>
+  </div>
+</main>
+<div class="foot">Concept demo. Voice Hotspot transcribes a live call, reads its emotional register — from the words now, and from voice tone in the full product — and surfaces in-the-moment coaching cards. Built by Roei Klein.</div>
+<script>
+const SCRIPT=[
+ {who:'rep',text:"Thanks for hopping on, Dana. Want to walk you through how this fits your team's workflow."},
+ {who:'prospect',text:"Sure, though honestly — we already use a competitor, so I'm not sure what's different.",tone:{label:'Skeptical',cls:'neg',pct:30},
+  card:{cls:'info',icon:'🧭',h:'Skepticism detected',b:"Don't pitch features yet. Ask what's missing in their current tool."}},
+ {who:'rep',text:"Totally fair. What's the one thing your current tool doesn't do well?"},
+ {who:'prospect',text:"Reporting, mostly. It takes us forever to pull numbers for management.",tone:{label:'Frustrated · pain point',cls:'warn',pct:42},
+  card:{cls:'warn',icon:'🎯',h:'Pain point surfaced',b:'Reporting. Anchor the rest of the demo on the analytics dashboard.'}},
+ {who:'rep',text:"Got it — let me show you one-click reporting."},
+ {who:'prospect',text:"Okay, the price seems fine… but I'd need to check with my manager.",tone:{label:'Uncertain · hesitant',cls:'warn',pct:55},
+  card:{cls:'warn',icon:'💡',h:'Hesitation, not a price objection',b:"Don't discount. Offer a limited-time trial or ROI data, and ask who else should join the next call."}},
+ {who:'prospect',text:"Also — how do you handle GDPR compliance?",tone:{label:'Compliance · buying signal',cls:'info',pct:68},
+  card:{cls:'info',icon:'🛡️',h:'Compliance = buying intent',b:'Share the SOC2 / GDPR link now and offer a one-page written summary.'}},
+ {who:'rep',text:"Absolutely — sending the SOC2 link now, plus a short summary."},
+ {who:'prospect',text:"This actually looks better than what we have.",tone:{label:'Positive · interested',cls:'pos',pct:88},
+  card:{cls:'pos',icon:'🚀',h:'Positive shift — close the loop',b:'Momentum is up. Propose a concrete next step: a 2-week pilot with her team.'}}
+];
+let timer=null,sec=0,clockI=null;
+function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+function resetCall(){
+  if(timer){clearTimeout(timer);}if(clockI){clearInterval(clockI);}
+  sec=0;document.getElementById('clock').textContent='00:00';
+  document.getElementById('transcript').innerHTML='<div class="empty">Press play to start the call. Voice Hotspot listens, transcribes, and reads the room in real time.</div>';
+  document.getElementById('cards').innerHTML='<div class="empty">Suggestions appear here as the conversation unfolds.</div>';
+  document.getElementById('meter').style.width='50%';document.getElementById('meternow').textContent='Waiting for signal…';
+  document.getElementById('wave').classList.remove('on');document.getElementById('callstatus').textContent='Discovery call · not started';
+  document.getElementById('play').disabled=false;
+}
+function playCall(){
+  resetCall();
+  document.getElementById('play').disabled=true;
+  document.getElementById('wave').classList.add('on');
+  document.getElementById('callstatus').textContent='Discovery call · live';
+  document.getElementById('transcript').innerHTML='';document.getElementById('cards').innerHTML='';
+  clockI=setInterval(()=>{sec++;document.getElementById('clock').textContent=fmt(sec);},1000);
+  let i=0;
+  (function step(){
+    if(i>=SCRIPT.length){document.getElementById('wave').classList.remove('on');document.getElementById('callstatus').textContent='Call ended · summary ready';clearInterval(clockI);document.getElementById('play').disabled=false;return;}
+    const t=SCRIPT[i];
+    const tr=document.getElementById('transcript');
+    const div=document.createElement('div');div.className='turn '+t.who;
+    div.innerHTML='<div class="bub"><div class="lbl">'+(t.who==='rep'?'You (rep)':'Dana (prospect)')+'</div>'+t.text+
+      (t.tone?'<br><span class="tone '+t.tone.cls+'">● '+t.tone.label+'</span>':'')+'</div>';
+    tr.appendChild(div);tr.scrollTop=tr.scrollHeight;
+    if(t.tone){document.getElementById('meter').style.width=t.tone.pct+'%';document.getElementById('meternow').textContent='Now: '+t.tone.label;}
+    if(t.card){const c=document.getElementById('cards');const cd=document.createElement('div');cd.className='card '+t.card.cls;
+      cd.innerHTML='<div class="card-h">'+t.card.icon+' '+t.card.h+'</div><div class="card-b">'+t.card.b+'</div>';c.appendChild(cd);c.scrollTop=c.scrollHeight;}
+    i++;timer=setTimeout(step,t.who==='rep'?1600:2400);
+  })();
+}
+</script>
+</body>
+</html>

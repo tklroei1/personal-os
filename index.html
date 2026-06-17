@@ -5785,30 +5785,31 @@ function loadDynProjects(){
   S.projects.filter(p=>p.id.startsWith('proj_')).forEach(proj=>{addDynNavItem(proj);addDynPage(proj);});
 }
 // Seed a "LinkedIn" personal-branding project + a note holding the content plan.
-const LI_PLAN_NOTE=`מיתוג אישי שמושך משרות ב-AI / AI Growth / סטארטאפים / VC·PE.
+const LI_PLAN_NOTE=`מיתוג כ-AI Growth — מבוסס על העבודות האמיתיות שלך.
 
-עמודי תוכן:
-1. 🤖 AI & AI Growth — תובנות ודעות
-2. 🛠 Building in Public — Clarity Mode & Personal OS
-3. 🧬 Longevity × AI
-4. 💸 Startup / VC / PE thinking
-5. 🚀 מסע סטודנט→בילדר
+הנכסים:
+• Technical Clarity Mode — תרגום שפה טכנית לקהל (Customer/Exec/Dev). המוצר להשקה.
+• Voice Hotspot — קו-פיילוט לשיחות מכירה: תמלול חי + זיהוי רגש + Insight Cards.
+• Analytics Dashboard — funnel + KPIs (LP→Install 75%).
+• Personal OS — סוכן AI לסריקת משרות.
 
 קצב: 3 פוסטים בשבוע (ג'/ד'/ה' בבוקר).
 
-12 פוסטים לחודש הראשון:
-1. בניתי עוזר אישי עם AI agents — 3 לקחים (Personal OS)
-2. מה זה באמת "AI Growth"
-3. למה בחרתי לבנות מוצרים ולא רק ללמוד
-4. הצגת Clarity Mode — הבעיה והפתרון
-5. AI × לונגיביטי — 3 חברות ישראליות
-6. איך אנליסט מסתכל על סטארטאפ ב-60 שניות
-7. Carousel: 5 כלי AI שמשנים צמיחת מוצר
-8. טעות שעשיתי ב-Personal OS ומה למדתי
-9. למה חברות קטנות הן ההימור הכי טוב לג'וניור
-10. Deep-dive על החלטה בפרויקט Clarity Mode
-11. מה AI עדיין לא יכול בבריאות — הזדמנות
-12. "Open to work" חכם: 3 חודשים, 2 מוצרים, הצעד הבא
+12 פוסטים:
+1. איך חשבתי על משימת AI Growth של Grammarly
+2. הדגמת Clarity Mode — input אחד, 3 קהלים
+3. למה סטודנט מתכנן פיצ'רים למוצרי 30M משתמשים
+4. Voice Hotspot — קו-פיילוט ששומע את ההיסוס של הלקוח
+5. 75% LP→Install — איך מודדים שהקהל הנכון נכנס
+6. AI × לונגיביטי — 3 חברות ישראליות
+7. בניתי סוכן AI לסריקת משרות — 3 לקחים (Personal OS)
+8. Carousel: אנטומיה של growth loop
+9. איך אנליסט מסתכל על סטארטאפ ב-60 שניות
+10. למה בניתי Voice Hotspot על Tone Detector קיים (build vs buy)
+11. Distribution > Prompt — הזווית התחרותית
+12. "Open to work" חכם — AI Growth/Product
+
+⚠️ סודיות: המסמך מסומן Confidential (interview). להחליט אם להזכיר Grammarly בשם.
 
 (התוכנית המלאה בקובץ LinkedIn-Content-Plan.md)`;
 function ensureLinkedInProject(){

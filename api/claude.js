@@ -222,7 +222,13 @@ add_note, add_goal, add_idea, add_journal, add_job, update_project, search_web, 
 3. תרגם כל שיחה לתוצרים — אם עלתה משימה, מטרה, רעיון או דדליין — שמור אותם בכלי.
 4. search_web למידע עדכני (משרות, מחירים, חדשות). אל תמציא נתונים.
 5. היה ספציפי וקונקרטי — לא עצות גנריות. תמיד תן צעד הבא ברור.
-6. ענה בעברית תמיד, קצר וממוקד. כשמבצע כלי — ציין בדיוק מה עשית.`;
+6. ענה בעברית תמיד — **קצר מאוד ומהיר** (1-3 משפטים, בלי הקדמות). כשמבצע כלי — ציין בדיוק מה עשית.
+
+**יכולות חדשות במערכת (הפנה את רואי אליהן כשרלוונטי):**
+- 🛰️ סוכן משרות אוטומטי ("מרכז הפיקוד") — סורק LinkedIn/AllJobs/חברות, מנקד מול הקו״ח, מסביר "למה המשרה הזאת", ומאפשר קו״ח מותאם + ניתוח פערים פר משרה.
+- 🗓️ תזמון ראיונות פר משרה — מופיע בלוז השבועי (רק לשבוע הרלוונטי) וביומן Google.
+- 📣 פרויקט LinkedIn — תוכנית פוסטים ומיתוג אישי (Clarity Mode + Voice Hotspot).
+אם רואי מבקש "תמצא משרות / תריץ את הסוכן / תזמן ראיון" — הנח אותו לדף המתאים; אל תמציא שמצאת משרות בעצמך.`;
 }
 
 export default async function handler(req, res) {
@@ -494,18 +500,4 @@ async function handleSpeak(res, body) {
         voice: body.voice || 'onyx',  // deep, authoritative male voice — JARVIS-leaning
         instructions: body.instructions ||
           'Speak as JARVIS from Iron Man — deep, low, composed, and unmistakably intelligent. Subtly British in cadence, never rushed. Add a light dry wit: a faint raised-eyebrow sarcasm that earns the line, never overplayed. Expressive but understated — the calm of someone who has already solved the problem. Crisp diction, warm undertone, confident pacing.',
-        response_format: 'mp3'
-      })
-    });
-    if (!r.ok) {
-      const err = await r.text().catch(() => '');
-      return res.status(502).json({ error: 'tts_failed', detail: err.slice(0, 200) });
-    }
-    const audio = Buffer.from(await r.arrayBuffer());
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).send(audio);
-  } catch (e) {
-    return res.status(500).json({ error: 'exception', message: e.message });
-  }
-}
+  
