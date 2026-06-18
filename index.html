@@ -1823,6 +1823,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   <div class="pd-divider"></div>
   <div class="pd-action" onclick="cloudBackup()">☁️ גבה לענן עכשיו</div>
   <div class="pd-action" onclick="cloudRestore()">⬇️ שחזר מהענן</div>
+  <div class="pd-action" onclick="showErrorLog()">🐞 שגיאות אחרונות</div>
   <div class="pd-divider"></div>
   <div class="pd-action" onclick="signOut();closeProfileModal()">🚪 התנתק</div>
 </div>
@@ -1992,6 +1993,34 @@ const PROJ_NAMES={jobs:'💼 חיפוש עבודה',upselles:'🚀 Upselles',hea
 
 // MULTI-USER: each user's data keyed by their Google sub ID
 let currentUser=JSON.parse(localStorage.getItem('pos_user')||'null');
+// ── ERROR MONITORING (P3): persist API 5xx + JS errors to /api/log-error (stored in KV) ──
+function posReportErr(info){
+  try{ fetch('/api/log-error',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({user:(typeof currentUser!=='undefined'&&currentUser&&currentUser.email)||'anon',ts:new Date().toISOString()},info))}).catch(function(){}); }catch(e){}
+}
+(function(){
+  const _f=window.fetch;
+  window.fetch=function(){
+    const args=arguments;
+    const p=_f.apply(this,args);
+    try{
+      let u=args[0]; u=(u&&u.url)?u.url:String(u||'');
+      if(u.indexOf('/api/')>=0 && u.indexOf('/api/log-error')<0){
+        p.then(function(r){ if(r&&r.status>=500){ posReportErr({msg:'API '+r.status+' '+u,kind:'api'}); } }).catch(function(){});
+      }
+    }catch(e){}
+    return p;
+  };
+})();
+async function showErrorLog(){
+  const email=(typeof currentUser!=='undefined'&&currentUser&&currentUser.email)||'';
+  try{
+    const r=await fetch('/api/log-error?user='+encodeURIComponent(email));
+    if(r.status===403){ showNotif('צפייה בשגיאות זמינה רק לחשבון הראשי'); return; }
+    const d=await r.json(); const list=d.errors||[];
+    const rows=list.length?('<div style="max-height:55vh;overflow:auto;font-size:12px;line-height:1.5">'+list.map(function(e){return '<div style="border-bottom:1px solid var(--border);padding:7px 0"><b>'+escH(String(e.msg||e.raw||'').slice(0,220))+'</b><div style="color:var(--text3);font-size:10px">'+escH(String(e.receivedAt||e.ts||'').slice(0,19))+(e.kind?(' · '+escH(e.kind)):'')+(e.user?(' · '+escH(e.user)):'')+'</div></div>';}).join('')+'</div>'):'<div style="color:var(--text3)">אין שגיאות מתועדות — הכל תקין ✅</div>';
+    showModal('<h3 style="margin:0 0 10px">🐞 שגיאות אחרונות ('+list.length+')</h3>'+rows);
+  }catch(e){ showNotif('לא ניתן לטעון שגיאות'); }
+}
 // If the user is already signed in, hide the full-screen login overlay
 // immediately — before any of the dashboard scripts run — so there's no flash.
 if(currentUser){try{var __ls=document.getElementById('login-screen');if(__ls)__ls.style.display='none';}catch(e){}}
