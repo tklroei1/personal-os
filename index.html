@@ -1821,6 +1821,9 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   <div class="pd-action" onclick="closeProfileModal();openProfileSetupModal(true)">✏️ ערוך פרופיל</div>
   <div class="pd-action" onclick="switchGoogleAccount()">🔄 החלף חשבון Google</div>
   <div class="pd-divider"></div>
+  <div class="pd-action" onclick="cloudBackup()">☁️ גבה לענן עכשיו</div>
+  <div class="pd-action" onclick="cloudRestore()">⬇️ שחזר מהענן</div>
+  <div class="pd-divider"></div>
   <div class="pd-action" onclick="signOut();closeProfileModal()">🚪 התנתק</div>
 </div>
 
@@ -2156,9 +2159,37 @@ function posSyncPush(){
     POS_SYNC.busy = false;
   }, 1500);
 }
+// ── CLOUD BACKUP (Vercel KV) — durable backup + cross-device restore ──
+function _backupSnapshot(){
+  const o={};
+  try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&/^pos3?_|^pos_/.test(k)) o[k]=localStorage.getItem(k); } }catch(e){}
+  return o;
+}
+let _cloudBackupT=null;
+function cloudBackupDebounced(){ clearTimeout(_cloudBackupT); _cloudBackupT=setTimeout(()=>cloudBackup(true),5000); }
+async function cloudBackup(silent){
+  const uid=(typeof currentUser!=='undefined'&&currentUser&&currentUser.sub)||'anon';
+  try{
+    const r=await fetch('/api/backup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:uid,data:_backupSnapshot()})});
+    const d=await r.json();
+    if(d&&d.ok){ try{localStorage.setItem('pos_cloud_ts',String(d.ts));}catch(e){} if(!silent)showNotif('☁️ גובה לענן ('+Math.round(d.bytes/1024)+'KB)'); }
+    else if(!silent)showNotif(d&&d.fallback?'⚠️ הענן עוד לא מוגדר — צריך להפעיל KV ב-Vercel':'⚠️ גיבוי נכשל');
+  }catch(e){ if(!silent)showNotif('⚠️ גיבוי נכשל'); }
+}
+async function cloudRestore(){
+  const uid=(typeof currentUser!=='undefined'&&currentUser&&currentUser.sub)||'anon';
+  if(!confirm('לשחזר מהענן? הנתונים הנוכחיים במכשיר יוחלפו בגיבוי האחרון מהענן.'))return;
+  try{
+    const r=await fetch('/api/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:uid})});
+    const d=await r.json();
+    if(d&&d.data){ const o=JSON.parse(d.data); Object.keys(o).forEach(k=>{try{localStorage.setItem(k,o[k]);}catch(e){}}); showNotif('⬇️ שוחזר מהענן — טוען מחדש...'); setTimeout(()=>location.reload(),800); }
+    else showNotif(d&&d.fallback?'⚠️ הענן עוד לא מוגדר (KV)':'אין גיבוי בענן עדיין');
+  }catch(e){ showNotif('⚠️ שחזור נכשל'); }
+}
 function save(){
   localStorage.setItem(storageKey(), JSON.stringify(S));
   posSyncPush();
+  cloudBackupDebounced();
 }
 // Auto-open the sync setup dialog if the URL has ?sync=1
 try {

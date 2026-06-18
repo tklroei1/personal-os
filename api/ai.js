@@ -25,7 +25,41 @@ export default async function handler(req, res) {
   if (fn === 'gemini') return geminiHandler(req, res);
   if (fn === 'coach') return coachHandler(req, res);
   if (fn === 'transcribe') return transcribeHandler(req, res);
-  return res.status(400).json({ error: 'unknown fn (expected gemini|coach|transcribe)' });
+  if (fn === 'backup') return backupHandler(req, res);
+  if (fn === 'restore') return restoreHandler(req, res);
+  return res.status(400).json({ error: 'unknown fn (expected gemini|coach|transcribe|backup|restore)' });
+}
+
+// ───── Cloud backup/restore via Vercel KV (Upstash REST). Inert until KV_REST_API_* are set. ─────
+async function kvCmd(cmd) {
+  const url = process.env.KV_REST_API_URL, tok = process.env.KV_REST_API_TOKEN;
+  if (!url || !tok) return { _noenv: true };
+  try {
+    const r = await fetch(url, { method: 'POST', headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify(cmd) });
+    return await r.json();
+  } catch (e) { return { error: e.message }; }
+}
+async function backupHandler(req, res) {
+  const b = req.body || {};
+  const key = String(b.key || '').replace(/[^a-zA-Z0-9_.\-]/g, '').slice(0, 200);
+  if (!key) return res.status(200).json({ error: 'no key' });
+  if (b.data === undefined) return res.status(200).json({ error: 'no data' });
+  const val = typeof b.data === 'string' ? b.data : JSON.stringify(b.data);
+  if (val.length > 4500000) return res.status(200).json({ error: 'too large' });
+  const out = await kvCmd(['SET', 'pos_backup:' + key, val]);
+  if (out._noenv) return res.status(200).json({ error: 'no KV configured', fallback: true });
+  if (out.error) return res.status(200).json({ error: out.error });
+  await kvCmd(['SET', 'pos_backup_ts:' + key, String(Date.now())]);
+  return res.status(200).json({ ok: true, bytes: val.length, ts: Date.now() });
+}
+async function restoreHandler(req, res) {
+  const b = req.body || {};
+  const key = String(b.key || '').replace(/[^a-zA-Z0-9_.\-]/g, '').slice(0, 200);
+  if (!key) return res.status(200).json({ error: 'no key' });
+  const out = await kvCmd(['GET', 'pos_backup:' + key]);
+  if (out._noenv) return res.status(200).json({ error: 'no KV configured', fallback: true });
+  const tsOut = await kvCmd(['GET', 'pos_backup_ts:' + key]);
+  return res.status(200).json({ data: (out && out.result) || null, ts: (tsOut && tsOut.result) ? +tsOut.result : 0 });
 }
 
 // ───── Zoro conversation layer: Gemini 2.5 → Groq → (client falls back to Claude) ─────
