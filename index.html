@@ -2444,10 +2444,28 @@ ${CMD_DOCS}`,
   news:`אתה סוכן חדשות בעברית. עדכן את המשתמש בחדשות רלוונטיות בתחומים שהוא בחר. ענה בנקודות קצרות, עם הדגשת הנקודות הכי חשובות. ענה בעברית. ${CMD_DOCS}`,
 };
 
+// Unified personal profile — one source of truth all agents (main, voice, coach) share.
+function posPersona(){
+  try{
+    const up=(typeof S!=='undefined'&&S.userProfile)||{}, c=(typeof S!=='undefined'&&S.jobHuntConfig)||{};
+    const name=up.name||c.name||(typeof currentUser!=='undefined'&&currentUser&&currentUser.name&&!String(currentUser.name).includes('@')?currentUser.name:'')||'רואי קליין';
+    const p=['שם: '+name];
+    if(up.role)p.push('תחום/תפקיד: '+up.role);
+    if(up.city)p.push('עיר: '+up.city);
+    if(c.summary)p.push('תקציר מקצועי: '+c.summary);
+    if(c.bigPicture)p.push('שאיפה: '+c.bigPicture);
+    if((c.roleTitles||[]).length)p.push('מחפש תפקידים: '+c.roleTitles.slice(0,6).join(', '));
+    if((c.skills||[]).length)p.push('מיומנויות: '+c.skills.slice(0,12).join(', '));
+    if((up.goals||[]).length)p.push('מטרות: '+up.goals.join(', '));
+    if(up.bio)p.push('עליו: '+up.bio);
+    return p.length>1?('— פרופיל אישי של מי שאתה משרת (השתמש בו כדי להיות אישי ורלוונטי, אל תמציא מעבר לזה) —\n'+p.join('\n')):'';
+  }catch(e){return'';}
+}
 function buildSystemPrompt(base){
   const now=new Date();
   const dateStr=now.toLocaleDateString('he-IL',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  return `${base}\n\nתאריך היום: ${dateStr}.`;
+  const persona=posPersona();
+  return `${base}\n\nתאריך היום: ${dateStr}.${persona?('\n\n'+persona):''}`;
 }
 
 function initClearMemoryBtns(){
@@ -4169,7 +4187,8 @@ window.POS = (function(){
         goals:(S.goals||[]).map(g=>({text:g.text,progress:g.progress})),
         jobs:(S.jobs||[]).map(j=>({title:j.title,company:j.company,status:j.status})),
         aptsCount:(S.apts||[]).length,
-        ideas:(S.ideas||[]).map(i=>i.text)
+        ideas:(S.ideas||[]).map(i=>i.text),
+        persona:(typeof posPersona==='function'?posPersona():'')
       };
     },
     // ───── TASKS ─────
