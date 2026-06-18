@@ -1,123 +1,39 @@
 {
   "version": 2,
   "crons": [
-    {
-      "path": "/api/cron/job-hunt",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/job-hunt",
-      "schedule": "0 9 * * *"
-    }
+    { "path": "/api/cron/job-hunt", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/job-hunt", "schedule": "0 9 * * *" }
   ],
   "functions": {
-    "api/claude.js": {
-      "maxDuration": 60
-    },
-    "api/search.js": {
-      "maxDuration": 30
-    },
-    "api/news-digest.js": {
-      "maxDuration": 30
-    },
-    "api/get-agent-results.js": {
-      "maxDuration": 60
-    },
-    "api/cron/job-hunt.js": {
-      "maxDuration": 60
-    },
-    "api/job-coach.js": {
-      "maxDuration": 30
-    }
+    "api/claude.js": { "maxDuration": 60 },
+    "api/search.js": { "maxDuration": 30 },
+    "api/news-digest.js": { "maxDuration": 30 },
+    "api/get-agent-results.js": { "maxDuration": 60 },
+    "api/cron/job-hunt.js": { "maxDuration": 60 },
+    "api/ai.js": { "maxDuration": 60 }
   },
   "routes": [
-    {
-      "src": "/api/claude",
-      "dest": "/api/claude.js"
-    },
-    {
-      "src": "/api/search",
-      "dest": "/api/search.js"
-    },
-    {
-      "src": "/api/webhook",
-      "dest": "/api/webhook.js"
-    },
-    {
-      "src": "/api/fetch-page",
-      "dest": "/api/fetch-page.js"
-    },
-    {
-      "src": "/api/match-score",
-      "dest": "/api/match-score.js"
-    },
-    {
-      "src": "/api/log-error",
-      "dest": "/api/log-error.js"
-    },
-    {
-      "src": "/api/google-callback",
-      "dest": "/api/google-callback.js"
-    },
-    {
-      "src": "/api/whatsapp-command",
-      "dest": "/api/whatsapp-command.js"
-    },
-    {
-      "src": "/api/whatsapp/send",
-      "dest": "/api/whatsapp/send.js"
-    },
-    {
-      "src": "/api/cron/job-hunt",
-      "dest": "/api/cron/job-hunt.js"
-    },
-    {
-      "src": "/api/news-digest",
-      "dest": "/api/news-digest.js"
-    },
-    {
-      "src": "/api/get-agent-results",
-      "dest": "/api/get-agent-results.js"
-    },
-    {
-      "src": "/api/job-coach",
-      "dest": "/api/job-coach.js"
-    },
-    {
-      "src": "/manifest.json",
-      "dest": "/manifest.json"
-    },
-    {
-      "src": "/sw.js",
-      "dest": "/sw.js"
-    },
-    {
-      "src": "/voice-hotspot",
-      "dest": "/showcase/voice-hotspot.html"
-    },
-    {
-      "src": "/icon.svg",
-      "dest": "/icon.svg"
-    },
-    {
-      "src": "/jarvis.js",
-      "dest": "/jarvis.js"
-    },
-    {
-      "src": "/agent.js",
-      "dest": "/agent.js"
-    },
-    {
-      "src": "/assistant.js",
-      "dest": "/assistant.js"
-    },
-    {
-      "src": "/voice.js",
-      "dest": "/voice.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+    { "src": "/api/claude", "dest": "/api/claude.js" },
+    { "src": "/api/gemini", "dest": "/api/ai.js?fn=gemini" },
+    { "src": "/api/search", "dest": "/api/search.js" },
+    { "src": "/api/webhook", "dest": "/api/webhook.js" },
+    { "src": "/api/fetch-page", "dest": "/api/fetch-page.js" },
+    { "src": "/api/log-error", "dest": "/api/log-error.js" },
+    { "src": "/api/google-callback", "dest": "/api/google-callback.js" },
+    { "src": "/api/whatsapp-command", "dest": "/api/whatsapp-command.js" },
+    { "src": "/api/whatsapp/send", "dest": "/api/whatsapp/send.js" },
+    { "src": "/api/cron/job-hunt", "dest": "/api/cron/job-hunt.js" },
+    { "src": "/api/news-digest", "dest": "/api/news-digest.js" },
+    { "src": "/api/get-agent-results", "dest": "/api/get-agent-results.js" },
+    { "src": "/api/job-coach", "dest": "/api/ai.js?fn=coach" },
+    { "src": "/manifest.json", "dest": "/manifest.json" },
+    { "src": "/sw.js", "dest": "/sw.js" },
+    { "src": "/voice-hotspot", "dest": "/showcase/voice-hotspot.html" },
+    { "src": "/icon.svg", "dest": "/icon.svg" },
+    { "src": "/jarvis.js", "dest": "/jarvis.js" },
+    { "src": "/agent.js", "dest": "/agent.js" },
+    { "src": "/assistant.js", "dest": "/assistant.js" },
+    { "src": "/voice.js", "dest": "/voice.js" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

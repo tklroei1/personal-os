@@ -1,4 +1,4 @@
-const CACHE = 'personal-os-v14';
+const CACHE = 'personal-os-v19';
 const ASSETS = ['/', '/index.html', '/manifest.json', '/icon.svg'];
 
 self.addEventListener('install', e => {
@@ -73,8 +73,4 @@ self.addEventListener('push', e => {
   e.waitUntil(
     self.registration.showNotification(payload.title, {
       body: payload.body, icon: '/icon.svg', badge: '/icon.svg',
-      dir: 'rtl', lang: 'he', vibrate: [130, 70, 130],
-      data: { url: payload.url }
-    })
-  );
-});
+      dir: 'rtl', lang: 'he',
