@@ -205,12 +205,25 @@ ${(() => {
   async function think(prompt){
     prompt = (prompt || '').trim();
     if (!prompt) return '';
+    memory.push({ role:'user', content: prompt });
+    // Gemini is the brain for natural conversation (fast). It delegates to the Claude
+    // tool-agent only when an ACTION is requested (task / reminder / event / job-hunt / nav).
+    const ACTION_RE = /(הוסף|תוסיף|תזכיר|תזכורת|קבע|תזמן|תזמ|מצא לי|תמצא|תריץ|הרץ|סמן|תסמן|מחק|תמחק|עדכן|תעדכן|רשום|תרשום|פתח|נווט|קח אותי|חפש לי משרות|תקבע)/;
+    const wantsAction = ACTION_RE.test(prompt);
+    if (!wantsAction) {
+      const voiceSys = 'אתה זורו — העוזר הקולי של רואי קליין. דבר עברית טבעית, חמה וזורמת, קצר וממוקד (1-2 משפטים), בגוף ראשון, כמו בשיחת טלפון אמיתית. אתה המוח (Gemini) לשיחה, ויש לך סוכני Claude שמבצעים פעולות במערכת (משימות, תזכורות, אירועים, חיפוש משרות) — כשצריך פעולה אתה פונה אליהם. כששואלים על איזה מודל אתה — ענה בדיוק את זה, בלי להפנות לממשקים חיצוניים. אל תמציא מידע ואל תשתמש במילים לא-תקניות.';
+      try {
+        const convo = memory.slice(-12).map(m => ({ role:m.role, content:m.content }));
+        const r = await fetch('/api/gemini', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ messages: convo, system: voiceSys }) });
+        const d = await r.json();
+        if (d && d.text && !d.error) { memory.push({ role:'assistant', content: d.text }); saveMem(); return String(d.text).trim(); }
+      } catch (e) {}
+    }
+    // ACTION (or Gemini unavailable) -> Claude tool-use agent (executes real actions).
     const system = systemPrompt(context());
     const model = pickModel(prompt);
-    memory.push({ role:'user', content: prompt });
     let messages = memory.slice(-12).map(m => ({ role:m.role, content:m.content }));
     while (messages.length && messages[0].role !== 'user') messages.shift();
-
     let loops = 0;
     while (loops++ < 7) {
       const data = await apiCall(system, messages, model);
@@ -218,11 +231,7 @@ ${(() => {
       const blocks   = Array.isArray(data.content) ? data.content : [];
       const toolUses = blocks.filter(b => b.type === 'tool_use');
       const textOut  = blocks.filter(b => b.type === 'text').map(b => b.text).join('').trim();
-      if (toolUses.length === 0) {
-        memory.push({ role:'assistant', content: textOut });
-        saveMem();
-        return textOut || 'בוצע.';
-      }
+      if (toolUses.length === 0) { memory.push({ role:'assistant', content: textOut }); saveMem(); return textOut || 'בוצע.'; }
       messages.push({ role:'assistant', content: blocks });
       const results = [];
       for (const tu of toolUses) {
@@ -326,7 +335,7 @@ ${(() => {
     if (wakeArmed) disarmWake(); else stopSR();
     setState('idle'); syncWakeUI();
     addLine('sys', 'זורו הופסק. הקש על השמש או הפעל "האזנה" כדי להתחיל שוב.');
-    if (announce) setTimeout(function(){ speak('בסדר רואי, אני מפסיק לעבוד. קרא לי כשתצטרך אותי.'); }, 130);
+    if (announce) setTimeout(function(){ browserSpeak('בסדר רואי, אני מפסיק לעבוד. קרא לי כשתצטרך אותי.'); }, 130);
   }
 
   function wakeMatch(text){
@@ -344,9 +353,9 @@ ${(() => {
     r.onstart = () => { recogOn = true; if (conversing && !speaking) setState('listening'); };
     r.onend   = () => {
       recogOn = false;
-      // keep listening alive even while speaking, so "עצור" can be caught mid-action
-      if (conversing || wakeArmed) {
-        setTimeout(() => { if ((conversing || wakeArmed) && !recogOn) startSR(); }, 250);
+      // Do NOT listen while Zoro is speaking — stops the mic from hearing the TTS (echo / self-talk).
+      if ((conversing || wakeArmed) && !speaking) {
+        setTimeout(() => { if ((conversing || wakeArmed) && !speaking && !recogOn) startSR(); }, 250);
       }
     };
     r.onerror = (e) => {
@@ -382,7 +391,7 @@ ${(() => {
         else {                               // just the name
           awaitingCommand = true;
           speaking = true; stopSR();
-          speak('כן רואי?', () => { speaking = false; if (wakeArmed || conversing) startSR(); });
+          browserSpeak('כן רואי?', () => { speaking = false; if (wakeArmed || conversing) startSR(); });
         }
       }
     };
@@ -494,6 +503,7 @@ ${(() => {
     if (!text) return;
     if (isStopCommand(text)) { fullStop(true); return; }
     speaking = true;
+    stopSR();
     setStatus('', '');
     addLine('user', text);
     setState('thinking');
@@ -510,10 +520,8 @@ ${(() => {
         setState('idle');
       }
     };
-    // typed/chip input uses the free browser voice (saves TTS credits);
-    // spoken input gets the premium neural voice
-    if (source === 'text') browserSpeak(reply, done);
-    else speak(reply, done);
+    // All replies use the Hebrew browser voice — natural Hebrew, instant (no English-accented neural round-trip).
+    browserSpeak(reply, done);
   }
 
   // ──────────────────────────────────────────────────────────────────────
