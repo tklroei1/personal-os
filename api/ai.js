@@ -32,7 +32,8 @@ export default async function handler(req, res) {
 
 // ───── Cloud backup/restore via Vercel KV (Upstash REST). Inert until KV_REST_API_* are set. ─────
 async function kvCmd(cmd) {
-  const url = process.env.KV_REST_API_URL, tok = process.env.KV_REST_API_TOKEN;
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.STORAGE_KV_REST_API_URL;
+  const tok = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.STORAGE_KV_REST_API_TOKEN;
   if (!url || !tok) return { _noenv: true };
   try {
     const r = await fetch(url, { method: 'POST', headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify(cmd) });
