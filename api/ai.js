@@ -27,7 +27,19 @@ export default async function handler(req, res) {
   if (fn === 'transcribe') return transcribeHandler(req, res);
   if (fn === 'backup') return backupHandler(req, res);
   if (fn === 'restore') return restoreHandler(req, res);
-  return res.status(400).json({ error: 'unknown fn (expected gemini|coach|transcribe|backup|restore)' });
+  if (fn === 'vapid-public') return res.status(200).json({ publicKey: process.env.VAPID_PUBLIC || '' });
+  if (fn === 'push-subscribe') return pushSubscribeHandler(req, res);
+  return res.status(400).json({ error: 'unknown fn (expected gemini|coach|transcribe|backup|restore|vapid-public|push-subscribe)' });
+}
+
+// ───── Web Push subscription storage (send happens in the cron; web-push lib isolated there) ─────
+async function pushSubscribeHandler(req, res) {
+  const b = req.body || {};
+  const sub = b.sub || b.subscription;
+  if (!sub || !sub.endpoint) return res.status(200).json({ error: 'no subscription' });
+  const out = await kvCmd(['SADD', 'pos_push_subs', JSON.stringify(sub)]);
+  if (out._noenv) return res.status(200).json({ error: 'no KV configured', fallback: true });
+  return res.status(200).json({ ok: true });
 }
 
 // ───── Cloud backup/restore via Vercel KV (Upstash REST). Inert until KV_REST_API_* are set. ─────

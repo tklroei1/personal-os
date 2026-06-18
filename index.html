@@ -1824,6 +1824,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   <div class="pd-action" onclick="cloudBackup()">☁️ גבה לענן עכשיו</div>
   <div class="pd-action" onclick="cloudRestore()">⬇️ שחזר מהענן</div>
   <div class="pd-action" onclick="showErrorLog()">🐞 שגיאות אחרונות</div>
+  <div class="pd-action" onclick="enablePush()">🔔 הפעל התראות בנייד</div>
   <div class="pd-divider"></div>
   <div class="pd-action" onclick="signOut();closeProfileModal()">🚪 התנתק</div>
 </div>
@@ -2011,6 +2012,20 @@ function posReportErr(info){
     return p;
   };
 })();
+function urlBase64ToUint8Array(b){const pad='='.repeat((4-b.length%4)%4);const s=(b+pad).replace(/-/g,'+').replace(/_/g,'/');const raw=atob(s);const arr=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);return arr;}
+async function enablePush(){
+  try{
+    if(!('serviceWorker'in navigator)||!('PushManager'in window)){showNotif('הדפדפן לא תומך בהתראות push');return;}
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){showNotif('לא אושרו התראות');return;}
+    const reg=await navigator.serviceWorker.ready;
+    const vp=await fetch('/api/vapid-public',{method:'POST'}).then(r=>r.json()).catch(()=>({}));
+    if(!vp.publicKey){showNotif('⚠️ התראות עוד לא מוגדרות בשרת — צריך מפתחות VAPID');return;}
+    const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(vp.publicKey)});
+    const r=await fetch('/api/push-subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sub})}).then(r=>r.json());
+    showNotif(r&&r.ok?'🔔 התראות הופעלו! תקבל בריפינג יומי בנייד.':'⚠️ ההפעלה נכשלה');
+  }catch(e){showNotif('⚠️ שגיאה בהפעלת התראות');}
+}
 async function showErrorLog(){
   const email=(typeof currentUser!=='undefined'&&currentUser&&currentUser.email)||'';
   try{
