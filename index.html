@@ -6337,8 +6337,18 @@ function toggleLiveVoice(ctx,btnEl){
   }
   return toggleLiveVoiceWebSpeech(ctx,btnEl);
 }
+async function callGemini(messages,system){
+  try{
+    const r=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages,system})});
+    const d=await r.json();
+    if(d&&d.text&&!d.error)return d.text;
+  }catch(e){}
+  return null;
+}
 async function liveLoop(ctx,btnEl){
   const chatEl=document.getElementById(`${ctx==='main'?'main':ctx}-chat`);
+  const st=liveVoiceState[ctx]; const convo=st.convo||(st.convo=[]);
+  const voiceSys='אתה זורו — העוזר הקולי של רואי קליין. דבר עברית טבעית, חמה וקצרה (1-2 משפטים), בגוף ראשון, כמו בשיחת טלפון. הארכיטקטורה שלך: אתה משלב Gemini למענה קולי טבעי ומהיר, ו-Claude לחשיבה וביצוע פעולות במערכת. כששואלים על איזה מודל אתה — ענה בדיוק את זה. אל תפנה את רואי לממשקים חיצוניים. אם מבקשים פעולה (משימה/אירוע/חיפוש/משרה) — אשר בקצרה שתטופל. אל תמציא מידע.';
   while(liveVoiceState[ctx] && !liveVoiceState[ctx].stop){
     const ctrl=posRecordClip({}); if(!liveVoiceState[ctx]){break;} liveVoiceState[ctx].ctrl=ctrl;
     const r=await ctrl.promise;
@@ -6349,14 +6359,18 @@ async function liveLoop(ctx,btnEl){
     if(text===null){ delete liveVoiceState[ctx]; return toggleLiveVoiceWebSpeech(ctx,btnEl,true); }
     if(!text){ continue; }
     if(chatEl)addMsgToEl(chatEl,'user',text);
-    const sys=SYS[ctx]||SYS.main;
+    convo.push({role:'user',content:text});
     const th=chatEl?addMsgToEl(chatEl,'ai','...'):null;
-    const reply=await claude(text,sys);
+    let reply=await callGemini(convo, voiceSys);
+    if(!reply){ reply=await claude(text, SYS[ctx]||SYS.main); }
+    convo.push({role:'assistant',content:reply});
+    if(convo.length>16) convo.splice(0, convo.length-16);
     const cleanReply=parseCommands(reply);
     if(th)renderMarkdownMsg(th.querySelector('.mb'),cleanReply);
   }
   if(btnEl){btnEl.classList.remove('on');btnEl.textContent='🎙 Live';}
 }
+
 function toggleLiveVoiceWebSpeech(ctx,btnEl){
   if(liveVoiceState[ctx]){
     liveVoiceState[ctx].recog?.stop();
