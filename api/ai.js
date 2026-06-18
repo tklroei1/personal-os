@@ -1,9 +1,8 @@
 // api/ai.js — consolidated AI helpers (keeps Vercel Hobby under the 12-function limit)
 // Dispatches by ?fn= :
-//   fn=gemini → Gemini conversation layer for Zoro (natural Hebrew chat + intent read)
-//   fn=coach  → CV tailoring + honest gap analysis for a specific job
+//   fn=gemini → Zoro conversation layer: Gemini 2.5 → Groq fallback → (client falls back to Claude)
+//   fn=coach  → CV tailoring + honest gap analysis (Anthropic)
 // Routed in vercel.json:  /api/gemini → /api/ai.js?fn=gemini ,  /api/job-coach → /api/ai.js?fn=coach
-// Replaces the former standalone api/gemini.js and api/job-coach.js (logic unchanged).
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,8 +11,6 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  // Resolve which helper to run: prefer ?fn=, fall back to the path (so a direct
-  // hit on /api/job-coach or /api/gemini still works even without the rewrite).
   const url = (() => { try { return new URL(req.url, 'http://x'); } catch { return null; } })();
   let fn = (req.query && req.query.fn) || (url && url.searchParams.get('fn')) || '';
   fn = String(fn).toLowerCase();
@@ -28,49 +25,76 @@ export default async function handler(req, res) {
   return res.status(400).json({ error: 'unknown fn (expected gemini|coach)' });
 }
 
-// ───── Gemini conversation layer ─────
-// POST { messages:[{role,content}], system, model? } -> { text }
-// On error -> { error, fallback:true } so the client can fall back to Claude.
+// ───── Zoro conversation layer: Gemini 2.5 → Groq → (client falls back to Claude) ─────
+// POST { messages:[{role,content}], system, model? } -> { text, provider }
 async function geminiHandler(req, res) {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return res.status(200).json({ error: 'no GEMINI_API_KEY', fallback: true });
-
   const b = req.body || {};
-  const model = String(b.model || process.env.GEMINI_MODEL || 'gemini-2.0-flash').replace(/[^a-zA-Z0-9.\-]/g, '');
   const system = String(b.system || '');
   const msgs = Array.isArray(b.messages) ? b.messages : [];
 
+  // 1) Gemini (fast, great Hebrew). Default model is now gemini-2.5-flash.
+  const gem = await tryGemini(msgs, system, b.model);
+  if (gem && gem.text) return res.status(200).json({ text: gem.text, model: gem.model, provider: 'gemini' });
+
+  // 2) Groq fallback (free, very fast) — only if GROQ_API_KEY is set.
+  const groq = await tryGroq(msgs, system);
+  if (groq && groq.text) return res.status(200).json({ text: groq.text, model: groq.model, provider: 'groq' });
+
+  // 3) Nothing worked → let the client fall back to Claude's own text.
+  return res.status(200).json({ error: (gem && gem.error) || (groq && groq.error) || 'no provider', fallback: true });
+}
+
+async function tryGemini(msgs, system, modelOverride) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return { error: 'no GEMINI_API_KEY' };
+  const model = String(modelOverride || process.env.GEMINI_MODEL || 'gemini-2.5-flash').replace(/[^a-zA-Z0-9.\-]/g, '');
   const contents = msgs
     .filter(function (m) { return m && (m.content || '').toString().trim(); })
     .map(function (m) {
       const role = (m.role === 'assistant' || m.role === 'model') ? 'model' : 'user';
       return { role: role, parts: [{ text: String(m.content) }] };
     });
-
   const payload = {
     contents: contents.length ? contents : [{ role: 'user', parts: [{ text: 'שלום' }] }],
     generationConfig: { temperature: 0.6, maxOutputTokens: 1024 },
   };
   if (system) payload.systemInstruction = { parts: [{ text: system }] };
-
   try {
     const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + encodeURIComponent(key);
-    const r = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    const r = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const d = await r.json();
-    if (!r.ok) return res.status(200).json({ error: (d.error && d.error.message) || 'gemini error', fallback: true });
+    if (!r.ok) return { error: (d.error && d.error.message) || 'gemini error' };
     const text = (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts || [])
       .map(function (p) { return p.text || ''; }).join('').trim();
-    return res.status(200).json({ text: text || '', model: model });
-  } catch (e) {
-    return res.status(200).json({ error: e.message, fallback: true });
-  }
+    return { text: text || '', model: model };
+  } catch (e) { return { error: e.message }; }
 }
 
-// ───── CV tailoring + honest gap analysis ─────
+async function tryGroq(msgs, system) {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) return { error: 'no GROQ_API_KEY' };
+  const model = String(process.env.GROQ_MODEL || 'llama-3.3-70b-versatile').replace(/[^a-zA-Z0-9.\-]/g, '');
+  const out = [];
+  if (system) out.push({ role: 'system', content: system });
+  msgs.filter(function (m) { return m && (m.content || '').toString().trim(); })
+      .forEach(function (m) {
+        const role = (m.role === 'assistant' || m.role === 'model') ? 'assistant' : 'user';
+        out.push({ role: role, content: String(m.content) });
+      });
+  try {
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
+      body: JSON.stringify({ model: model, messages: out.length ? out : [{ role: 'user', content: 'שלום' }], temperature: 0.6, max_tokens: 1024 }),
+    });
+    const d = await r.json();
+    if (!r.ok) return { error: (d.error && d.error.message) || 'groq error' };
+    const text = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content || '').trim();
+    return { text: text || '', model: model };
+  } catch (e) { return { error: e.message }; }
+}
+
+// ───── CV tailoring + honest gap analysis (Anthropic) ─────
 // POST { mode:'tailor'|'gap', cv, jobTitle, jobCompany, jobDesc }
 async function coachHandler(req, res) {
   const anthropic = process.env.ANTHROPIC_API_KEY;
