@@ -5071,6 +5071,7 @@ function openJobDrawer(jobId){
       <span class="bdg bdg-gr">${escH(job.source_label||job.source||'')}</span>
       ${days>0?`<span class="bdg bdg-gr">${days} ימים בשלב</span>`:''}
     </div>
+    ${(job.stage==='applied'&&days>=5)?`<div style="background:#f59e0b22;color:#b45309;border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:10px;font-size:12px;line-height:1.6">⏰ הוגש לפני ${days} ימים ללא תשובה — שווה פולואו-אפ. לחץ <b>✍️ מייל פולואו-אפ</b> למטה.</div>`:''}
     ${job.match_explanation?`<div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:10px;line-height:1.6">💡 ${escH(job.match_explanation)}</div>`:''}
     ${jobBreakdownHTML(job.match_breakdown)}
     ${job.matched_keywords?.length?`<div style="margin-bottom:8px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">מיומנויות שנמצאו</div><div style="display:flex;gap:5px;flex-wrap:wrap">${job.matched_keywords.map(k=>`<span class="bdg bdg-g">${escH(k)}</span>`).join('')}</div></div>`:''}
@@ -5090,6 +5091,11 @@ function openJobDrawer(jobId){
       <button class="btn bs bsm" style="flex:1" onclick="saveJobInterview('${job.id}')">📅 שמור פגישה + יומן ולוז</button>
       ${job.interview&&job.interview.date?`<button class="btn bs bsm" onclick="clearJobInterview('${job.id}')">בטל</button>`:''}
     </div>
+    <div style="display:flex;gap:7px;margin-bottom:8px">
+      <button class="btn bs bsm" style="flex:1" onclick="jobInterviewPrep('${job.id}')">🎤 הכנה לראיון</button>
+      <button class="btn bs bsm" style="flex:1" onclick="jobFollowupEmail('${job.id}')">✍️ מייל פולואו-אפ</button>
+    </div>
+    <div id="drawer-ai-out" style="font-size:12px;line-height:1.7;white-space:pre-wrap;background:var(--bg3);border-radius:var(--radius-xs);padding:0 10px;max-height:0;overflow:auto;transition:max-height .3s;margin-bottom:10px"></div>
     <div style="display:flex;gap:7px">
       <button class="btn bp bsm" style="flex:1" onclick="saveJobDrawer('${job.id}')">💾 שמור שינויים</button>
       <button class="btn bs bsm" onclick="deleteJobFromDrawer('${job.id}')">🗑 ארכב</button>
@@ -5100,6 +5106,22 @@ function openJobDrawer(jobId){
   document.getElementById('job-drawer').classList.add('open');
 }
 
+async function jobInterviewPrep(jobId){
+  const job=getJobsV2().find(function(j){return j.id===jobId;}); if(!job)return;
+  const out=document.getElementById('drawer-ai-out'); if(out){out.style.maxHeight='60vh';out.textContent='🎤 מכין הכנה לראיון...';}
+  const cv=(typeof ensureJHC==='function'?(ensureJHC().cv||''):'').slice(0,3000);
+  const p='אתה מאמן ראיונות מנוסה. הכן מסמך הכנה קצר וממוקד בעברית לראיון למשרה "'+(job.title||'')+'" ב"'+(job.company||'')+'".'+(job.description_summary?(' תיאור המשרה: '+job.description_summary):'')+(cv?(' רקע המועמד מהקו"ח: '+cv):'')+' כלול בקצרה: 1) רקע על החברה והתפקיד 2) 5 שאלות צפויות + נקודות לתשובה 3) 3 שאלות חכמות לשאול את המראיין 4) טיפ מנצח אחד. פרקטי וקצר.';
+  let r=await callGemini([{role:'user',content:p}],'ענה בעברית, מאורגן וקצר.'); if(!r){r=await claude(p,SYS.jobs);}
+  if(out){out.textContent=r||'לא הצלחתי להכין כרגע — נסה שוב.';}
+}
+async function jobFollowupEmail(jobId){
+  const job=getJobsV2().find(function(j){return j.id===jobId;}); if(!job)return;
+  const out=document.getElementById('drawer-ai-out'); if(out){out.style.maxHeight='60vh';out.textContent='✍️ מנסח מייל פולואו-אפ...';}
+  const name=(typeof ensureJHC==='function'?(ensureJHC().name||''):'')||'רואי קליין';
+  const p='נסח מייל פולואו-אפ קצר, מנומס ומקצועי בעברית, לאחר הגשת מועמדות למשרה "'+(job.title||'')+'" ב"'+(job.company||'')+'". מטרה: לבדוק סטטוס בנימוס ולהזכיר עניין אמיתי. 4-6 שורות, טון בטוח לא נדחק. כלול שורת נושא. חתום בשם '+name+'.';
+  let r=await callGemini([{role:'user',content:p}],'ענה בעברית.'); if(!r){r=await claude(p,SYS.jobs);}
+  if(out){out.textContent=r||'לא הצלחתי לנסח כרגע — נסה שוב.';}
+}
 function closeJobDrawer(){
   document.getElementById('job-drawer-bg').classList.remove('open');
   document.getElementById('job-drawer').classList.remove('open');
