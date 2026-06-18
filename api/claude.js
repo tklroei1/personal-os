@@ -500,4 +500,18 @@ async function handleSpeak(res, body) {
         voice: body.voice || 'onyx',  // deep, authoritative male voice — JARVIS-leaning
         instructions: body.instructions ||
           'Speak as JARVIS from Iron Man — deep, low, composed, and unmistakably intelligent. Subtly British in cadence, never rushed. Add a light dry wit: a faint raised-eyebrow sarcasm that earns the line, never overplayed. Expressive but understated — the calm of someone who has already solved the problem. Crisp diction, warm undertone, confident pacing.',
-  
+        response_format: 'mp3'
+      })
+    });
+    if (!r.ok) {
+      const err = await r.text().catch(() => '');
+      return res.status(502).json({ error: 'tts_failed', detail: err.slice(0, 200) });
+    }
+    const audio = Buffer.from(await r.arrayBuffer());
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).send(audio);
+  } catch (e) {
+    return res.status(500).json({ error: 'exception', message: e.message });
+  }
+}
