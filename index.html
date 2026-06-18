@@ -4527,6 +4527,58 @@ async function pollWebhook(){
   }catch(e){}
 }
 
+// ─── WHISPER VOICE (Groq) — accurate Hebrew STT, graceful fallback to Web Speech ───
+const POS_VOICE = { whisper: true };
+let _posVoiceCtrl = null;
+async function posTranscribeBlob(blob){
+  try{
+    const buf = await blob.arrayBuffer();
+    const bytes = new Uint8Array(buf); let bin=''; const CH=0x8000;
+    for(let i=0;i<bytes.length;i+=CH){ bin += String.fromCharCode.apply(null, bytes.subarray(i,i+CH)); }
+    const b64 = btoa(bin);
+    const r = await fetch('/api/transcribe',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({audio:b64, mime:(blob.type||'audio/webm'), lang:'he'})});
+    const d = await r.json();
+    if(d && d.text && !d.error) return String(d.text).trim();
+  }catch(e){}
+  return null;
+}
+function posRecordClip({silenceMs=1400, maxMs=15000}={}){
+  const ctrl={ stop(){} };
+  ctrl.promise=(async()=>{
+    if(!navigator.mediaDevices || !window.MediaRecorder) return {error:'unsupported'};
+    let stream;
+    try{ stream=await navigator.mediaDevices.getUserMedia({audio:true}); }catch(e){ return {error:'mic'}; }
+    let mime='audio/webm';
+    try{
+      if(MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mime='audio/webm;codecs=opus';
+      else if(MediaRecorder.isTypeSupported('audio/webm')) mime='audio/webm';
+      else if(MediaRecorder.isTypeSupported('audio/mp4')) mime='audio/mp4';
+    }catch(e){}
+    let rec;
+    try{ rec=new MediaRecorder(stream,{mimeType:mime}); }catch(e){ try{ rec=new MediaRecorder(stream); mime=rec.mimeType||'audio/webm'; }catch(e2){ stream.getTracks().forEach(t=>t.stop()); return {error:'norec'}; } }
+    const chunks=[]; rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+    let ac,analyser,raf,silenceTimer,maxTimer;
+    const cleanup=()=>{ try{cancelAnimationFrame(raf);}catch(e){} clearTimeout(silenceTimer); clearTimeout(maxTimer); try{ac&&ac.close();}catch(e){} stream.getTracks().forEach(t=>t.stop()); };
+    const done=new Promise(res=>{ rec.onstop=()=>{ cleanup(); res(new Blob(chunks,{type:mime.split(';')[0]})); }; });
+    ctrl.stop=()=>{ try{ if(rec.state!=='inactive') rec.stop(); }catch(e){} };
+    try{
+      ac=new (window.AudioContext||window.webkitAudioContext)();
+      const src=ac.createMediaStreamSource(stream); analyser=ac.createAnalyser(); analyser.fftSize=512; src.connect(analyser);
+      const data=new Uint8Array(analyser.fftSize);
+      const tick=()=>{ analyser.getByteTimeDomainData(data); let sum=0; for(let i=0;i<data.length;i++){const v=(data[i]-128)/128; sum+=v*v;} const rms=Math.sqrt(sum/data.length);
+        if(rms>0.045){ clearTimeout(silenceTimer); silenceTimer=setTimeout(()=>ctrl.stop(), silenceMs); }
+        raf=requestAnimationFrame(tick);
+      };
+      raf=requestAnimationFrame(tick);
+    }catch(e){}
+    maxTimer=setTimeout(()=>ctrl.stop(), maxMs);
+    try{ rec.start(); }catch(e){ cleanup(); return {error:'startfail'}; }
+    const blob=await done;
+    return {blob, mime};
+  })();
+  return ctrl;
+}
 // VOICE
 let recog=null;
 function toggleMic(ctx){
@@ -4545,9 +4597,28 @@ function toggleMic(ctx){
   recog.onend=()=>btn.classList.remove('on');
   recog.start();btn.classList.add('on');
 }
-function toggleVoice(){
+async function toggleVoice(){
   const btn=document.getElementById('vbtn');const lbl=document.getElementById('vlbl');
-  if(btn.classList.contains('on')){if(recog)recog.stop();btn.classList.remove('on');lbl.textContent='דבר עם הסוכן';return;}
+  if(btn.classList.contains('on')){ if(_posVoiceCtrl){_posVoiceCtrl.stop();} if(recog){try{recog.stop();}catch(e){}} btn.classList.remove('on');lbl.textContent='דבר עם הסוכן';return; }
+  if(POS_VOICE.whisper && navigator.mediaDevices && window.MediaRecorder){
+    btn.classList.add('on'); lbl.textContent='מקשיב...';
+    const ctrl=posRecordClip({}); _posVoiceCtrl=ctrl;
+    const r=await ctrl.promise; _posVoiceCtrl=null;
+    if(r&&r.blob&&r.blob.size>800){
+      lbl.textContent='מתמלל...';
+      const text=await posTranscribeBlob(r.blob);
+      btn.classList.remove('on'); lbl.textContent='דבר עם הסוכן';
+      if(text){ document.getElementById('fcp').classList.add('open'); document.getElementById('main-inp').value=text; await sendChat('main'); return; }
+      return toggleVoiceWebSpeech();
+    }
+    btn.classList.remove('on'); lbl.textContent='דבר עם הסוכן';
+    if(r&&r.error&&r.error!=='mic') return toggleVoiceWebSpeech();
+    return;
+  }
+  return toggleVoiceWebSpeech();
+}
+function toggleVoiceWebSpeech(){
+  const btn=document.getElementById('vbtn');const lbl=document.getElementById('vlbl');
   if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('נסה Chrome');return;}
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   recog=new SR();recog.lang='he-IL';recog.continuous=false;
@@ -4559,6 +4630,7 @@ function toggleVoice(){
     await sendChat('main');
   };
   recog.onerror=()=>{btn.classList.remove('on');lbl.textContent='דבר עם הסוכן';};
+  recog.onend=()=>{btn.classList.remove('on');lbl.textContent='דבר עם הסוכן';};
   recog.start();btn.classList.add('on');lbl.textContent='מקשיב...';
 }
 function toggleFC(){document.getElementById('fcp').classList.toggle('open');}
@@ -6250,6 +6322,43 @@ async function sendWhatsApp(to,body){
 const liveVoiceState={};
 function toggleLiveVoice(ctx,btnEl){
   if(liveVoiceState[ctx]){
+    liveVoiceState[ctx].stop=true;
+    try{liveVoiceState[ctx].ctrl&&liveVoiceState[ctx].ctrl.stop();}catch(e){}
+    try{liveVoiceState[ctx].recog&&liveVoiceState[ctx].recog.stop();}catch(e){}
+    delete liveVoiceState[ctx];
+    btnEl.classList.remove('on');btnEl.textContent='🎙 Live';
+    return;
+  }
+  if(POS_VOICE.whisper && navigator.mediaDevices && window.MediaRecorder){
+    liveVoiceState[ctx]={whisper:true,stop:false};
+    btnEl.classList.add('on');btnEl.textContent='🔴 Live';
+    liveLoop(ctx,btnEl);
+    return;
+  }
+  return toggleLiveVoiceWebSpeech(ctx,btnEl);
+}
+async function liveLoop(ctx,btnEl){
+  const chatEl=document.getElementById(`${ctx==='main'?'main':ctx}-chat`);
+  while(liveVoiceState[ctx] && !liveVoiceState[ctx].stop){
+    const ctrl=posRecordClip({}); if(!liveVoiceState[ctx]){break;} liveVoiceState[ctx].ctrl=ctrl;
+    const r=await ctrl.promise;
+    if(!liveVoiceState[ctx]||liveVoiceState[ctx].stop){break;}
+    if(!r||!r.blob||r.blob.size<800){ if(r&&r.error&&r.error!=='mic'){ delete liveVoiceState[ctx]; return toggleLiveVoiceWebSpeech(ctx,btnEl,true);} continue; }
+    const text=await posTranscribeBlob(r.blob);
+    if(!liveVoiceState[ctx]||liveVoiceState[ctx].stop){break;}
+    if(text===null){ delete liveVoiceState[ctx]; return toggleLiveVoiceWebSpeech(ctx,btnEl,true); }
+    if(!text){ continue; }
+    if(chatEl)addMsgToEl(chatEl,'user',text);
+    const sys=SYS[ctx]||SYS.main;
+    const th=chatEl?addMsgToEl(chatEl,'ai','...'):null;
+    const reply=await claude(text,sys);
+    const cleanReply=parseCommands(reply);
+    if(th)renderMarkdownMsg(th.querySelector('.mb'),cleanReply);
+  }
+  if(btnEl){btnEl.classList.remove('on');btnEl.textContent='🎙 Live';}
+}
+function toggleLiveVoiceWebSpeech(ctx,btnEl){
+  if(liveVoiceState[ctx]){
     liveVoiceState[ctx].recog?.stop();
     delete liveVoiceState[ctx];
     btnEl.classList.remove('on');btnEl.textContent='🎙 Live';
@@ -6271,7 +6380,6 @@ function toggleLiveVoice(ctx,btnEl){
       if(e.results[i].isFinal)final+=e.results[i][0].transcript;
       else interim+=e.results[i][0].transcript;
     }
-    // Auto-detect language switch
     const isLatin=/[a-zA-Z]{4,}/.test(interim||final);
     recog.lang=isLatin?'en-US':'he-IL';
     if(final&&final!==lastFinal){

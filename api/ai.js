@@ -1,8 +1,9 @@
 // api/ai.js — consolidated AI helpers (keeps Vercel Hobby under the 12-function limit)
 // Dispatches by ?fn= :
-//   fn=gemini → Zoro conversation layer: Gemini 2.5 → Groq fallback → (client falls back to Claude)
-//   fn=coach  → CV tailoring + honest gap analysis (Anthropic)
-// Routed in vercel.json:  /api/gemini → /api/ai.js?fn=gemini ,  /api/job-coach → /api/ai.js?fn=coach
+//   fn=gemini     → Zoro conversation layer: Gemini 2.5 → Groq fallback → (client falls back to Claude)
+//   fn=coach      → CV tailoring + honest gap analysis (Anthropic)
+//   fn=transcribe → Speech-to-text via Groq Whisper (fast, accurate Hebrew)
+// Routed in vercel.json.
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,29 +19,24 @@ export default async function handler(req, res) {
     const p = (req.url || '').toLowerCase();
     if (p.includes('gemini')) fn = 'gemini';
     else if (p.includes('coach') || p.includes('job-coach')) fn = 'coach';
+    else if (p.includes('transcribe')) fn = 'transcribe';
   }
 
   if (fn === 'gemini') return geminiHandler(req, res);
   if (fn === 'coach') return coachHandler(req, res);
-  return res.status(400).json({ error: 'unknown fn (expected gemini|coach)' });
+  if (fn === 'transcribe') return transcribeHandler(req, res);
+  return res.status(400).json({ error: 'unknown fn (expected gemini|coach|transcribe)' });
 }
 
 // ───── Zoro conversation layer: Gemini 2.5 → Groq → (client falls back to Claude) ─────
-// POST { messages:[{role,content}], system, model? } -> { text, provider }
 async function geminiHandler(req, res) {
   const b = req.body || {};
   const system = String(b.system || '');
   const msgs = Array.isArray(b.messages) ? b.messages : [];
-
-  // 1) Gemini (fast, great Hebrew). Default model is now gemini-2.5-flash.
   const gem = await tryGemini(msgs, system, b.model);
   if (gem && gem.text) return res.status(200).json({ text: gem.text, model: gem.model, provider: 'gemini' });
-
-  // 2) Groq fallback (free, very fast) — only if GROQ_API_KEY is set.
   const groq = await tryGroq(msgs, system);
   if (groq && groq.text) return res.status(200).json({ text: groq.text, model: groq.model, provider: 'groq' });
-
-  // 3) Nothing worked → let the client fall back to Claude's own text.
   return res.status(200).json({ error: (gem && gem.error) || (groq && groq.error) || 'no provider', fallback: true });
 }
 
@@ -94,12 +90,39 @@ async function tryGroq(msgs, system) {
   } catch (e) { return { error: e.message }; }
 }
 
+// ───── Speech-to-text via Groq Whisper (fast + accurate Hebrew) ─────
+async function transcribeHandler(req, res) {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) return res.status(200).json({ error: 'no GROQ_API_KEY', fallback: true });
+  const b = req.body || {};
+  const b64 = String(b.audio || '');
+  if (!b64) return res.status(200).json({ error: 'no audio' });
+  const mime = String(b.mime || 'audio/webm');
+  const lang = String(b.lang || 'he');
+  const ext = mime.includes('wav') ? 'wav' : (mime.includes('mp4') || mime.includes('m4a')) ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm';
+  try {
+    const bin = Buffer.from(b64, 'base64');
+    const fd = new FormData();
+    fd.append('file', new Blob([bin], { type: mime }), 'audio.' + ext);
+    fd.append('model', process.env.GROQ_WHISPER_MODEL || 'whisper-large-v3');
+    if (lang) fd.append('language', lang);
+    fd.append('response_format', 'json');
+    fd.append('temperature', '0');
+    const r = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: fd,
+    });
+    const d = await r.json();
+    if (!r.ok) return res.status(200).json({ error: (d.error && d.error.message) || 'whisper error', fallback: true });
+    return res.status(200).json({ text: (d.text || '').trim() });
+  } catch (e) {
+    return res.status(200).json({ error: e.message, fallback: true });
+  }
+}
+
 // ───── CV tailoring + honest gap analysis (Anthropic) ─────
-// POST { mode:'tailor'|'gap', cv, jobTitle, jobCompany, jobDesc }
 async function coachHandler(req, res) {
   const anthropic = process.env.ANTHROPIC_API_KEY;
   if (!anthropic) return res.status(200).json({ error: 'אין ANTHROPIC_API_KEY' });
-
   const b = req.body || {};
   const mode = b.mode === 'tailor' ? 'tailor' : 'gap';
   const cv = String(b.cv || '').slice(0, 8000);
@@ -107,9 +130,7 @@ async function coachHandler(req, res) {
   const jobCompany = String(b.jobCompany || '').slice(0, 120);
   const jobDesc = String(b.jobDesc || '').slice(0, 4000);
   if (!cv) return res.status(200).json({ error: 'חסר קורות חיים — העלה קו״ח בכוונון הסוכן' });
-
   const jobLine = '=== משרה: ' + jobTitle + (jobCompany ? ' @' + jobCompany : '') + ' ===\n' + (jobDesc || '(אין תיאור מלא — התבסס על שם התפקיד והנורמות בתחום)');
-
   let prompt, maxTokens;
   if (mode === 'tailor') {
     maxTokens = 2200;
@@ -130,7 +151,6 @@ async function coachHandler(req, res) {
       'היה כן — אל תנפח אחוזים. בסס את ה-impact על מרכזיות הדרישה.\n\n' +
       '=== קורות חיים ===\n' + cv + '\n\n' + jobLine;
   }
-
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
