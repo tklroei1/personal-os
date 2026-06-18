@@ -211,7 +211,7 @@ export default async function handler(req, res) {
     summary = strong.length ? ('🔥 ' + strong.length + ' משרות עם התאמה גבוהה. מובילות: ' + top) : ('נמצאו ' + jobs.length + ' משרות. מובילות: ' + top);
   }
 
-  const result = { jobs: jobs, apartments: apartments, summary: summary, strongCount: strong.length, broad: broad, startupFocus: startupFocus, usedCV: !!cv, profile: userProfile, ts: new Date().toISOString() };
+  const result = { jobs: jobs, apartments: apartments, summary: summary, strongCount: strong.length, queriesCount: queries.length, broad: broad, startupFocus: startupFocus, usedCV: !!cv, profile: userProfile, ts: new Date().toISOString() };
   cacheMap.set(sig, { data: result, ts: Date.now() });
   return res.status(200).json(result);
 }

@@ -6737,6 +6737,7 @@ async function refreshAgentResults(opts){
     const d=await r.json();
     renderAgentActivity(d);
     if(typeof alertStrongMatches==='function')alertStrongMatches(d);
+    return d;
   }catch{
     if(tsEl)tsEl.textContent='שגיאה — בדוק TAVILY_API_KEY';
   }
@@ -7581,7 +7582,8 @@ function renderJobHuntPanel(){
     <div class="ch">
       <div class="ct">🤖 סוכן ציד המשרות</div>
       <div style="display:flex;gap:6px">
-        <button class="btn bp bsm" onclick="runJobHuntNow()">🎯 הפעל ציד עכשיו</button>
+        <button class="btn bp bsm" id="jh-run-btn" onclick="runJobHuntNow()">🎯 הפעל ציד עכשיו</button>
+      <div id="jh-run-summary" style="font-size:11px;color:var(--text3);margin-top:7px;line-height:1.5"></div>
         <button class="btn bs bxs" onclick="openLinkedInRoles()" title="חיפוש לינקדאין מסונן: אנטרי/אסוסיאט, פורסם לאחרונה, ישראל">🔗 לינקדאין ממוקד</button>
         <button class="btn bs bxs" onclick="document.getElementById('jh-settings').style.display=document.getElementById('jh-settings').style.display==='none'?'block':'none'">⚙️ כוונון</button>
       </div>
@@ -7621,13 +7623,30 @@ function renderJobHuntPanel(){
 }
 
 async function runJobHuntNow(){
-  showNotif('🔎 מפעיל ציד משרות...');
-  // Primary: the in-app agent — always works, uses your profile + CV directly.
-  try{await refreshAgentResults({fresh:true});showNotif('🎯 הציד רץ — התוצאות במרכז הפיקוד');}
-  catch(e){showNotif('⚠️ שגיאה בהפעלת הסוכן: '+e.message);}
+  const btn=document.getElementById('jh-run-btn');
+  const sumEl=document.getElementById('jh-run-summary');
+  if(btn){btn.disabled=true;btn._t=btn.textContent;btn.textContent='⏳ סורק אתרים ומשרות...';}
+  if(sumEl)sumEl.textContent='⏳ צייד המשרות רץ — סורק אתרים, קורא תיאורים ומנקד מול הפרופיל...';
+  showNotif('🔎 צייד המשרות סורק...');
+  // remember which job URLs we already saw, to count how many are NEW this run.
+  const SEEN='pos_seen_job_urls';let seen={};try{seen=JSON.parse(localStorage.getItem(SEEN)||'{}')||{};}catch(e){}
+  let d=null;
+  try{ d=await refreshAgentResults({fresh:true}); }
+  catch(e){ if(sumEl)sumEl.textContent='⚠️ שגיאה: '+e.message; showNotif('⚠️ שגיאה: '+e.message); }
+  if(btn){btn.disabled=false;btn.textContent=btn._t||'🎯 הפעל ציד עכשיו';}
+  if(d){
+    const jobs=(d.jobs||[]).filter(j=>/^https?:\/\//i.test(j.url||''));
+    const sources=d.queriesCount||0;
+    let added=0;jobs.forEach(j=>{if(j.url&&!seen[j.url]){seen[j.url]=Date.now();added++;}});
+    try{localStorage.setItem(SEEN,JSON.stringify(seen));}catch(e){}
+    const strong=d.strongCount||jobs.filter(j=>(j.match||0)>=75).length;
+    const msg='✅ הריצה הסתיימה: סרקתי '+sources+' חיפושים/אתרים, מצאתי '+jobs.length+' משרות ('+strong+' בהתאמה גבוהה), '+added+' חדשות נוספו למרכז הפיקוד.';
+    if(sumEl)sumEl.textContent=msg;
+    showNotif(msg);
+  }
   // Optional: also trigger the WhatsApp/Railway bot if sync is configured.
   if(window.POS_SYNC&&POS_SYNC.url){
-    try{const r=await fetch(POS_SYNC.url+'/run-jobhunt',{method:'POST',headers:{'Content-Type':'application/json'}});const d=await r.json().catch(()=>({}));if(d.msg)showNotif(d.msg);}catch(e){}
+    try{const r=await fetch(POS_SYNC.url+'/run-jobhunt',{method:'POST',headers:{'Content-Type':'application/json'}});const dd=await r.json().catch(()=>({}));if(dd.msg)showNotif(dd.msg);}catch(e){}
   }
 }
 

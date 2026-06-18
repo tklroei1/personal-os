@@ -135,7 +135,8 @@ ${(() => {
       input_schema:{ type:'object', properties:{ query:{type:'string'} }, required:['query'] } },
     { name:'navigate', description:'נווט לעמוד ספציפי. ערכי page חוקיים: dashboard, agenda (לוז שבועי), tasks (משימות), reminders (תזכורות), jobs (חיפוש עבודה), apartment (מציאת דירה), upselles, health, family, ideas, journal, goals, finance, notes, news',
       input_schema:{ type:'object', properties:{ page:{type:'string'} }, required:['page'] } },
-    { name:'get_data', description:'קבל תמונת מצב עדכנית של הנתונים', input_schema:{ type:'object', properties:{} } }
+    { name:'get_data', description:'קבל תמונת מצב עדכנית של הנתונים', input_schema:{ type:'object', properties:{} } },
+    { name:'run_job_hunt', description:'הפעל את סוכן ציד המשרות שסורק אתרים ומנקד משרות מול הפרופיל. השתמש כשמבקשים למצוא/לחפש/להריץ משרות.', input_schema:{ type:'object', properties:{} } }
   ];
 
   async function webSearch(query){
@@ -173,6 +174,7 @@ ${(() => {
         case 'update_project': return P.updateProject(input);
         case 'navigate':       return P.navigate(input.page);
         case 'get_data':       return JSON.stringify(context());
+        case 'run_job_hunt':   if (window.runJobHuntNow){ window.runJobHuntNow(); return 'הפעלתי את צייד המשרות — סורק עכשיו, התוצאות יופיעו במרכז הפיקוד.'; } return 'צייד המשרות לא זמין כרגע';
         default:               return 'כלי לא מוכר: ' + name;
       }
     } catch (e) { return 'שגיאה בכלי ' + name + ': ' + e.message; }
@@ -338,6 +340,13 @@ ${(() => {
     if (announce) setTimeout(function(){ browserSpeak('בסדר רואי, אני מפסיק לעבוד. קרא לי כשתצטרך אותי.'); }, 130);
   }
 
+  function interruptSpeak(){
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+    try { if (audioEl) audioEl.pause(); } catch (e) {}
+    speaking = false; stopRequested = false;
+    if (conversing) { setState('listening'); if (SR) startSR(); else recLoop(); }
+    else { setState('idle'); }
+  }
   function wakeMatch(text){
     const low = ' ' + (text||'').toLowerCase() + ' ';
     for (const w of WAKE_WORDS){
@@ -844,7 +853,8 @@ ${(() => {
       if (moved){ savePos(); return; }
       // pure tap
       unlockAudio();
-      if (conversing || speaking){ fullStop(true); hideMenu(); return; }   // tap while active = stop
+      if (speaking){ interruptSpeak(); hideMenu(); return; }   // tap mid-speech = stop talking & keep listening
+      if (conversing){ fullStop(true); hideMenu(); return; }   // tap while listening = stop conversation
       menu.classList.contains('show') ? hideMenu() : showMenu();
     }
     f.addEventListener('mousedown', onDown);
@@ -903,7 +913,7 @@ ${(() => {
     inputEl      = host.querySelector('#v-input');
     wakeBtn      = host.querySelector('#v-wake');
 
-    orbEl.addEventListener('click', () => { unlockAudio(); toggleConversation(); });
+    orbEl.addEventListener('click', () => { unlockAudio(); if (speaking) interruptSpeak(); else toggleConversation(); });
     wakeBtn.addEventListener('click', () => { unlockAudio(); toggleWake(); });
     host.querySelector('#v-stop').addEventListener('click', () => fullStop(true));
     host.querySelector('#v-send').addEventListener('click', sendTyped);
