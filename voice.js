@@ -257,6 +257,9 @@ ${(() => {
   let ttsVoice = 'avri';
   try { ttsVoice = localStorage.getItem(TTS_VOICE_KEY) || 'avri'; } catch (e) {}
   const ttsVoiceLabel = () => (ttsVoice === 'hila' ? 'אביאלה' : 'זורו');
+  // The voice you'll get if you tap the toggle (the OTHER voice) — shown on the button
+  // so "tap X → you hear X", which is what the user expects.
+  const ttsSwitchTarget = () => (ttsVoice === 'avri' ? 'אביאלה' : 'זורו');
   function unlockAudio(){
     if (audioUnlocked) return;
     audioUnlocked = true;
@@ -782,7 +785,7 @@ ${(() => {
       '<button data-act="chat"><span class="vm-i">⌨️</span>צ\'אט בכתב</button>' +
       '<button data-act="sync"><span class="vm-i">🔄</span>סנכרן עכשיו</button>' +
       '<button data-act="import"><span class="vm-i">📥</span>ייבוא תוכן (פוסט/משרה/פתק)</button>' +
-      '<button data-act="voicesel"><span class="vm-i">🗣️</span>קול: <span id="vm-voice-label">' + ttsVoiceLabel() + '</span></button>' +
+      '<button data-act="voicesel"><span class="vm-i">🗣️</span>החלף קול ל<span id="vm-voice-label">' + ttsSwitchTarget() + '</span></button>' +
       '<button data-act="hide"><span class="vm-i">🙈</span>הסתר את זורו</button>';
     document.body.appendChild(menu);
 
@@ -825,7 +828,7 @@ ${(() => {
       } else if (act === 'voicesel'){
         ttsVoice = (ttsVoice === 'avri') ? 'hila' : 'avri';
         try { localStorage.setItem(TTS_VOICE_KEY, ttsVoice); } catch (e) {}
-        const lbl = document.getElementById('vm-voice-label'); if (lbl) lbl.textContent = ttsVoiceLabel();
+        const lbl = document.getElementById('vm-voice-label'); if (lbl) lbl.textContent = ttsSwitchTarget();
         ttsApiDead = false;                 // re-enable neural TTS for the new voice
         unlockAudio();
         try { speak(ttsVoice === 'hila' ? 'שלום, אני אביאלה' : 'שלום, אני זורו'); } catch (e) {}
