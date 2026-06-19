@@ -213,7 +213,7 @@ ${(() => {
     const ACTION_RE = /(הוסף|תוסיף|תזכיר|תזכורת|קבע|תזמן|תזמ|מצא לי|תמצא|תריץ|הרץ|סמן|תסמן|מחק|תמחק|עדכן|תעדכן|רשום|תרשום|פתח|נווט|קח אותי|חפש לי משרות|תקבע)/;
     const wantsAction = ACTION_RE.test(prompt);
     if (!wantsAction) {
-      const voiceSys = 'אתה זורו — העוזר הקולי של רואי קליין. דבר עברית טבעית, חמה וזורמת, קצר וממוקד (1-2 משפטים), בגוף ראשון, כמו בשיחת טלפון אמיתית. אתה המוח (Gemini) לשיחה, ויש לך סוכני Claude שמבצעים פעולות במערכת (משימות, תזכורות, אירועים, חיפוש משרות) — כשצריך פעולה אתה פונה אליהם. כששואלים על איזה מודל אתה — ענה בדיוק את זה, בלי להפנות לממשקים חיצוניים. אל תמציא מידע ואל תשתמש במילים לא-תקניות.' + (function(){try{var pp=(window.POS&&window.POS.snapshot)?(window.POS.snapshot().persona||''):'';return pp?('\n\n'+pp):'';}catch(e){return'';}})();
+      const voiceSys = 'אתה זורו — העוזר הקולי של רואי קליין. דבר עברית טבעית, חמה וזורמת, קצר וממוקד (1-2 משפטים), בגוף ראשון, כמו בשיחת טלפון אמיתית. אתה המוח (Gemini) לשיחה, ויש לך סוכני Claude שמבצעים פעולות במערכת (משימות, תזכורות, אירועים, חיפוש משרות) — כשצריך פעולה אתה פונה אליהם. כששואלים על איזה מודל אתה — ענה בדיוק את זה, בלי להפנות לממשקים חיצוניים. אל תמציא מידע ואל תשתמש במילים לא-תקניות. ענה אך ורק את התשובה הסופית בעברית — בלי לכתוב מחשבות, בלי "THOUGHT", בלי תגיות, ובלי להסביר איך ענית.' + (function(){try{var pp=(window.POS&&window.POS.snapshot)?(window.POS.snapshot().persona||''):'';return pp?('\n\n'+pp):'';}catch(e){return'';}})();
       try {
         const convo = memory.slice(-12).map(m => ({ role:m.role, content:m.content }));
         const r = await fetch('/api/gemini', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ messages: convo, system: voiceSys }) });
@@ -269,6 +269,20 @@ ${(() => {
       const p = audioEl.play();
       if (p && p.catch) p.catch(()=>{});
     } catch (e) {}
+  }
+  // Strip any leaked chain-of-thought / labels so the user never sees or hears
+  // the model's reasoning (e.g. "THOUGHT: ...", "ANSWER:", "<thinking>...</thinking>").
+  function stripReasoning(t){
+    let s = String(t || '');
+    s = s.replace(/<\/?thinking>/gi, ' ').replace(/<\/?thought>/gi, ' ');
+    const m = s.match(/\b(THOUGHT|THINKING|REASONING|מחשבה|חשיבה)\s*:/i);
+    if (m){
+      const after = s.slice(m.index);
+      const heb = after.search(/[֐-׿]/);   // jump to the first Hebrew char (the real answer)
+      s = (heb > -1) ? after.slice(heb) : s.slice(0, m.index);
+    }
+    s = s.replace(/^\s*(ANSWER|RESPONSE|FINAL|תשובה)\s*:\s*/i, '');
+    return s.trim();
   }
   function cleanForSpeech(t){
     return (t||'')
@@ -521,7 +535,7 @@ ${(() => {
     setStatus('', '');
     addLine('user', text);
     setState('thinking');
-    const reply = await think(text);
+    const reply = stripReasoning(await think(text));
     addLine('bot', reply);
     setState('speaking');
     const done = () => {
