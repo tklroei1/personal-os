@@ -482,36 +482,55 @@ async function handleTranscribe(res, body) {
   }
 }
 
-// ─── VOICE: text-to-speech (OpenAI TTS) ──────────────────────────────────────
+// ─── VOICE: text-to-speech ───────────────────────────────────────────────────
+// Primary: Microsoft Edge neural TTS — free, no API key, high-quality Hebrew
+//   (he-IL-AvriNeural / he-IL-HilaNeural). Optional OpenAI fallback if a key
+//   exists. On total failure the client falls back to the browser voice.
+const TTS_VOICES = { avri: 'he-IL-AvriNeural', hila: 'he-IL-HilaNeural' };
 async function handleSpeak(res, body) {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return res.status(503).json({ error: 'no_key' });
-  try {
-    let text = (body.text || '').toString().trim();
-    if (!text) return res.status(400).json({ error: 'no_text' });
-    if (text.length > 1200) text = text.slice(0, 1200);
+  let text = (body.text || '').toString().trim();
+  if (!text) return res.status(400).json({ error: 'no_text' });
+  if (text.length > 1200) text = text.slice(0, 1200);
 
-    const r = await fetch('https://api.openai.com/v1/audio/speech', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini-tts',
-        input: text,
-        voice: body.voice || 'onyx',  // deep, authoritative male voice — JARVIS-leaning
-        instructions: body.instructions ||
-          'Speak as JARVIS from Iron Man — deep, low, composed, and unmistakably intelligent. Subtly British in cadence, never rushed. Add a light dry wit: a faint raised-eyebrow sarcasm that earns the line, never overplayed. Expressive but understated — the calm of someone who has already solved the problem. Crisp diction, warm undertone, confident pacing.',
-        response_format: 'mp3'
-      })
-    });
-    if (!r.ok) {
-      const err = await r.text().catch(() => '');
-      return res.status(502).json({ error: 'tts_failed', detail: err.slice(0, 200) });
+  const vKey = String(body.voice || 'avri').toLowerCase();
+  const edgeVoice = TTS_VOICES[vKey] || (vKey.startsWith('he-') ? body.voice : TTS_VOICES.avri);
+
+  // 1) Edge neural TTS (free)
+  try {
+    const { EdgeTTS } = await import('edge-tts-universal');
+    const tts = new EdgeTTS(text, edgeVoice);
+    const result = await tts.synthesize();
+    const audio = Buffer.from(await result.audio.arrayBuffer());
+    if (audio && audio.length > 0) {
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).send(audio);
     }
-    const audio = Buffer.from(await r.arrayBuffer());
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).send(audio);
-  } catch (e) {
-    return res.status(500).json({ error: 'exception', message: e.message });
+  } catch (e) { /* fall through to optional fallback */ }
+
+  // 2) Optional OpenAI fallback (only if OPENAI_API_KEY is configured)
+  const key = process.env.OPENAI_API_KEY;
+  if (key) {
+    try {
+      const r = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini-tts',
+          input: text,
+          voice: vKey === 'hila' ? 'shimmer' : 'onyx',
+          response_format: 'mp3'
+        })
+      });
+      if (r.ok) {
+        const audio = Buffer.from(await r.arrayBuffer());
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).send(audio);
+      }
+    } catch (e) { /* fall through */ }
   }
+
+  // 3) Nothing worked → client falls back to browser speech
+  return res.status(503).json({ error: 'tts_unavailable' });
 }

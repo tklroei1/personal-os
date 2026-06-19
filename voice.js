@@ -252,6 +252,11 @@ ${(() => {
   //  TEXT-TO-SPEECH
   // ──────────────────────────────────────────────────────────────────────
   let audioCtx = null, audioEl = null, audioUnlocked = false, ttsApiDead = false;
+  // Neural TTS voice preference (Avri = male, Hila = female). Persisted across sessions.
+  const TTS_VOICE_KEY = 'pos_tts_voice';
+  let ttsVoice = 'avri';
+  try { ttsVoice = localStorage.getItem(TTS_VOICE_KEY) || 'avri'; } catch (e) {}
+  const ttsVoiceLabel = () => (ttsVoice === 'hila' ? 'הילה' : 'אברי');
   function unlockAudio(){
     if (audioUnlocked) return;
     audioUnlocked = true;
@@ -291,7 +296,7 @@ ${(() => {
     try {
       const res = await fetch('/api/claude', {
         method:'POST', headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ mode:'speak', text: clean })
+        body: JSON.stringify({ mode:'speak', text: clean, voice: ttsVoice })
       });
       const ct = res.headers.get('content-type') || '';
       if (res.ok && ct.includes('audio')) {
@@ -762,6 +767,7 @@ ${(() => {
       '<button data-act="chat"><span class="vm-i">⌨️</span>צ\'אט בכתב</button>' +
       '<button data-act="sync"><span class="vm-i">🔄</span>סנכרן עכשיו</button>' +
       '<button data-act="import"><span class="vm-i">📥</span>ייבוא תוכן (פוסט/משרה/פתק)</button>' +
+      '<button data-act="voicesel"><span class="vm-i">🗣️</span>קול: <span id="vm-voice-label">' + ttsVoiceLabel() + '</span></button>' +
       '<button data-act="hide"><span class="vm-i">🙈</span>הסתר את זורו</button>';
     document.body.appendChild(menu);
 
@@ -801,6 +807,13 @@ ${(() => {
         try { if (typeof window.posSyncNow === 'function') window.posSyncNow(); } catch (e) {}
       } else if (act === 'import'){
         try { if (typeof window.posOpenImport === 'function') window.posOpenImport(); } catch (e) {}
+      } else if (act === 'voicesel'){
+        ttsVoice = (ttsVoice === 'avri') ? 'hila' : 'avri';
+        try { localStorage.setItem(TTS_VOICE_KEY, ttsVoice); } catch (e) {}
+        const lbl = document.getElementById('vm-voice-label'); if (lbl) lbl.textContent = ttsVoiceLabel();
+        ttsApiDead = false;                 // re-enable neural TTS for the new voice
+        unlockAudio();
+        try { speak(ttsVoice === 'hila' ? 'שלום, אני הילה' : 'שלום, אני אברי'); } catch (e) {}
       } else if (act === 'hide'){
         f.style.display = 'none';
         restore.classList.add('show');
