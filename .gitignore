@@ -1,2 +1,6 @@
 .vercel
 .env*.local
+node_modules/
+*.bak
+*.new
+*.tmp
