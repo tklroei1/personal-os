@@ -256,7 +256,7 @@ ${(() => {
   const TTS_VOICE_KEY = 'pos_tts_voice';
   let ttsVoice = 'avri';
   try { ttsVoice = localStorage.getItem(TTS_VOICE_KEY) || 'avri'; } catch (e) {}
-  const ttsVoiceLabel = () => (ttsVoice === 'hila' ? 'הילה' : 'אברי');
+  const ttsVoiceLabel = () => (ttsVoice === 'hila' ? 'אביאלה' : 'זורו');
   function unlockAudio(){
     if (audioUnlocked) return;
     audioUnlocked = true;
@@ -534,8 +534,9 @@ ${(() => {
         setState('idle');
       }
     };
-    // All replies use the Hebrew browser voice — natural Hebrew, instant (no English-accented neural round-trip).
-    browserSpeak(reply, done);
+    // Replies use the neural Hebrew voice (Edge: Zoro/Aviela); speak() auto-falls back
+    // to the browser voice if the TTS API is unavailable.
+    speak(reply, done);
   }
 
   // ──────────────────────────────────────────────────────────────────────
@@ -813,7 +814,7 @@ ${(() => {
         const lbl = document.getElementById('vm-voice-label'); if (lbl) lbl.textContent = ttsVoiceLabel();
         ttsApiDead = false;                 // re-enable neural TTS for the new voice
         unlockAudio();
-        try { speak(ttsVoice === 'hila' ? 'שלום, אני הילה' : 'שלום, אני אברי'); } catch (e) {}
+        try { speak(ttsVoice === 'hila' ? 'שלום, אני אביאלה' : 'שלום, אני זורו'); } catch (e) {}
       } else if (act === 'hide'){
         f.style.display = 'none';
         restore.classList.add('show');
