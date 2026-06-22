@@ -163,11 +163,17 @@ async function scoreJobs(jobs, runType) {
   }));
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5',
-    max_tokens: 3000,
+    max_tokens: 4096,
     messages: [{
       role: 'user',
       content: `You are a precise job-matching engine. Score each job 0-100 for THIS candidate and return ONLY a JSON array, one object per job:
-[{"i":0,"score":NN,"cat":"AI/Data|Product|Growth|Business|Finance","level":"student|junior|entry|mid|senior","reason":"one short Hebrew sentence: why it fits + how it serves the big picture","fit":"2 short Hebrew sentences explaining the match in depth","matched":["skill1","skill2"],"gaps":["missing1"],"breakdown":{"skills":NN,"seniority":NN,"domain":NN,"location":NN,"bigpicture":NN}}]
+[{"i":0,"score":NN,"cat":"AI/Data|Product|Growth|Business|Finance","level":"student|junior|entry|mid|senior","reason":"one short Hebrew sentence: why it fits + how it serves the big picture","fit":"2 short Hebrew sentences explaining the match in depth","matched":["skill1","skill2"],"gaps":["missing1"],"breakdown":{"skills":NN,"seniority":NN,"domain":NN,"location":NN,"bigpicture":NN},"cv":{"summary":"2-line professional summary tailored to THIS job","bullets":["XYZ bullet 1","XYZ bullet 2","XYZ bullet 3"],"missing":["keyword1","keyword2"]}}]
+
+TAILORED CV (only for jobs you score >=70 — for jobs <70 OMIT the "cv" field entirely to save tokens):
+- Add a "cv" object that reframes the candidate's REAL CV toward this specific job, embedding the job's top missing keywords.
+- Each bullet uses the Google XYZ formula: "Accomplished X as measured by Y by doing Z".
+- STAY STRICTLY TRUTHFUL — reframe, reorder and emphasize EXISTING facts only. NEVER invent experience, titles, tools, employers, or metrics. For any unknown number use the literal placeholder "[add %]" — never a made-up figure.
+- Base the bullets only on the candidate's real background (Upselles founder — data architecture/KPIs/product analytics; independent market analyst & trader; ex real-estate agent; M.Sc Data Science & AI; B.A. Economics).
 
 SCORING METHOD (compute, don't guess):
 - skills (0-100): overlap between the job's required skills and the candidate's skills.
@@ -205,15 +211,19 @@ async function uploadJob(job, m) {
     body: JSON.stringify({
       action: 'add_job',
       data: {
-        title: job.title, company: job.companyName, status: 'saved',
+        title: job.title, company: job.companyName, status: 'ready_to_apply',
         link: (job.link || '').split('?')[0], match: m.score,
         source: (job.descriptionText || '').includes('company-careers') ? 'company' : 'linkedin',
         description: m.reason, location: job.location || '',
+        posted_at: job.postedAt || job.postedDate || job.posted || null,
         // rich match data → rendered in the job drawer
         job_type: m.level || '', match_explanation: m.fit || m.reason || '',
         match_breakdown: m.breakdown || null,
-        matched_keywords: m.matched || [], missing_keywords: m.gaps || [],
+        matched_keywords: m.matched || [], missing_keywords: (m.cv && m.cv.missing) || m.gaps || [],
         category: m.cat || '',
+        // tailored CV content (truthful reframe only) — fed into the system + dashboards
+        cv_summary: (m.cv && m.cv.summary) || '',
+        cv_bullets: (m.cv && Array.isArray(m.cv.bullets)) ? m.cv.bullets : [],
       },
     }),
   });
