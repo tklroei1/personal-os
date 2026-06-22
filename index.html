@@ -4141,7 +4141,7 @@ function executeClientTool(toolName,input){
     case'add_goal':       return P.addGoal({text:input.text||input.title,emoji:input.emoji});
     case'add_idea':       return P.addIdea({text:input.text||input.title,cat:input.cat});
     case'add_journal':    return P.addJournal({text:input.text||input.content});
-    case'add_job':        return P.addJob({title:input.title,company:input.company,status:input.status,link:input.link,match:input.match,source:input.source,description:input.description,location:input.location,posted_at:input.posted_at||input.published_at||input.posted,category:input.category,user_status:input.user_status});
+    case'add_job':        return P.addJob({title:input.title,company:input.company,status:input.status,link:input.link,match:input.match,source:input.source,description:input.description,location:input.location,posted_at:input.posted_at||input.published_at||input.posted,category:input.category,user_status:input.user_status,cv_summary:input.cv_summary,cv_bullets:input.cv_bullets,cv_file:input.cv_file,missing_keywords:input.missing_keywords,matched_keywords:input.matched_keywords});
     case'update_project': return P.updateProject({id:input.id||input.name,progress:input.progress});
   }
 }
@@ -4312,6 +4312,8 @@ window.POS = (function(){
         posted_at:a.posted_at||a.published_at||a.posted||null,
         user_status:_ustat,
         cv_file:a.cv_file||'',
+        cv_summary:a.cv_summary||'',
+        cv_bullets:Array.isArray(a.cv_bullets)?a.cv_bullets:[],
         match_score:Number(a.match)||0,
         match_breakdown:a.match_breakdown||null,
         match_explanation:a.match_explanation||a.description||'',
@@ -5147,6 +5149,12 @@ function openJobDrawer(jobId){
     ${job.matched_keywords?.length?`<div style="margin-bottom:8px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">מיומנויות שנמצאו</div><div style="display:flex;gap:5px;flex-wrap:wrap">${job.matched_keywords.map(k=>`<span class="bdg bdg-g">${escH(k)}</span>`).join('')}</div></div>`:''}
     ${job.missing_keywords?.length?`<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">מיומנויות חסרות</div><div style="display:flex;gap:5px;flex-wrap:wrap">${job.missing_keywords.map(k=>`<span class="bdg bdg-a">${escH(k)}</span>`).join('')}</div></div>`:''}
     ${job.description_summary?`<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">תיאור</div><div style="font-size:12px;color:var(--text2);line-height:1.6">${escH(job.description_summary)}</div></div>`:''}
+    ${(job.cv_summary||(job.cv_bullets&&job.cv_bullets.length))?`<div style="margin-bottom:12px;background:#E7F6EC;border:1px solid #c8ebd5;border-radius:var(--radius-xs);padding:9px 11px">
+      <div style="font-size:10px;text-transform:uppercase;color:#1E7A3C;margin-bottom:5px;font-weight:700">📄 קו״ח מותאם (אמת בלבד — השלם [add %])</div>
+      ${job.cv_summary?`<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:6px">${escH(job.cv_summary)}</div>`:''}
+      ${(job.cv_bullets&&job.cv_bullets.length)?`<ul style="margin:0 0 8px;padding-inline-start:18px;font-size:12px;color:var(--text2);line-height:1.6">${job.cv_bullets.map(b=>`<li>${escH(b)}</li>`).join('')}</ul>`:''}
+      <button class="btn bs bsm" onclick="downloadTailoredCV('${job.id}')">⬇️ הורד קו״ח מותאם (Word)</button>
+    </div>`:''}
     <div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">סטטוס שלי (חופשי)</div>
     <input id="drawer-status-inp" class="inp inp-full" type="text" placeholder="לדוגמה: הוגש 8/6, ממתין לתשובה..." value="${escH(job.user_status||'')}" style="margin-bottom:8px">
     <div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">הערות אישיות</div>
@@ -5174,6 +5182,34 @@ function openJobDrawer(jobId){
 
   document.getElementById('job-drawer-bg').classList.add('open');
   document.getElementById('job-drawer').classList.add('open');
+}
+
+// Build & download a tailored CV (.doc) from the truthful, system-stored cv content.
+function downloadTailoredCV(jobId){
+  const job=getJobsV2().find(j=>j.id===jobId);if(!job){showNotif&&showNotif('משרה לא נמצאה');return;}
+  const e=s=>(s||'').toString().replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const summary=job.cv_summary||'Analytically driven — M.Sc Data Science & AI; B.A. Economics (GPA 88, Distinction); founder of Upselles.';
+  const bullets=(job.cv_bullets&&job.cv_bullets.length)?job.cv_bullets:['[add tailored, truthful bullet]'];
+  const html=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body style="font-family:Calibri,Arial,sans-serif;color:#1b2330">
+  <h1 style="margin:0;color:#1F3355">ROEI KLEIN</h1>
+  <div style="color:#555">Data Analyst | Product &amp; Growth Oriented | Data Science Background</div>
+  <div style="color:#555;font-size:11px">Hod HaSharon, Israel • tklroei1@gmail.com • 054-3329092 • linkedin.com/in/roei-klein</div>
+  <h3 style="color:#1F3355;border-bottom:1px solid #1F3355">PROFESSIONAL SUMMARY — ${e(job.title)} @ ${e(job.company)}</h3>
+  <div>${e(summary)}</div>
+  <h3 style="color:#1F3355;border-bottom:1px solid #1F3355">EXPERIENCE (tailored)</h3>
+  <b>Founder &amp; Product/Data Owner — Upselles (2025–Present)</b>
+  <ul>${bullets.map(b=>'<li>'+e(b)+'</li>').join('')}</ul>
+  <b>Independent Market Analyst &amp; Trader (2021–Present)</b> · <b>Licensed Real Estate Agent (2020–2023)</b>
+  <h3 style="color:#1F3355;border-bottom:1px solid #1F3355">EDUCATION</h3>
+  <div>M.Sc. Data Science &amp; AI — Bar-Ilan (2025–2027) · B.A. Economics &amp; Business Administration — Bar-Ilan (GPA 88, Distinction)</div>
+  ${(job.missing_keywords&&job.missing_keywords.length)?`<h3 style="color:#1F3355;border-bottom:1px solid #1F3355">KEYWORDS TO EMPHASIZE</h3><div>${job.missing_keywords.map(e).join(', ')}</div>`:''}
+  <p style="color:#888;font-size:10px">⚠️ נוצר מהתאמת המערכת, מבוסס על קורות החיים האמיתיים בלבד. החלף כל [add %] בנתון אמיתי לפני שליחה.</p>
+  </body></html>`;
+  try{const blob=new Blob(['﻿'+html],{type:'application/msword'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='CV_Roei_Klein_'+((job.company||'job').replace(/[^A-Za-z0-9]+/g,'_'))+'.doc';
+    document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+  }catch(err){showNotif&&showNotif('שגיאה ביצירת הקובץ');}
 }
 
 async function jobInterviewPrep(jobId){
