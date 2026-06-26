@@ -2,191 +2,188 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#ff5fa2">
 <title>גלגל השמות לתינוק 🍼</title>
 <style>
   :root{
-    --pink:#ff5fa2;
-    --blue:#3aa0ff;
-    --bg1:#fef6ff;
-    --bg2:#eaf4ff;
+    --pink:#ff4f97;
+    --pink-d:#e6357f;
+    --blue:#3a8dff;
+    --blue-d:#1f6fe0;
     --ink:#2b2740;
-    --shadow:0 10px 30px rgba(0,0,0,.18);
+    --card:#ffffff;
+    --shadow:0 14px 40px rgba(70,40,90,.18);
+    --shadow-sm:0 6px 18px rgba(70,40,90,.16);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;height:100%;}
+  html,body{margin:0;padding:0;min-height:100%;}
   body{
-    font-family:"Heebo","Rubik","Segoe UI",Arial,sans-serif;
-    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    font-family:"Heebo","Rubik","Assistant","Segoe UI",system-ui,Arial,sans-serif;
     color:var(--ink);
-    min-height:100%;
+    min-height:100vh;
+    min-height:100dvh;
     display:flex;
-    align-items:flex-start;
     justify-content:center;
+    align-items:flex-start;
     overflow-x:hidden;
+    position:relative;
+    background:linear-gradient(160deg,#fff0f8 0%,#f3ecff 45%,#e7f3ff 100%);
   }
-  .app{
-    width:100%;
-    max-width:560px;
-    padding:24px 18px 48px;
-    text-align:center;
+  /* soft floating blobs */
+  .blob{position:fixed;border-radius:50%;filter:blur(36px);opacity:.5;z-index:0;animation:float 11s ease-in-out infinite;}
+  .blob.b1{width:230px;height:230px;background:#ffc2e2;top:-60px;right:-50px;}
+  .blob.b2{width:200px;height:200px;background:#bcd6ff;bottom:-50px;left:-60px;animation-delay:-4s;}
+  .blob.b3{width:160px;height:160px;background:#ffe3a8;top:40%;left:-70px;animation-delay:-7s;}
+  @keyframes float{0%,100%{transform:translateY(0) translateX(0);}50%{transform:translateY(-26px) translateX(14px);}}
+
+  .app{width:100%;max-width:540px;padding:22px 18px calc(40px + env(safe-area-inset-bottom));text-align:center;position:relative;z-index:1;}
+
+  /* top bar */
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;min-height:40px;}
+  .chip{
+    border:none;background:rgba(255,255,255,.7);backdrop-filter:blur(6px);
+    border-radius:999px;padding:8px 14px;font-size:14px;font-weight:800;color:var(--ink);
+    cursor:pointer;box-shadow:var(--shadow-sm);display:inline-flex;align-items:center;gap:6px;
+    transition:transform .15s ease,background .2s ease;
   }
+  .chip:active{transform:scale(.93);}
+  .chip.hidden{visibility:hidden;}
 
   /* ===== Screens ===== */
-  .screen{display:none;animation:fade .4s ease;}
+  .screen{display:none;animation:fade .45s ease;}
   .screen.active{display:block;}
-  @keyframes fade{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  @keyframes fade{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
 
   /* ===== Screen 1 ===== */
-  .title{
-    font-size:clamp(30px,8vw,46px);
-    font-weight:900;
-    margin:18px 0 6px;
-    line-height:1.15;
-  }
-  .subtitle{
-    font-size:clamp(15px,4vw,18px);
-    opacity:.75;
-    margin:0 0 34px;
-  }
-  .gender-buttons{
-    display:flex;
-    flex-direction:column;
-    gap:18px;
-    margin-top:14px;
-  }
+  .hero-emoji{font-size:64px;animation:bob 2.6s ease-in-out infinite;display:inline-block;}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-4deg);}50%{transform:translateY(-10px) rotate(4deg);}}
+  .title{font-size:clamp(30px,8.5vw,46px);font-weight:900;margin:8px 0 6px;line-height:1.12;}
+  .subtitle{font-size:clamp(15px,4vw,18px);opacity:.72;margin:0 0 30px;}
+  .gender-buttons{display:flex;flex-direction:column;gap:16px;margin-top:8px;}
   .gender-btn{
-    border:none;
-    border-radius:24px;
-    padding:26px 18px;
-    font-size:clamp(24px,6vw,30px);
-    font-weight:800;
-    color:#fff;
-    cursor:pointer;
-    box-shadow:var(--shadow);
-    transition:transform .15s ease, filter .15s ease;
+    border:none;border-radius:26px;padding:26px 18px;font-size:clamp(24px,6.5vw,30px);
+    font-weight:900;color:#fff;cursor:pointer;box-shadow:var(--shadow);position:relative;overflow:hidden;
+    transition:transform .15s ease, box-shadow .2s ease;
   }
-  .gender-btn:active{transform:scale(.96);filter:brightness(1.05);}
-  .boy{background:linear-gradient(135deg,#5fb6ff,#2477ff);}
-  .girl{background:linear-gradient(135deg,#ff8ec4,#ff3d8f);}
+  .gender-btn:active{transform:scale(.96);}
+  .gender-btn small{display:block;font-size:14px;font-weight:600;opacity:.9;margin-top:4px;}
+  .boy{background:linear-gradient(135deg,#69bdff,#1f6fe0);}
+  .girl{background:linear-gradient(135deg,#ff9ecb,#e6357f);}
+  .gender-btn::after{content:"";position:absolute;top:-40%;left:-30%;width:60%;height:180%;
+    background:linear-gradient(120deg,rgba(255,255,255,.35),rgba(255,255,255,0));transform:rotate(18deg);}
 
   /* ===== Screen 2 ===== */
-  .wheel-head{
-    font-size:clamp(20px,5.5vw,26px);
-    font-weight:800;
-    margin:6px 0 4px;
-  }
-  .wheel-wrap{
-    position:relative;
-    width:min(86vw,420px);
-    height:min(86vw,420px);
-    margin:14px auto 8px;
-  }
-  /* pointer / arrow at top */
+  .wheel-head{font-size:clamp(19px,5.5vw,25px);font-weight:900;margin:2px 0 2px;}
+  .wheel-wrap{position:relative;width:min(84vw,400px);height:min(84vw,400px);margin:10px auto 6px;}
   .pointer{
-    position:absolute;
-    top:-6px;
-    left:50%;
-    transform:translateX(-50%);
-    width:0;height:0;
-    border-left:18px solid transparent;
-    border-right:18px solid transparent;
-    border-top:30px solid #ff2d6f;
-    filter:drop-shadow(0 3px 3px rgba(0,0,0,.3));
-    z-index:5;
+    position:absolute;top:-4px;left:50%;transform:translateX(-50%);width:0;height:0;
+    border-left:17px solid transparent;border-right:17px solid transparent;border-top:32px solid #ff2d6f;
+    filter:drop-shadow(0 3px 3px rgba(0,0,0,.32));z-index:6;transform-origin:50% 0;
   }
-  #wheel{
-    width:100%;
-    height:100%;
-    border-radius:50%;
-    box-shadow:var(--shadow),0 0 0 8px #fff,0 0 0 12px rgba(0,0,0,.06);
-    transition:transform 4.6s cubic-bezier(.12,.67,.12,1);
-    will-change:transform;
-  }
+  .pointer.tick{animation:tick .09s ease;}
+  @keyframes tick{0%{transform:translateX(-50%) rotate(0);}50%{transform:translateX(-50%) rotate(-13deg);}100%{transform:translateX(-50%) rotate(0);}}
+  .wheel-ring{position:absolute;inset:0;border-radius:50%;
+    box-shadow:0 0 0 9px #fff,0 0 0 13px rgba(120,80,150,.12),var(--shadow);pointer-events:none;z-index:2;}
+  #wheel{width:100%;height:100%;border-radius:50%;display:block;position:relative;z-index:1;}
   .spin-center{
-    position:absolute;
-    top:50%;left:50%;
-    transform:translate(-50%,-50%);
-    width:24%;height:24%;
-    border-radius:50%;
-    border:none;
-    background:radial-gradient(circle at 35% 30%,#fff,#ffd24d 70%,#ffb300);
-    color:#5a3d00;
-    font-weight:900;
-    font-size:clamp(15px,4.5vw,20px);
-    cursor:pointer;
-    box-shadow:0 6px 16px rgba(0,0,0,.35);
-    z-index:4;
-    transition:transform .15s ease;
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:25%;height:25%;border-radius:50%;border:none;
+    background:radial-gradient(circle at 35% 28%,#fff,#ffd24d 68%,#ffae00);
+    color:#5a3d00;font-weight:900;font-size:clamp(15px,4.6vw,20px);cursor:pointer;
+    box-shadow:0 7px 18px rgba(0,0,0,.34),inset 0 -3px 6px rgba(0,0,0,.15);z-index:5;
+    transition:transform .12s ease;
   }
-  .spin-center:active{transform:translate(-50%,-50%) scale(.92);}
-  .spin-center:disabled{opacity:.6;cursor:default;}
+  .spin-center:active{transform:translate(-50%,-50%) scale(.9);}
+  .spin-center:disabled{cursor:default;}
+  .spin-center.pulse{animation:pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 7px 18px rgba(0,0,0,.34),0 0 0 0 rgba(255,174,0,.5);}50%{box-shadow:0 7px 18px rgba(0,0,0,.34),0 0 0 14px rgba(255,174,0,0);}}
 
-  .pool-note{font-size:13px;opacity:.65;margin:4px 0 0;}
+  .pool-note{font-size:13px;opacity:.62;margin:6px 0 0;font-weight:600;}
 
-  .result{
-    min-height:54px;
-    margin:18px 0 6px;
-    font-size:clamp(24px,7vw,34px);
-    font-weight:900;
+  /* result card */
+  .result{min-height:8px;margin:14px 0 2px;}
+  .result-card{
+    background:var(--card);border-radius:24px;padding:18px 16px 16px;box-shadow:var(--shadow);
+    animation:pop .55s cubic-bezier(.2,.9,.3,1.3);
   }
-  .result .name{color:var(--pink);}
-  .result.show{animation:pop .5s ease;}
-  @keyframes pop{0%{transform:scale(.4);opacity:0;}60%{transform:scale(1.15);}100%{transform:scale(1);opacity:1;}}
-  .surprise-tag{display:block;font-size:15px;font-weight:700;color:#9a6b00;margin-bottom:4px;}
+  @keyframes pop{0%{transform:scale(.4);opacity:0;}60%{transform:scale(1.08);}100%{transform:scale(1);opacity:1;}}
+  .surprise-tag{display:inline-block;font-size:13px;font-weight:800;color:#9a6b00;background:#fff3cf;
+    padding:4px 12px;border-radius:999px;margin-bottom:8px;}
+  .result-label{font-size:15px;opacity:.7;font-weight:700;}
+  .result-name{font-size:clamp(34px,11vw,52px);font-weight:900;line-height:1.1;margin:2px 0 4px;
+    background:linear-gradient(90deg,var(--pink),#a05bff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .result-actions{display:flex;gap:10px;justify-content:center;margin-top:10px;flex-wrap:wrap;}
+  .mini{border:none;border-radius:14px;padding:10px 14px;font-size:14px;font-weight:800;cursor:pointer;
+    box-shadow:var(--shadow-sm);transition:transform .15s ease;display:inline-flex;align-items:center;gap:6px;}
+  .mini:active{transform:scale(.93);}
+  .mini.fav{background:#fff;color:var(--pink);}
+  .mini.fav.on{background:linear-gradient(135deg,#ff7eb6,#ff4f97);color:#fff;}
+  .mini.share{background:#fff;color:var(--blue-d);}
 
-  .actions{
-    display:flex;
-    gap:12px;
-    justify-content:center;
-    flex-wrap:wrap;
-    margin-top:10px;
-  }
-  .btn{
-    border:none;
-    border-radius:18px;
-    padding:14px 22px;
-    font-size:16px;
-    font-weight:800;
-    cursor:pointer;
-    box-shadow:var(--shadow);
-    transition:transform .15s ease;
-  }
+  .actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px;}
+  .btn{border:none;border-radius:18px;padding:15px 22px;font-size:16px;font-weight:900;cursor:pointer;
+    box-shadow:var(--shadow);transition:transform .15s ease;}
   .btn:active{transform:scale(.95);}
-  .btn-primary{background:linear-gradient(135deg,#7be08a,#23bf57);color:#fff;}
+  .btn-primary{background:linear-gradient(135deg,#7be08a,#1faf4e);color:#fff;}
   .btn-ghost{background:#fff;color:var(--ink);}
 
-  #confetti{
-    position:fixed;inset:0;
-    width:100%;height:100%;
-    pointer-events:none;
-    z-index:99;
-  }
-  .footer{margin-top:30px;font-size:12px;opacity:.45;}
+  /* favorites sheet */
+  .overlay{position:fixed;inset:0;background:rgba(40,25,55,.45);backdrop-filter:blur(3px);
+    z-index:50;display:none;align-items:flex-end;justify-content:center;}
+  .overlay.open{display:flex;animation:fade .25s ease;}
+  .sheet{background:#fff;width:100%;max-width:540px;border-radius:26px 26px 0 0;padding:18px 18px calc(24px + env(safe-area-inset-bottom));
+    box-shadow:0 -10px 40px rgba(0,0,0,.2);max-height:80vh;overflow:auto;animation:slideUp .3s ease;}
+  @keyframes slideUp{from{transform:translateY(100%);}to{transform:none;}}
+  .sheet h3{margin:4px 0 14px;font-size:20px;font-weight:900;}
+  .fav-list{display:flex;flex-direction:column;gap:8px;text-align:right;}
+  .fav-item{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:#faf7ff;border-radius:14px;padding:12px 14px;}
+  .fav-item .nm{font-weight:800;font-size:17px;}
+  .fav-item .g{font-size:13px;opacity:.6;}
+  .fav-del{border:none;background:#ffe3ec;color:#e6357f;border-radius:10px;padding:8px 12px;font-weight:800;cursor:pointer;}
+  .fav-empty{opacity:.6;padding:18px 6px;font-weight:600;}
+  .sheet-close{margin-top:14px;width:100%;}
+
+  .toast{position:fixed;bottom:calc(22px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);
+    background:#2b2740;color:#fff;padding:11px 18px;border-radius:999px;font-weight:800;font-size:14px;
+    opacity:0;pointer-events:none;transition:all .3s ease;z-index:80;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  #confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:40;}
+  .footer{margin-top:26px;font-size:12px;opacity:.45;}
 </style>
 </head>
 <body>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
 <canvas id="confetti"></canvas>
-<div class="app">
 
-  <!-- ===== Screen 1: gender ===== -->
+<div class="app">
+  <div class="topbar">
+    <button class="chip" id="favChip" onclick="openFavs()">❤️ מועדפים <span id="favCount">0</span></button>
+    <button class="chip" id="soundChip" onclick="toggleSound()">🔊 צליל</button>
+  </div>
+
+  <!-- ===== Screen 1 ===== -->
   <section id="screen1" class="screen active">
-    <h1 class="title">מה הולך להיות? 🍼</h1>
+    <div class="hero-emoji">🍼</div>
+    <h1 class="title">מה הולך להיות?</h1>
     <p class="subtitle">בחרו וקבלו שם מנצח לפי המזל ✨</p>
     <div class="gender-buttons">
-      <button class="gender-btn boy" onclick="startWheel('boy')">בן 👦</button>
-      <button class="gender-btn girl" onclick="startWheel('girl')">בת 👧</button>
+      <button class="gender-btn boy" onclick="startWheel('boy')">בן 👦<small id="boyCount"></small></button>
+      <button class="gender-btn girl" onclick="startWheel('girl')">בת 👧<small id="girlCount"></small></button>
     </div>
-    <p class="footer">סובבו את הגלגל וגלו את השם 🎡</p>
+    <p class="footer">סובבו את הגלגל וגלו את השם המושלם 🎡</p>
   </section>
 
-  <!-- ===== Screen 2: wheel ===== -->
+  <!-- ===== Screen 2 ===== -->
   <section id="screen2" class="screen">
     <h2 class="wheel-head" id="wheelHead">גלגל השמות</h2>
     <div class="wheel-wrap">
-      <div class="pointer"></div>
+      <div class="pointer" id="pointer"></div>
+      <div class="wheel-ring"></div>
       <canvas id="wheel" width="800" height="800"></canvas>
-      <button class="spin-center" id="spinBtn" onclick="spin()">סובב!</button>
+      <button class="spin-center pulse" id="spinBtn" onclick="spin()">סובב!</button>
     </div>
     <p class="pool-note" id="poolNote"></p>
 
@@ -194,16 +191,27 @@
 
     <div class="actions">
       <button class="btn btn-primary" onclick="spin()">סובב שוב 🔄</button>
-      <button class="btn btn-ghost" onclick="backToGender()">חזרה לבחירת מין</button>
+      <button class="btn btn-ghost" onclick="backToGender()">חזרה ←</button>
     </div>
   </section>
 </div>
 
+<!-- favorites sheet -->
+<div class="overlay" id="favOverlay" onclick="if(event.target===this)closeFavs()">
+  <div class="sheet">
+    <h3>❤️ השמות שאהבתם</h3>
+    <div class="fav-list" id="favList"></div>
+    <button class="btn btn-ghost sheet-close" onclick="closeFavs()">סגירה</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
 /* =========================================================
-   רשימות שמות — לפחות 250 בנים ו-250 בנות (ישראליים)
+   רשימות שמות — 250+ בנים ו-250+ בנות (ישראליים)
    ========================================================= */
-const BOYS = [
+const BOYS=[
 "אורי","איתי","יונתן","נועם","איתן","דניאל","אריאל","עמית","רואי","גיא",
 "עידו","יואב","אלון","תומר","ליאור","עומר","רותם","שגיא","נדב","יהונתן",
 "עידן","אסף","גלעד","אורן","רן","דור","שחר","ניר","עוז","יותם",
@@ -225,15 +233,14 @@ const BOYS = [
 "יהב","יקיר","כרמי","לירן","מגל","נהוראי","ניצן","סלעי","עוזיה","פלא",
 "צדוק","רז","שאנן","שמואל","אבידן","אגם","אורון","איתיאל","ארד","בצלאל",
 "גפן","דקל","חרמון","יהונדב","ינון","יריב","כוכב","לב","מירון","נווה",
-"ניב","צופן","רנן","שגב","שלומי","תמיר","אבירן","אדם-אל","אופיר","איתן-יה",
-"בן-ציון","גבע","דורי","הילאי","זוהר-אל","חי","יהונתן-אל","יסכר","כפיר-אל","לידור",
-"מאור","נהר","סביון","עוזיאל","פרי","צפריר","רעם","שמריהו","תאו","אבישלום",
-"אליה","אסא","בר","גלעדי","דן","הרצל","ויקטור","זאב","חביב","יהושפט",
-"כורש","לוי-יצחק","מרום","נדיב","סעדיה","עמיחי","פלגי","צמח","רפי","שמחה",
-"תרשיש","אביעד","אלכסנדר","בנצי","גבריאל-י","דרור","הרי","יואל-י","יניב","כרמלי"
+"ניב","צופן","רנן","שגב","שלומי","תמיר","אבירן","בן-ציון","גבע","דורי",
+"הילאי","חי","יסכר","כפיר-אל","לידור","מאור","נהר","סביון","עוזיאל","פרי",
+"צפריר","רעם","שמריהו","אבישלום","אליה","אסא","בר","דן","הרצל","ויקטור",
+"זאב","חביב","יהושפט","כורש","מרום","נדיב","סעדיה","עמיחי","צמח","רפי",
+"תרשיש","אביעד","אלכסנדר","דרור","יניב","ניצן-אל","עידן-אל","פלגי","קדם-אל","שמחה",
+"אבנר-אל","גדי","דורי-אל","יהונדב-אל","עוזי","רועי-אל","שוהם","תאו"
 ];
-
-const GIRLS = [
+const GIRLS=[
 "נועה","שירה","תמר","יעל","מאיה","רוני","אופק","ליאור","אביגיל","הילה",
 "רותם","גילי","עדן","שקד","ספיר","גל","רוית","מיכל","אסתר","רחל",
 "לאה","שרה","רבקה","מרים","דבורה","חנה","יהודית","רות","נעמי","דינה",
@@ -254,240 +261,247 @@ const GIRLS = [
 "צילה","קטיה","ראומה","שמחה","תאיר","אביבית","אופל","אורה","אילנה","אסיה",
 "אפרת","ארנה","בלהה","דנית","הללי","זהר","חבצלת","יפית","כרמלה","להב",
 "מרגלית","נחמה","סלעית","עדנה","פרח","קרני","רחלי","שיראל","תכלת","אורן",
-"אילת","אסנת","בתיה","גילה","דגנית","זיווה","חנית","יהלום","יקרה","כרמן",
+"אילת","אסנת","בתיה-ה","גילה","דגנית","זיווה","חנית","יהלום","יקרה","כרמן",
 "ליאת","מעין","נורית","סיגלית","עידית","פלג","צביה","רימון","שלהבת","תרצה",
-"אביגיל-ה","אוריה-ה","אלה-לי","אמה","בר-אל","גל-יה","דנה-לי","הדר-יה","ויטה","זיו-ה",
-"חמוטל","טלי","יסמינה","כרמלית","ליבי-יה","מורן-ית","נעמה","סול","עדי-יה","פנינה-ה",
-"צופיה-ה","קרין","רוני-ה","שיר-לי","תמר-ה","אופיר-ה","אלמה","בר-יה","גילת","דקל-ה",
-"הללה","ורד-ית","זמירה","חופית","טל-יה","יערית","כינרת","ליאם","מורית","נטלי"
+"אוריה-ה","אלה-לי","אמה","בר-אל","גל-יה","דנה-לי","הדר-יה","ויטה","זיו-ה","חמוטל",
+"טלי","יסמינה","כרמלית","ליבי-יה","נעמה","סול","פנינה-ה","קרין","רוני-ה","שיר-לי",
+"אופיר-ה","אלמה","גילת","דקל-ה","הללה","זמירה","חופית","יערית","כינרת","מורית",
+"נטלי","סיוון","עדי-אל","פרחיה","רימונה","שירז","אביגיל-ה","דנאל","ליר","עדן-יה"
 ];
 
-/* dedupe ושמירה על סדר */
-function uniq(a){const s=new Set();const r=[];for(const x of a){if(!s.has(x)){s.add(x);r.push(x);}}return r;}
+function uniq(a){const s=new Set(),r=[];for(const x of a){if(!s.has(x)){s.add(x);r.push(x);}}return r;}
 const POOL={boy:uniq(BOYS),girl:uniq(GIRLS)};
 
-/* =========================================================
-   הגדרות גלגל
-   ========================================================= */
-const SEGMENTS=13;                 // 12 שמות + משבצת מיוחדת (בטווח 12-14)
-const SPECIAL_INDEX=SEGMENTS-1;    // המשבצת "+500 שמות נוספים"
+/* ===== state ===== */
+const SEGMENTS=13;
+const SPECIAL_INDEX=SEGMENTS-1;
 const COLORS=["#ff6b9d","#ffa552","#ffd24d","#7be08a","#5fd0e0","#6aa8ff","#b58cff","#ff8ec4","#9bd45e","#ff9a76","#5ec8c8","#c08bff"];
 const SPECIAL_COLOR="#2b2740";
 
-const canvas=document.getElementById("wheel");
-const ctx=canvas.getContext("2d");
+const canvas=document.getElementById("wheel"),ctx=canvas.getContext("2d");
 const spinBtn=document.getElementById("spinBtn");
 const resultEl=document.getElementById("result");
 const poolNote=document.getElementById("poolNote");
 const wheelHead=document.getElementById("wheelHead");
+const pointer=document.getElementById("pointer");
 
-let currentGender=null;
-let labels=[];          // השמות שמוצגים כרגע על הגלגל
-let rotation=0;         // זווית מצטברת במעלות
-let spinning=false;
+let currentGender=null, labels=[], rotation=0, spinning=false, lastWin=null;
 
 function rand(n){return Math.floor(Math.random()*n);}
-function sample(arr,k){
-  const pool=arr.slice();
-  const out=[];
-  for(let i=0;i<k && pool.length;i++){
-    out.push(pool.splice(rand(pool.length),1)[0]);
-  }
-  return out;
-}
+function sample(arr,k){const p=arr.slice(),out=[];for(let i=0;i<k&&p.length;i++)out.push(p.splice(rand(p.length),1)[0]);return out;}
 
-/* ציור הגלגל */
+/* ===== wheel drawing ===== */
 function drawWheel(){
-  const size=canvas.width;
-  const r=size/2;
-  const seg=(Math.PI*2)/SEGMENTS;
+  const size=canvas.width,r=size/2,seg=(Math.PI*2)/SEGMENTS;
   ctx.clearRect(0,0,size,size);
   for(let i=0;i<SEGMENTS;i++){
-    const start=-Math.PI/2+i*seg;
-    const end=start+seg;
-    const special=(i===SPECIAL_INDEX);
-    ctx.beginPath();
-    ctx.moveTo(r,r);
-    ctx.arc(r,r,r-6,start,end);
-    ctx.closePath();
-    ctx.fillStyle=special?SPECIAL_COLOR:COLORS[i%COLORS.length];
-    ctx.fill();
-    // נצנוץ למשבצת המיוחדת
+    const start=-Math.PI/2+i*seg,end=start+seg,special=(i===SPECIAL_INDEX);
+    ctx.beginPath();ctx.moveTo(r,r);ctx.arc(r,r,r-4,start,end);ctx.closePath();
     if(special){
-      const g=ctx.createRadialGradient(r,r,r*0.2,r,r,r);
-      g.addColorStop(0,"rgba(255,215,120,.15)");
-      g.addColorStop(1,"rgba(255,215,120,.45)");
-      ctx.fillStyle=g;
-      ctx.fill();
+      const g=ctx.createRadialGradient(r,r,r*0.15,r,r,r);
+      g.addColorStop(0,"#3a3357");g.addColorStop(1,"#1c1830");ctx.fillStyle=g;
+    }else ctx.fillStyle=COLORS[i%COLORS.length];
+    ctx.fill();
+    ctx.strokeStyle="rgba(255,255,255,.5)";ctx.lineWidth=2;ctx.stroke();
+    // text
+    ctx.save();ctx.translate(r,r);ctx.rotate(start+seg/2);
+    ctx.textAlign="right";ctx.textBaseline="middle";
+    ctx.shadowColor="rgba(0,0,0,.28)";ctx.shadowBlur=3;
+    if(special){
+      ctx.fillStyle="#ffe28a";ctx.font="bold "+Math.round(size*0.030)+"px Heebo,Arial";
+      ctx.fillText("+500 שמות ✨", r-26, 0);
+    }else{
+      ctx.fillStyle="#ffffff";ctx.font="bold "+Math.round(size*0.040)+"px Heebo,Arial";
+      ctx.fillText(labels[i], r-26, 0);
     }
-    // טקסט
-    ctx.save();
-    ctx.translate(r,r);
-    ctx.rotate(start+seg/2);
-    ctx.textAlign="right";
-    ctx.textBaseline="middle";
-    ctx.fillStyle=special?"#ffe28a":"#ffffff";
-    ctx.font=(special?"bold ":"bold ")+(special?Math.round(size*0.030):Math.round(size*0.036))+"px Heebo,Arial";
-    ctx.shadowColor="rgba(0,0,0,.25)";
-    ctx.shadowBlur=3;
-    const txt=special?"+500 שמות נוספים ✨":labels[i];
-    ctx.fillText(txt, r-22, 0);
     ctx.restore();
   }
-  // מסגרת פנימית
-  ctx.beginPath();
-  ctx.arc(r,r,r-6,0,Math.PI*2);
-  ctx.lineWidth=6;
-  ctx.strokeStyle="rgba(255,255,255,.85)";
-  ctx.stroke();
+  // glossy highlight
+  const gl=ctx.createRadialGradient(r*0.7,r*0.55,r*0.1,r,r,r);
+  gl.addColorStop(0,"rgba(255,255,255,.22)");gl.addColorStop(0.5,"rgba(255,255,255,0)");
+  ctx.beginPath();ctx.arc(r,r,r-4,0,Math.PI*2);ctx.fillStyle=gl;ctx.fill();
 }
-
-/* הגרלת התוויות שעל הגלגל (שמות אקראיים מהמאגר המלא) */
 function randomizeLabels(){
-  const names=sample(POOL[currentGender],SEGMENTS-1); // 12 שמות
-  labels=names.slice();
-  labels[SPECIAL_INDEX]="__SPECIAL__";
+  const names=sample(POOL[currentGender],SEGMENTS-1);
+  labels=names.slice();labels[SPECIAL_INDEX]="__SPECIAL__";
   drawWheel();
 }
 
-/* =========================================================
-   זרימת מסכים
-   ========================================================= */
-function show(id){
-  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+/* ===== easing (cubic-bezier solver) ===== */
+function cubicBezier(p1x,p1y,p2x,p2y){
+  const cx=3*p1x,bx=3*(p2x-p1x)-cx,ax=1-cx-bx;
+  const cy=3*p1y,by=3*(p2y-p1y)-cy,ay=1-cy-by;
+  function bx_(t){return ((ax*t+bx)*t+cx)*t;}
+  function by_(t){return ((ay*t+by)*t+cy)*t;}
+  function dbx(t){return (3*ax*t+2*bx)*t+cx;}
+  return function(x){
+    let t=x;
+    for(let i=0;i<6;i++){const e=bx_(t)-x,d=dbx(t);if(Math.abs(e)<1e-4||d===0)break;t-=e/d;}
+    return by_(t);
+  };
 }
+const ease=cubicBezier(.12,.67,.12,1);
 
-function startWheel(gender){
-  currentGender=gender;
-  rotation=0;
-  canvas.style.transition="none";
+/* ===== screens ===== */
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));document.getElementById(id).classList.add("active");}
+function startWheel(g){
+  ensureAudio();
+  currentGender=g;rotation=0;
   canvas.style.transform="rotate(0deg)";
-  resultEl.className="result";
-  resultEl.innerHTML="";
-  wheelHead.textContent=gender==="boy"?"גלגל שמות הבנים 👦":"גלגל שמות הבנות 👧";
-  poolNote.textContent="מתוך "+POOL[gender].length+" שמות במאגר";
-  randomizeLabels();
-  show("screen2");
+  resultEl.innerHTML="";lastWin=null;
+  wheelHead.textContent=g==="boy"?"גלגל שמות הבנים 👦":"גלגל שמות הבנות 👧";
+  poolNote.textContent="מתוך "+POOL[g].length+" שמות במאגר";
+  randomizeLabels();show("screen2");
 }
+function backToGender(){show("screen1");}
 
-function backToGender(){
-  show("screen1");
-}
-
-/* =========================================================
-   הסיבוב
-   ========================================================= */
+/* ===== spin (manual rAF animation) ===== */
 function spin(){
-  if(spinning) return;
-  spinning=true;
-  spinBtn.disabled=true;
-  resultEl.className="result";
+  if(spinning)return;
+  ensureAudio();
+  spinning=true;spinBtn.disabled=true;spinBtn.classList.remove("pulse");
   resultEl.innerHTML="";
-
-  // בכל סיבוב מגרילים מחדש את השמות שעל הגלגל
   randomizeLabels();
 
   const segDeg=360/SEGMENTS;
-  const target=rand(SEGMENTS);                 // החתיכה שעליה נעצור (אקראי אמיתי)
-  const fullSpins=5+rand(3);                   // 5-7 סיבובים מלאים
-
-  // זווית כך שמרכז החתיכה הנבחרת יגיע לחץ שבראש הגלגל
+  const target=rand(SEGMENTS);
+  const fullSpins=5+rand(3);
   let desired=(360-(target+0.5)*segDeg)%360;
-  // ג'יטר קטן בתוך החתיכה (כדי שלא ייעצר תמיד במרכז המדויק)
   desired+=(Math.random()-0.5)*segDeg*0.6;
-
   const currentMod=((rotation%360)+360)%360;
-  let delta=desired-currentMod;
-  if(delta<0) delta+=360;
-  rotation+=fullSpins*360+delta;
+  let delta=desired-currentMod;if(delta<0)delta+=360;
+  const startRot=rotation,endRot=rotation+fullSpins*360+delta,duration=4600;
 
-  canvas.style.transition="transform 4.6s cubic-bezier(.12,.67,.12,1)";
-  // הפעלה מעט אחרי שינוי ה-transition כדי שיתפוס
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    canvas.style.transform="rotate("+rotation+"deg)";
-  }));
-
-  const onEnd=()=>{
-    canvas.removeEventListener("transitionend",onEnd);
-    revealWinner(target);
-  };
-  canvas.addEventListener("transitionend",onEnd);
+  let startTime=null,lastSeg=-1;
+  function frame(ts){
+    if(startTime===null)startTime=ts;
+    const t=Math.min((ts-startTime)/duration,1);
+    const rot=startRot+(endRot-startRot)*ease(t);
+    canvas.style.transform="rotate("+rot+"deg)";
+    // tick when a boundary passes the top pointer
+    const segIdx=Math.floor((((-rot)%360)+360)%360/segDeg);
+    if(segIdx!==lastSeg){lastSeg=segIdx;tickFx(t);}
+    if(t<1){requestAnimationFrame(frame);}
+    else{rotation=endRot;revealWinner(target);}
+  }
+  requestAnimationFrame(frame);
+}
+function tickFx(t){
+  pointer.classList.remove("tick");void pointer.offsetWidth;pointer.classList.add("tick");
+  playTick(t);
+  if(navigator.vibrate)navigator.vibrate(8);
 }
 
 function revealWinner(target){
-  let name, surprise=false;
-  if(target===SPECIAL_INDEX || labels[target]==="__SPECIAL__"){
-    // הפתעה! מגרילים מתוך כל המאגר
-    surprise=true;
-    name=POOL[currentGender][rand(POOL[currentGender].length)];
-  }else{
-    name=labels[target];
-  }
-  resultEl.className="result show";
+  let name,surprise=false;
+  if(target===SPECIAL_INDEX||labels[target]==="__SPECIAL__"){
+    surprise=true;name=POOL[currentGender][rand(POOL[currentGender].length)];
+  }else name=labels[target];
+  lastWin={name,gender:currentGender};
+  const isFav=favs.some(f=>f.name===name&&f.gender===currentGender);
   resultEl.innerHTML=
-    (surprise?'<span class="surprise-tag">הפתעה! 🎁 מתוך כל המאגר</span>':'')+
-    'השם שלכם: <span class="name">'+name+'</span> 🎉';
-  launchConfetti();
-  spinning=false;
-  spinBtn.disabled=false;
+    '<div class="result-card">'+
+      (surprise?'<span class="surprise-tag">הפתעה! 🎁 מתוך כל המאגר</span>':'')+
+      '<div class="result-label">השם שלכם 🎉</div>'+
+      '<div class="result-name">'+name+'</div>'+
+      '<div class="result-actions">'+
+        '<button class="mini fav'+(isFav?' on':'')+'" id="favBtn" onclick="toggleFav()">'+(isFav?'❤️ נשמר':'🤍 שמירה')+'</button>'+
+        '<button class="mini share" onclick="shareName()">📤 שיתוף</button>'+
+      '</div>'+
+    '</div>';
+  launchConfetti();playWin();
+  if(navigator.vibrate)navigator.vibrate([0,40,30,60]);
+  spinning=false;spinBtn.disabled=false;
 }
 
-/* =========================================================
-   קונפטי
-   ========================================================= */
-const cc=document.getElementById("confetti");
-const cctx=cc.getContext("2d");
-function fitConfetti(){cc.width=window.innerWidth;cc.height=window.innerHeight;}
-fitConfetti();
-window.addEventListener("resize",()=>{fitConfetti();});
-let pieces=[];
+/* ===== favorites ===== */
+let favs=[];
+try{favs=JSON.parse(localStorage.getItem("bnw_favs")||"[]");}catch(e){favs=[];}
+function saveFavs(){try{localStorage.setItem("bnw_favs",JSON.stringify(favs));}catch(e){}updateFavCount();}
+function updateFavCount(){document.getElementById("favCount").textContent=favs.length;}
+function toggleFav(){
+  if(!lastWin)return;
+  const i=favs.findIndex(f=>f.name===lastWin.name&&f.gender===lastWin.gender);
+  const btn=document.getElementById("favBtn");
+  if(i>=0){favs.splice(i,1);btn.classList.remove("on");btn.innerHTML="🤍 שמירה";toast("הוסר מהמועדפים");}
+  else{favs.push({...lastWin});btn.classList.add("on");btn.innerHTML="❤️ נשמר";toast("נשמר במועדפים ❤️");}
+  saveFavs();
+}
+function openFavs(){
+  const list=document.getElementById("favList");
+  if(!favs.length){list.innerHTML='<div class="fav-empty">עדיין אין שמות שמורים. סובבו את הגלגל ושמרו שמות שאהבתם 🤍</div>';}
+  else{
+    list.innerHTML=favs.map((f,idx)=>
+      '<div class="fav-item"><div><span class="nm">'+f.name+'</span> <span class="g">'+(f.gender==="boy"?"👦":"👧")+'</span></div>'+
+      '<button class="fav-del" onclick="delFav('+idx+')">הסר</button></div>').join("");
+  }
+  document.getElementById("favOverlay").classList.add("open");
+}
+function delFav(i){favs.splice(i,1);saveFavs();openFavs();}
+function closeFavs(){document.getElementById("favOverlay").classList.remove("open");}
+
+/* ===== share ===== */
+async function shareName(){
+  if(!lastWin)return;
+  const txt="מצאנו שם לתינוק: "+lastWin.name+" 🍼🎉 (דרך גלגל השמות)";
+  try{
+    if(navigator.share){await navigator.share({text:txt});}
+    else{await navigator.clipboard.writeText(txt);toast("הטקסט הועתק 📋");}
+  }catch(e){try{await navigator.clipboard.writeText(txt);toast("הטקסט הועתק 📋");}catch(_){}}
+}
+
+/* ===== toast ===== */
+let toastT;
+function toast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),1800);}
+
+/* ===== sound (Web Audio, synthesized) ===== */
+let actx=null,soundOn=true;
+function ensureAudio(){if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(actx&&actx.state==="suspended")actx.resume();}
+function toggleSound(){soundOn=!soundOn;document.getElementById("soundChip").innerHTML=(soundOn?"🔊":"🔇")+" צליל";if(soundOn)ensureAudio();}
+function playTick(t){
+  if(!soundOn||!actx)return;
+  const o=actx.createOscillator(),g=actx.createGain();
+  o.type="square";o.frequency.value=900-300*t;
+  g.gain.setValueAtTime(0.06,actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+0.05);
+  o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+0.05);
+}
+function playWin(){
+  if(!soundOn||!actx)return;
+  const notes=[523.25,659.25,783.99,1046.5];
+  notes.forEach((f,i)=>{
+    const o=actx.createOscillator(),g=actx.createGain(),tm=actx.currentTime+i*0.12;
+    o.type="triangle";o.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,tm);g.gain.exponentialRampToValueAtTime(0.18,tm+0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001,tm+0.35);
+    o.connect(g);g.connect(actx.destination);o.start(tm);o.stop(tm+0.36);
+  });
+}
+
+/* ===== confetti ===== */
+const cc=document.getElementById("confetti"),cctx=cc.getContext("2d");
+function fitC(){cc.width=window.innerWidth;cc.height=window.innerHeight;}
+fitC();window.addEventListener("resize",fitC);
+let pieces=[],ccRun=false;
 function launchConfetti(){
   const cols=["#ff6b9d","#ffd24d","#7be08a","#6aa8ff","#b58cff","#ff8ec4","#5ec8c8"];
-  for(let i=0;i<140;i++){
-    pieces.push({
-      x:Math.random()*cc.width,
-      y:-20-Math.random()*cc.height*0.3,
-      w:6+Math.random()*8,
-      h:8+Math.random()*10,
-      vy:3+Math.random()*4,
-      vx:-2+Math.random()*4,
-      rot:Math.random()*Math.PI,
-      vr:-0.2+Math.random()*0.4,
-      col:cols[rand(cols.length)],
-      life:120+rand(60)
-    });
-  }
-  if(!confettiRunning) runConfetti();
+  for(let i=0;i<150;i++)pieces.push({x:cc.width/2+(Math.random()-0.5)*120,y:cc.height*0.35,
+    w:6+Math.random()*8,h:8+Math.random()*10,vy:-7-Math.random()*7,vx:-7+Math.random()*14,
+    rot:Math.random()*6,vr:-0.3+Math.random()*0.6,col:cols[rand(cols.length)],life:130+rand(50)});
+  if(!ccRun)runC();
 }
-let confettiRunning=false;
-function runConfetti(){
-  confettiRunning=true;
-  cctx.clearRect(0,0,cc.width,cc.height);
-  pieces.forEach(p=>{
-    p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;p.vy+=0.05;p.life--;
-    cctx.save();
-    cctx.translate(p.x,p.y);
-    cctx.rotate(p.rot);
-    cctx.fillStyle=p.col;
-    cctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
-    cctx.restore();
-  });
-  pieces=pieces.filter(p=>p.life>0 && p.y<cc.height+30);
-  if(pieces.length>0){
-    requestAnimationFrame(runConfetti);
-  }else{
-    cctx.clearRect(0,0,cc.width,cc.height);
-    confettiRunning=false;
-  }
+function runC(){
+  ccRun=true;cctx.clearRect(0,0,cc.width,cc.height);
+  pieces.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.28;p.vx*=0.99;p.rot+=p.vr;p.life--;
+    cctx.save();cctx.translate(p.x,p.y);cctx.rotate(p.rot);cctx.fillStyle=p.col;cctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);cctx.restore();});
+  pieces=pieces.filter(p=>p.life>0&&p.y<cc.height+40);
+  if(pieces.length)requestAnimationFrame(runC);else{cctx.clearRect(0,0,cc.width,cc.height);ccRun=false;}
 }
 
-/* התאמת רזולוציית הקנבס למסכים חדים */
-function setupCanvasDPR(){
-  const dpr=Math.min(window.devicePixelRatio||1,2);
-  // הקנבס מצויר ב-800x800 פנימי, נשאר חד דיו; אין צורך בשינוי.
-}
-setupCanvasDPR();
+/* ===== init ===== */
+document.getElementById("boyCount").textContent=POOL.boy.length+" שמות";
+document.getElementById("girlCount").textContent=POOL.girl.length+" שמות";
+updateFavCount();
 </script>
 </body>
 </html>
