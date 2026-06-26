@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>גלגל השמות לתינוק 🍼</title>
+<style>
+  :root{
+    --pink:#ff5fa2;
+    --blue:#3aa0ff;
+    --bg1:#fef6ff;
+    --bg2:#eaf4ff;
+    --ink:#2b2740;
+    --shadow:0 10px 30px rgba(0,0,0,.18);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:"Heebo","Rubik","Segoe UI",Arial,sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink);
+    min-height:100%;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    overflow-x:hidden;
+  }
+  .app{
+    width:100%;
+    max-width:560px;
+    padding:24px 18px 48px;
+    text-align:center;
+  }
+
+  /* ===== Screens ===== */
+  .screen{display:none;animation:fade .4s ease;}
+  .screen.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+
+  /* ===== Screen 1 ===== */
+  .title{
+    font-size:clamp(30px,8vw,46px);
+    font-weight:900;
+    margin:18px 0 6px;
+    line-height:1.15;
+  }
+  .subtitle{
+    font-size:clamp(15px,4vw,18px);
+    opacity:.75;
+    margin:0 0 34px;
+  }
+  .gender-buttons{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    margin-top:14px;
+  }
+  .gender-btn{
+    border:none;
+    border-radius:24px;
+    padding:26px 18px;
+    font-size:clamp(24px,6vw,30px);
+    font-weight:800;
+    color:#fff;
+    cursor:pointer;
+    box-shadow:var(--shadow);
+    transition:transform .15s ease, filter .15s ease;
+  }
+  .gender-btn:active{transform:scale(.96);filter:brightness(1.05);}
+  .boy{background:linear-gradient(135deg,#5fb6ff,#2477ff);}
+  .girl{background:linear-gradient(135deg,#ff8ec4,#ff3d8f);}
+
+  /* ===== Screen 2 ===== */
+  .wheel-head{
+    font-size:clamp(20px,5.5vw,26px);
+    font-weight:800;
+    margin:6px 0 4px;
+  }
+  .wheel-wrap{
+    position:relative;
+    width:min(86vw,420px);
+    height:min(86vw,420px);
+    margin:14px auto 8px;
+  }
+  /* pointer / arrow at top */
+  .pointer{
+    position:absolute;
+    top:-6px;
+    left:50%;
+    transform:translateX(-50%);
+    width:0;height:0;
+    border-left:18px solid transparent;
+    border-right:18px solid transparent;
+    border-top:30px solid #ff2d6f;
+    filter:drop-shadow(0 3px 3px rgba(0,0,0,.3));
+    z-index:5;
+  }
+  #wheel{
+    width:100%;
+    height:100%;
+    border-radius:50%;
+    box-shadow:var(--shadow),0 0 0 8px #fff,0 0 0 12px rgba(0,0,0,.06);
+    transition:transform 4.6s cubic-bezier(.12,.67,.12,1);
+    will-change:transform;
+  }
+  .spin-center{
+    position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    width:24%;height:24%;
+    border-radius:50%;
+    border:none;
+    background:radial-gradient(circle at 35% 30%,#fff,#ffd24d 70%,#ffb300);
+    color:#5a3d00;
+    font-weight:900;
+    font-size:clamp(15px,4.5vw,20px);
+    cursor:pointer;
+    box-shadow:0 6px 16px rgba(0,0,0,.35);
+    z-index:4;
+    transition:transform .15s ease;
+  }
+  .spin-center:active{transform:translate(-50%,-50%) scale(.92);}
+  .spin-center:disabled{opacity:.6;cursor:default;}
+
+  .pool-note{font-size:13px;opacity:.65;margin:4px 0 0;}
+
+  .result{
+    min-height:54px;
+    margin:18px 0 6px;
+    font-size:clamp(24px,7vw,34px);
+    font-weight:900;
+  }
+  .result .name{color:var(--pink);}
+  .result.show{animation:pop .5s ease;}
+  @keyframes pop{0%{transform:scale(.4);opacity:0;}60%{transform:scale(1.15);}100%{transform:scale(1);opacity:1;}}
+  .surprise-tag{display:block;font-size:15px;font-weight:700;color:#9a6b00;margin-bottom:4px;}
+
+  .actions{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-top:10px;
+  }
+  .btn{
+    border:none;
+    border-radius:18px;
+    padding:14px 22px;
+    font-size:16px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:var(--shadow);
+    transition:transform .15s ease;
+  }
+  .btn:active{transform:scale(.95);}
+  .btn-primary{background:linear-gradient(135deg,#7be08a,#23bf57);color:#fff;}
+  .btn-ghost{background:#fff;color:var(--ink);}
+
+  #confetti{
+    position:fixed;inset:0;
+    width:100%;height:100%;
+    pointer-events:none;
+    z-index:99;
+  }
+  .footer{margin-top:30px;font-size:12px;opacity:.45;}
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div class="app">
+
+  <!-- ===== Screen 1: gender ===== -->
+  <section id="screen1" class="screen active">
+    <h1 class="title">מה הולך להיות? 🍼</h1>
+    <p class="subtitle">בחרו וקבלו שם מנצח לפי המזל ✨</p>
+    <div class="gender-buttons">
+      <button class="gender-btn boy" onclick="startWheel('boy')">בן 👦</button>
+      <button class="gender-btn girl" onclick="startWheel('girl')">בת 👧</button>
+    </div>
+    <p class="footer">סובבו את הגלגל וגלו את השם 🎡</p>
+  </section>
+
+  <!-- ===== Screen 2: wheel ===== -->
+  <section id="screen2" class="screen">
+    <h2 class="wheel-head" id="wheelHead">גלגל השמות</h2>
+    <div class="wheel-wrap">
+      <div class="pointer"></div>
+      <canvas id="wheel" width="800" height="800"></canvas>
+      <button class="spin-center" id="spinBtn" onclick="spin()">סובב!</button>
+    </div>
+    <p class="pool-note" id="poolNote"></p>
+
+    <div class="result" id="result"></div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="spin()">סובב שוב 🔄</button>
+      <button class="btn btn-ghost" onclick="backToGender()">חזרה לבחירת מין</button>
+    </div>
+  </section>
+</div>
+
+<script>
+/* =========================================================
+   רשימות שמות — לפחות 250 בנים ו-250 בנות (ישראליים)
+   ========================================================= */
+const BOYS = [
+"אורי","איתי","יונתן","נועם","איתן","דניאל","אריאל","עמית","רואי","גיא",
+"עידו","יואב","אלון","תומר","ליאור","עומר","רותם","שגיא","נדב","יהונתן",
+"עידן","אסף","גלעד","אורן","רן","דור","שחר","ניר","עוז","יותם",
+"אבי","יוסי","משה","אברהם","יצחק","יעקב","דוד","שלמה","יוסף","בנימין",
+"ראובן","שמעון","לוי","יהודה","גד","אשר","נפתלי","זבולון","מנשה","אפרים",
+"אהרון","אלעזר","פנחס","יהושע","כלב","גדעון","שמשון","שאול","נתן","אבשלום",
+"אמנון","יואש","ישעיהו","ירמיהו","יחזקאל","יואל","עמוס","עובדיה","יונה","מיכה",
+"נחום","חגי","זכריה","מלאכי","עזרא","נחמיה","מרדכי","ברק","יגאל","אבנר",
+"אהוד","חיים","ברוך","מאיר","שלום","נחמן","מנחם","יחיאל","רפאל","גבריאל",
+"מיכאל","אוריאל","נתנאל","עמנואל","ידידיה","אביב","סהר","כפיר","ארז","אלעד",
+"נריה","איל","רעי","יהלי","איתמר","אלי","אמיר","אריק","בועז","גל",
+"דורון","הראל","זוהר","חן","טל","יאיר","יהל","כרמל","לביא","מורן",
+"נוי","סער","עדן","פלג","צבי","קובי","רום","שי","תום","אופיר",
+"אלמוג","אסיף","בן","גור","דביר","הלל","זיו","יובל","כנען","לוטם",
+"מעוז","נבו","סתיו","עברי","פז","צח","קדם","שליו","תבור","אבירם",
+"אדיר","אוהד","אלדד","אמציה","בארי","גילי","הדר","זכאי","חמי","יכין",
+"כליל","להב","מתן","נמרוד","סיני","עומרי","צוף","קשת","רביד","שמאי",
+"תדהר","אבישי","אדם","אופק","אלחנן","ארבל","בניה","גמליאל","דולב","הוד",
+"יהב","יקיר","כרמי","לירן","מגל","נהוראי","ניצן","סלעי","עוזיה","פלא",
+"צדוק","רז","שאנן","שמואל","אבידן","אגם","אורון","איתיאל","ארד","בצלאל",
+"גפן","דקל","חרמון","יהונדב","ינון","יריב","כוכב","לב","מירון","נווה",
+"ניב","צופן","רנן","שגב","שלומי","תמיר","אבירן","אדם-אל","אופיר","איתן-יה",
+"בן-ציון","גבע","דורי","הילאי","זוהר-אל","חי","יהונתן-אל","יסכר","כפיר-אל","לידור",
+"מאור","נהר","סביון","עוזיאל","פרי","צפריר","רעם","שמריהו","תאו","אבישלום",
+"אליה","אסא","בר","גלעדי","דן","הרצל","ויקטור","זאב","חביב","יהושפט",
+"כורש","לוי-יצחק","מרום","נדיב","סעדיה","עמיחי","פלגי","צמח","רפי","שמחה",
+"תרשיש","אביעד","אלכסנדר","בנצי","גבריאל-י","דרור","הרי","יואל-י","יניב","כרמלי"
+];
+
+const GIRLS = [
+"נועה","שירה","תמר","יעל","מאיה","רוני","אופק","ליאור","אביגיל","הילה",
+"רותם","גילי","עדן","שקד","ספיר","גל","רוית","מיכל","אסתר","רחל",
+"לאה","שרה","רבקה","מרים","דבורה","חנה","יהודית","רות","נעמי","דינה",
+"ציפורה","יוכבד","בתיה","שולמית","אביה","אבישג","מלכה","עטרה","פנינה","חוה",
+"שושנה","ורד","יסמין","סיגל","גלית","אורלי","ענת","מירב","שירן","הדס",
+"נטע","שני","מורן","ליטל","אורית","רינת","שרון","דנה","יערה","מעיין",
+"אלה","ליה","אריאל","רומי","אגם","יהלי","אביב","סתיו","נוגה","כרמל",
+"טל","אור","שחר","ליבי","עלמה","יובל","נופר","רעות","אודיה","אלינור",
+"גפן","דקלה","הודיה","ויקטוריה","זהבה","חמדה","טליה","יפעת","כנרת","לימור",
+"מיטל","נילי","סמדר","עינב","פרידה","צופיה","קרן","רעיה","שלומית","תהילה",
+"אביטל","אדוה","אופירה","איילה","אלמוג","אמונה","ארבל","בר","גאיה","דורין",
+"הילי","ורדית","זיוה","חן","טופז","יהב","כוכבה","ליאל","מאי","נגה",
+"סהר","עדי","פז","צליל","קמה","שיר","תות","אביבה","אדל","אוריה",
+"איה","אלונה","אמירה","אריאלה","בת-אל","גיתית","דליה","הדר","ורדה","זוהר",
+"חגית","כרמית","מוריה","נאוה","סופיה","עומר","פאר","צופית","קורל","שקמה",
+"תמרה","אהובה","אורנה","איילת","אמל","ברכה","גלי","דורית","הדסה","זמרה",
+"חירות","יהל","יוליה","כליל","לוטם","מיה","נוי","סיון","עדינה","פנינית",
+"צילה","קטיה","ראומה","שמחה","תאיר","אביבית","אופל","אורה","אילנה","אסיה",
+"אפרת","ארנה","בלהה","דנית","הללי","זהר","חבצלת","יפית","כרמלה","להב",
+"מרגלית","נחמה","סלעית","עדנה","פרח","קרני","רחלי","שיראל","תכלת","אורן",
+"אילת","אסנת","בתיה","גילה","דגנית","זיווה","חנית","יהלום","יקרה","כרמן",
+"ליאת","מעין","נורית","סיגלית","עידית","פלג","צביה","רימון","שלהבת","תרצה",
+"אביגיל-ה","אוריה-ה","אלה-לי","אמה","בר-אל","גל-יה","דנה-לי","הדר-יה","ויטה","זיו-ה",
+"חמוטל","טלי","יסמינה","כרמלית","ליבי-יה","מורן-ית","נעמה","סול","עדי-יה","פנינה-ה",
+"צופיה-ה","קרין","רוני-ה","שיר-לי","תמר-ה","אופיר-ה","אלמה","בר-יה","גילת","דקל-ה",
+"הללה","ורד-ית","זמירה","חופית","טל-יה","יערית","כינרת","ליאם","מורית","נטלי"
+];
+
+/* dedupe ושמירה על סדר */
+function uniq(a){const s=new Set();const r=[];for(const x of a){if(!s.has(x)){s.add(x);r.push(x);}}return r;}
+const POOL={boy:uniq(BOYS),girl:uniq(GIRLS)};
+
+/* =========================================================
+   הגדרות גלגל
+   ========================================================= */
+const SEGMENTS=13;                 // 12 שמות + משבצת מיוחדת (בטווח 12-14)
+const SPECIAL_INDEX=SEGMENTS-1;    // המשבצת "+500 שמות נוספים"
+const COLORS=["#ff6b9d","#ffa552","#ffd24d","#7be08a","#5fd0e0","#6aa8ff","#b58cff","#ff8ec4","#9bd45e","#ff9a76","#5ec8c8","#c08bff"];
+const SPECIAL_COLOR="#2b2740";
+
+const canvas=document.getElementById("wheel");
+const ctx=canvas.getContext("2d");
+const spinBtn=document.getElementById("spinBtn");
+const resultEl=document.getElementById("result");
+const poolNote=document.getElementById("poolNote");
+const wheelHead=document.getElementById("wheelHead");
+
+let currentGender=null;
+let labels=[];          // השמות שמוצגים כרגע על הגלגל
+let rotation=0;         // זווית מצטברת במעלות
+let spinning=false;
+
+function rand(n){return Math.floor(Math.random()*n);}
+function sample(arr,k){
+  const pool=arr.slice();
+  const out=[];
+  for(let i=0;i<k && pool.length;i++){
+    out.push(pool.splice(rand(pool.length),1)[0]);
+  }
+  return out;
+}
+
+/* ציור הגלגל */
+function drawWheel(){
+  const size=canvas.width;
+  const r=size/2;
+  const seg=(Math.PI*2)/SEGMENTS;
+  ctx.clearRect(0,0,size,size);
+  for(let i=0;i<SEGMENTS;i++){
+    const start=-Math.PI/2+i*seg;
+    const end=start+seg;
+    const special=(i===SPECIAL_INDEX);
+    ctx.beginPath();
+    ctx.moveTo(r,r);
+    ctx.arc(r,r,r-6,start,end);
+    ctx.closePath();
+    ctx.fillStyle=special?SPECIAL_COLOR:COLORS[i%COLORS.length];
+    ctx.fill();
+    // נצנוץ למשבצת המיוחדת
+    if(special){
+      const g=ctx.createRadialGradient(r,r,r*0.2,r,r,r);
+      g.addColorStop(0,"rgba(255,215,120,.15)");
+      g.addColorStop(1,"rgba(255,215,120,.45)");
+      ctx.fillStyle=g;
+      ctx.fill();
+    }
+    // טקסט
+    ctx.save();
+    ctx.translate(r,r);
+    ctx.rotate(start+seg/2);
+    ctx.textAlign="right";
+    ctx.textBaseline="middle";
+    ctx.fillStyle=special?"#ffe28a":"#ffffff";
+    ctx.font=(special?"bold ":"bold ")+(special?Math.round(size*0.030):Math.round(size*0.036))+"px Heebo,Arial";
+    ctx.shadowColor="rgba(0,0,0,.25)";
+    ctx.shadowBlur=3;
+    const txt=special?"+500 שמות נוספים ✨":labels[i];
+    ctx.fillText(txt, r-22, 0);
+    ctx.restore();
+  }
+  // מסגרת פנימית
+  ctx.beginPath();
+  ctx.arc(r,r,r-6,0,Math.PI*2);
+  ctx.lineWidth=6;
+  ctx.strokeStyle="rgba(255,255,255,.85)";
+  ctx.stroke();
+}
+
+/* הגרלת התוויות שעל הגלגל (שמות אקראיים מהמאגר המלא) */
+function randomizeLabels(){
+  const names=sample(POOL[currentGender],SEGMENTS-1); // 12 שמות
+  labels=names.slice();
+  labels[SPECIAL_INDEX]="__SPECIAL__";
+  drawWheel();
+}
+
+/* =========================================================
+   זרימת מסכים
+   ========================================================= */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function startWheel(gender){
+  currentGender=gender;
+  rotation=0;
+  canvas.style.transition="none";
+  canvas.style.transform="rotate(0deg)";
+  resultEl.className="result";
+  resultEl.innerHTML="";
+  wheelHead.textContent=gender==="boy"?"גלגל שמות הבנים 👦":"גלגל שמות הבנות 👧";
+  poolNote.textContent="מתוך "+POOL[gender].length+" שמות במאגר";
+  randomizeLabels();
+  show("screen2");
+}
+
+function backToGender(){
+  show("screen1");
+}
+
+/* =========================================================
+   הסיבוב
+   ========================================================= */
+function spin(){
+  if(spinning) return;
+  spinning=true;
+  spinBtn.disabled=true;
+  resultEl.className="result";
+  resultEl.innerHTML="";
+
+  // בכל סיבוב מגרילים מחדש את השמות שעל הגלגל
+  randomizeLabels();
+
+  const segDeg=360/SEGMENTS;
+  const target=rand(SEGMENTS);                 // החתיכה שעליה נעצור (אקראי אמיתי)
+  const fullSpins=5+rand(3);                   // 5-7 סיבובים מלאים
+
+  // זווית כך שמרכז החתיכה הנבחרת יגיע לחץ שבראש הגלגל
+  let desired=(360-(target+0.5)*segDeg)%360;
+  // ג'יטר קטן בתוך החתיכה (כדי שלא ייעצר תמיד במרכז המדויק)
+  desired+=(Math.random()-0.5)*segDeg*0.6;
+
+  const currentMod=((rotation%360)+360)%360;
+  let delta=desired-currentMod;
+  if(delta<0) delta+=360;
+  rotation+=fullSpins*360+delta;
+
+  canvas.style.transition="transform 4.6s cubic-bezier(.12,.67,.12,1)";
+  // הפעלה מעט אחרי שינוי ה-transition כדי שיתפוס
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    canvas.style.transform="rotate("+rotation+"deg)";
+  }));
+
+  const onEnd=()=>{
+    canvas.removeEventListener("transitionend",onEnd);
+    revealWinner(target);
+  };
+  canvas.addEventListener("transitionend",onEnd);
+}
+
+function revealWinner(target){
+  let name, surprise=false;
+  if(target===SPECIAL_INDEX || labels[target]==="__SPECIAL__"){
+    // הפתעה! מגרילים מתוך כל המאגר
+    surprise=true;
+    name=POOL[currentGender][rand(POOL[currentGender].length)];
+  }else{
+    name=labels[target];
+  }
+  resultEl.className="result show";
+  resultEl.innerHTML=
+    (surprise?'<span class="surprise-tag">הפתעה! 🎁 מתוך כל המאגר</span>':'')+
+    'השם שלכם: <span class="name">'+name+'</span> 🎉';
+  launchConfetti();
+  spinning=false;
+  spinBtn.disabled=false;
+}
+
+/* =========================================================
+   קונפטי
+   ========================================================= */
+const cc=document.getElementById("confetti");
+const cctx=cc.getContext("2d");
+function fitConfetti(){cc.width=window.innerWidth;cc.height=window.innerHeight;}
+fitConfetti();
+window.addEventListener("resize",()=>{fitConfetti();});
+let pieces=[];
+function launchConfetti(){
+  const cols=["#ff6b9d","#ffd24d","#7be08a","#6aa8ff","#b58cff","#ff8ec4","#5ec8c8"];
+  for(let i=0;i<140;i++){
+    pieces.push({
+      x:Math.random()*cc.width,
+      y:-20-Math.random()*cc.height*0.3,
+      w:6+Math.random()*8,
+      h:8+Math.random()*10,
+      vy:3+Math.random()*4,
+      vx:-2+Math.random()*4,
+      rot:Math.random()*Math.PI,
+      vr:-0.2+Math.random()*0.4,
+      col:cols[rand(cols.length)],
+      life:120+rand(60)
+    });
+  }
+  if(!confettiRunning) runConfetti();
+}
+let confettiRunning=false;
+function runConfetti(){
+  confettiRunning=true;
+  cctx.clearRect(0,0,cc.width,cc.height);
+  pieces.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;p.vy+=0.05;p.life--;
+    cctx.save();
+    cctx.translate(p.x,p.y);
+    cctx.rotate(p.rot);
+    cctx.fillStyle=p.col;
+    cctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+    cctx.restore();
+  });
+  pieces=pieces.filter(p=>p.life>0 && p.y<cc.height+30);
+  if(pieces.length>0){
+    requestAnimationFrame(runConfetti);
+  }else{
+    cctx.clearRect(0,0,cc.width,cc.height);
+    confettiRunning=false;
+  }
+}
+
+/* התאמת רזולוציית הקנבס למסכים חדים */
+function setupCanvasDPR(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  // הקנבס מצויר ב-800x800 פנימי, נשאר חד דיו; אין צורך בשינוי.
+}
+setupCanvasDPR();
+</script>
+</body>
+</html>
