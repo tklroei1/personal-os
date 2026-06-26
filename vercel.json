@@ -39,6 +39,7 @@
     { "src": "/agent.js", "dest": "/agent.js" },
     { "src": "/assistant.js", "dest": "/assistant.js" },
     { "src": "/voice.js", "dest": "/voice.js" },
+    { "src": "/baby-name-wheel(/.*)?", "dest": "/baby-name-wheel/index.html" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
