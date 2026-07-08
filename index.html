@@ -4041,6 +4041,8 @@ const SYSTEM_TOOLS=[
   {name:'add_note',description:'הוסף פתק חדש',input_schema:{type:'object',properties:{title:{type:'string'},content:{type:'string'}},required:['content']}},
   {name:'get_data',description:'קבל נתונים מהמערכת',input_schema:{type:'object',properties:{type:{type:'string',enum:['tasks','habits','finance','jobs','reminders']}},required:['type']}},
   {name:'create_event',description:'צור אירוע ביומן',input_schema:{type:'object',properties:{title:{type:'string'},date:{type:'string',description:'YYYY-MM-DD'},time:{type:'string',description:'HH:MM'}},required:['title','date']}},
+  {name:'archive_stale_jobs',description:'ארכב (הסתר) משרות ישנות מ-N ימים בפרויקט חיפוש העבודה. שומר אוטומטית משרות בשלב מתקדם (הוגש/ראיון/הצעה) ומשרות עם ציון התאמה גבוה.',input_schema:{type:'object',properties:{days:{type:'number',description:'סף ימים, למשל 10'},keep_min_match:{type:'number',description:'שמור משרות עם ציון התאמה ≥ זה (ברירת מחדל 90)'}},required:['days']}},
+  {name:'archive_job',description:'ארכב משרה בודדת לפי כותרת או חברה',input_schema:{type:'object',properties:{title:{type:'string'},company:{type:'string'}}}},
 ];
 
 function executeTool(tool){
@@ -4071,6 +4073,26 @@ function executeTool(tool){
       if(!S.weekEvents[tool.input.date])S.weekEvents[tool.input.date]=[];
       S.weekEvents[tool.input.date].push({title:tool.input.title,time:tool.input.time||'09:00'});
       save();return`אירוע נוסף: "${tool.input.title}" ב-${tool.input.date}`;
+    case'archive_job':{
+      const q=(tool.input.title||tool.input.company||'').toString().toLowerCase().trim();
+      if(!q)return'צריך כותרת או חברה';
+      const j=(S.jobsV2||[]).find(x=>(((x.title||'')+' '+(x.company||'')).toLowerCase().includes(q))&&(x.stage||'')!=='archive');
+      if(!j)return'לא נמצאה משרה פעילה תואמת לארכוב';
+      j.stage='archive';j.archived_reason='archived by Zoro';j.updated_at=new Date().toISOString();
+      save();try{renderKanban&&renderKanban();renderJobs&&renderJobs();}catch(e){}
+      return`אורכבה: ${j.title} — ${j.company}`;}
+    case'archive_stale_jobs':{
+      const days=Number(tool.input.days)||10;const keep=Number(tool.input.keep_min_match)||90;
+      const now=Date.now();const adv=['applied','interview','offer','phone_screen'];let n=0;
+      (S.jobsV2||[]).forEach(j=>{
+        const stg=(j.stage||'').toLowerCase();
+        if(stg==='archive'||adv.indexOf(stg)>=0)return;
+        if((j.match_score||0)>=keep)return;
+        const d=j.created_at||j.posted_at;if(!d)return;
+        if((now-new Date(d).getTime())>days*86400000){j.stage='archive';j.archived_reason='stale >'+days+'d';j.updated_at=new Date().toISOString();n++;}
+      });
+      save();try{renderKanban&&renderKanban();renderJobs&&renderJobs();}catch(e){}
+      return`אורכבו ${n} משרות ישנות (מעל ${days} ימים, ציון מתחת ${keep}). שלב מתקדם וציון גבוה נשמרו.`;}
     default:return'כלי לא מוכר';
   }
 }
