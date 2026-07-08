@@ -136,7 +136,9 @@ ${(() => {
     { name:'navigate', description:'נווט לעמוד ספציפי. ערכי page חוקיים: dashboard, agenda (לוז שבועי), tasks (משימות), reminders (תזכורות), jobs (חיפוש עבודה), apartment (מציאת דירה), upselles, health, family, ideas, journal, goals, finance, notes, news',
       input_schema:{ type:'object', properties:{ page:{type:'string'} }, required:['page'] } },
     { name:'get_data', description:'קבל תמונת מצב עדכנית של הנתונים', input_schema:{ type:'object', properties:{} } },
-    { name:'run_job_hunt', description:'הפעל את סוכן ציד המשרות שסורק אתרים ומנקד משרות מול הפרופיל. השתמש כשמבקשים למצוא/לחפש/להריץ משרות.', input_schema:{ type:'object', properties:{} } }
+    { name:'run_job_hunt', description:'הפעל את סוכן ציד המשרות שסורק אתרים ומנקד משרות מול הפרופיל. השתמש כשמבקשים למצוא/לחפש/להריץ משרות.', input_schema:{ type:'object', properties:{} } },
+    { name:'archive_stale_jobs', description:'ארכב (הסתר) משרות ישנות מ-N ימים בפרויקט חיפוש העבודה. שומר אוטומטית משרות בשלב מתקדם (הוגש/ראיון/הצעה) וציון התאמה גבוה. השתמש כשמבקשים למחוק/לנקות/לארכב משרות ישנות.', input_schema:{ type:'object', properties:{ days:{type:'number',description:'סף ימים, למשל 10'}, keep_min_match:{type:'number',description:'שמור משרות עם ציון ≥ זה (ברירת מחדל 90)'} }, required:['days'] } },
+    { name:'archive_job', description:'ארכב משרה בודדת לפי כותרת או חברה', input_schema:{ type:'object', properties:{ title:{type:'string'}, company:{type:'string'} } } }
   ];
 
   async function webSearch(query){
@@ -175,6 +177,25 @@ ${(() => {
         case 'navigate':       return P.navigate(input.page);
         case 'get_data':       return JSON.stringify(context());
         case 'run_job_hunt':   if (window.runJobHuntNow){ window.runJobHuntNow(); return 'הפעלתי את צייד המשרות — סורק עכשיו, התוצאות יופיעו במרכז הפיקוד.'; } return 'צייד המשרות לא זמין כרגע';
+        case 'archive_stale_jobs': {
+          const S = P.getState(); const days = Number(input.days)||10; const keep = Number(input.keep_min_match)||90;
+          const now = Date.now(); const adv=['applied','interview','offer','phone_screen']; let n=0;
+          (S.jobsV2||[]).forEach(function(j){
+            const stg=(j.stage||'').toLowerCase();
+            if(stg==='archive'||adv.indexOf(stg)>=0) return;
+            if((j.match_score||0)>=keep) return;
+            const d=j.created_at||j.posted_at; if(!d) return;
+            if((now-new Date(d).getTime())>days*86400000){ P.updateJob({id:j.id, stage:'archive', note:'stale >'+days+'d'}); n++; }
+          });
+          return 'אורכבו '+n+' משרות ישנות (מעל '+days+' ימים, ציון מתחת '+keep+'). שלב מתקדם וציון גבוה נשמרו.';
+        }
+        case 'archive_job': {
+          const S = P.getState(); const q=((input.title||input.company||'')+'').toLowerCase().trim();
+          if(!q) return 'צריך כותרת או חברה';
+          const j=(S.jobsV2||[]).find(function(x){ return (((x.title||'')+' '+(x.company||'')).toLowerCase().indexOf(q)>=0) && (x.stage||'')!=='archive'; });
+          if(!j) return 'לא נמצאה משרה פעילה תואמת';
+          P.updateJob({id:j.id, stage:'archive'}); return 'אורכבה: '+j.title+' — '+j.company;
+        }
         default:               return 'כלי לא מוכר: ' + name;
       }
     } catch (e) { return 'שגיאה בכלי ' + name + ': ' + e.message; }
