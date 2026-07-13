@@ -1,4 +1,4 @@
-// api/cron/job-hunt.js — Auto-run job/apartment agent (daily at 11:00 Israel) + daily push briefing.
+// api/cron/job-hunt.js — Auto-run job/apartment agent (daily at 08:00 Israel) + daily push briefing.
 import webpush from 'web-push';
 
 const BASE_URL =
@@ -19,8 +19,8 @@ async function sendDailyPush(d) {
     if (!subs.length) return;
     const jobCount = (d.jobs || []).length;
     const strong = (d.jobs || []).filter(function (j) { return (j.match || 0) >= 75; }).length;
-    const body = jobCount ? ('מצאתי ' + jobCount + ' משרות' + (strong ? (' (' + strong + ' 🔥 התאמה גבוהה)') : '') + ' — הקש לפתוח.') : 'בוקר טוב! אין משרות חדשות היום — שיהיה יום מעולה.';
-    const payload = JSON.stringify({ title: '🛰️ צייד המשרות — בריפינג יומי', body: body, url: '/?page=agent' });
+    const body = jobCount ? (jobCount + ' משרות מחכות להגשה, ' + strong + ' עם התאמה ≥75%') : 'בוקר טוב! אין משרות חדשות היום — שיהיה יום מעולה.';
+    const payload = JSON.stringify({ title: '🎯 התור היומי שלך מוכן', body: body, url: '/?page=agent' });
     await Promise.all(subs.map(function (s) { try { return webpush.sendNotification(JSON.parse(s), payload).catch(function () {}); } catch (e) { return null; } }));
   } catch (e) { console.error('push error:', e.message); }
 }
@@ -36,8 +36,8 @@ export default async function handler(req, res) {
   const israelHour = israelNow.getHours();
   const israelDay = israelNow.getDay();
   const isCron = req.headers['x-vercel-cron'] === '1';
-  if (isCron && israelHour !== 11) {
-    return res.status(200).json({ skipped: `Israel hour is ${israelHour}, not 11`, ts: new Date().toISOString() });
+  if (isCron && israelHour !== 8) {
+    return res.status(200).json({ skipped: `Israel hour is ${israelHour}, not 8`, ts: new Date().toISOString() });
   }
   const broad = israelDay === 2 || israelDay === 3;
   try {

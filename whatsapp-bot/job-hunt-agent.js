@@ -1,5 +1,5 @@
 // job-hunt-agent.js — Autonomous job-hunt agent running inside the Railway WhatsApp bot.
-// Runs 2x/day (09:00 + 17:00 Asia/Jerusalem): Apify LinkedIn scrape → Claude scoring →
+// Runs 2x/day (07:30 + 13:00 Asia/Jerusalem): Apify LinkedIn scrape → Claude scoring →
 // upload matches to Personal OS via /api/webhook → WhatsApp report to Roei.
 //
 // ENV (Railway): APIFY_TOKEN (required), ANTHROPIC_API_KEY (exists), WEBHOOK_SECRET (if set on Vercel)
@@ -32,6 +32,39 @@ const TITLE_MATCH_RE = buildTitleRegex();
 const SENIOR_RE = /\b(senior|sr\.?|staff|principal|lead|head|director|vp|chief|architect|expert)\b/i;
 const MANAGER_OK_RE = /\b(junior|associate|jr\.?|student|intern)\b/i;
 const ABROAD_RE = /\b(bangkok|relocation|remote.{0,15}(us|usa|europe)|based in (?!israel))\b/i;
+
+// Ghost-job warning prefix (added to the description when a LinkedIn posting is
+// not found on the company's own ATS/Comeet career page).
+const GHOST_PREFIX = '⚠️ ייתכן משרת רפאים — לא נמצאה בדף הקריירה. ';
+
+// ── Interview-chance model (mirrors the client-side interviewChance in index.html) ──
+// base by score, × freshness multiplier from posted date, × ghost penalty; clamp 1-40.
+function computeInterviewChance(job, score, ghost) {
+  const base = score >= 85 ? 12 : score >= 75 ? 8 : score >= 65 ? 5 : 3;
+  const ref = new Date(job.postedAt || job.postedDate || job.posted || 0).getTime();
+  const ageH = ref > 0 ? (Date.now() - ref) / 3600000 : 9999;
+  let mult = ageH < 24 ? 1.5 : ageH < 72 ? 1.0 : ageH < 168 ? 0.6 : 0.25;
+  if (ghost) mult *= 0.3;
+  return Math.max(1, Math.min(40, Math.round(base * mult) || 1));
+}
+
+// ── Company / title normalization (ghost detection: match LinkedIn ↔ ATS results) ──
+function normCompany(n) { return (n || '').toLowerCase().replace(/[^a-z0-9֐-׿]/g, ''); }
+function companyMatches(a, b) {
+  a = normCompany(a); b = normCompany(b);
+  if (!a || !b || a.length < 3 || b.length < 3) return false;
+  return a === b || a.includes(b) || b.includes(a);
+}
+function normTitle(t) { return (t || '').toLowerCase().replace(/[^a-z0-9֐-׿ ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function titlesSimilar(a, b) {
+  a = normTitle(a); b = normTitle(b);
+  if (!a || !b) return false;
+  if (a === b || a.includes(b) || b.includes(a)) return true;
+  const wa = new Set(a.split(' ').filter(w => w.length > 2));
+  const wb = new Set(b.split(' ').filter(w => w.length > 2));
+  let inter = 0; for (const w of wa) if (wb.has(w)) inter++;
+  return inter / (Math.min(wa.size, wb.size) || 1) >= 0.5;
+}
 
 // ── State (budget + dedupe) ──────────────────────────────────────────────────
 function loadState() {
@@ -89,6 +122,7 @@ async function scanCompanies(day, runIdx) {
     picked.push(scannable[(day * COMPANIES_PER_RUN * 2 + runIdx * COMPANIES_PER_RUN + i) % scannable.length]);
   }
   const jobs = [];
+  const scannedNames = [];
   let okCount = 0;
   for (const c of picked) {
     try {
@@ -105,6 +139,7 @@ async function scanCompanies(day, runIdx) {
         list = (Array.isArray(d) ? d : []).map(j => ({ title: j.text || '', loc: (j.categories && j.categories.location) || '', link: j.hostedUrl || '' }));
       }
       okCount++;
+      scannedNames.push(c.name);
       for (const j of list) {
         if (!LOCATION_ALLOW.test(j.loc)) continue;
         if (TITLE_BLOCKLIST.test(j.title)) continue;
@@ -117,7 +152,45 @@ async function scanCompanies(day, runIdx) {
     } catch (e) { console.error('[jobhunt] company scan', c.name, e.message); }
   }
   console.log(`[jobhunt] company scan: ${okCount}/${picked.length} boards ok → ${jobs.length} candidate roles`);
-  return { jobs: jobs.slice(0, 25), scanned: okCount };
+  return { jobs: jobs.slice(0, 25), scanned: okCount, scannedNames };
+}
+
+// ── Comeet career pages — FREE scanning via public Comeet API ─────────────────
+// Companies with a `comeet:{uid,token}` config expose their live positions at
+// https://www.comeet.co/careers-api/2.0/company/{uid}/positions?token=...&details=true
+// (uid + token are embedded in the public careers page source). Same job shape +
+// filters as scanCompanies. Errors are skipped silently (non-200 → skip).
+async function scanComeet() {
+  const withComeet = COMPANIES.filter(c => c.comeet && c.comeet.uid && c.comeet.token);
+  const jobs = [];
+  const scannedNames = [];
+  let okCount = 0;
+  for (const c of withComeet) {
+    try {
+      const r = await fetch(`https://www.comeet.co/careers-api/2.0/company/${c.comeet.uid}/positions?token=${c.comeet.token}&details=true`);
+      if (!r.ok) continue;
+      const d = await r.json();
+      const list = Array.isArray(d) ? d : (Array.isArray(d && d.positions) ? d.positions : []);
+      okCount++;
+      scannedNames.push(c.name);
+      for (const p of list) {
+        const title = p.name || p.position_name || '';
+        const loc = p.location
+          ? (p.location.name || [p.location.city, p.location.country].filter(Boolean).join(', '))
+          : '';
+        const link = p.url_comeet_hosted_page || p.url_active_page || p.url || '';
+        if (!LOCATION_ALLOW.test(loc)) continue;
+        if (TITLE_BLOCKLIST.test(title)) continue;
+        if (!TITLE_MATCH_RE.test(title)) continue;
+        jobs.push({
+          id: link || `${c.name}|${title}`, title, companyName: c.name, location: loc, link,
+          seniorityLevel: '', descriptionText: `source:company-careers interest:${c.interest} domain:${c.domain}`,
+        });
+      }
+    } catch (e) { console.error('[jobhunt] comeet scan', c.name, e.message); }
+  }
+  console.log(`[jobhunt] comeet scan: ${okCount}/${withComeet.length} boards ok → ${jobs.length} candidate roles`);
+  return { jobs: jobs.slice(0, 25), scanned: okCount, scannedNames };
 }
 
 // ── Candidate profile — defaults to Roei, overridden by synced CV/profile ────
@@ -167,7 +240,12 @@ async function scoreJobs(jobs, runType) {
     messages: [{
       role: 'user',
       content: `You are a precise job-matching engine. Score each job 0-100 for THIS candidate and return ONLY a JSON array, one object per job:
-[{"i":0,"score":NN,"cat":"AI/Data|Product|Growth|Business|Finance","level":"student|junior|entry|mid|senior","reason":"one short Hebrew sentence: why it fits + how it serves the big picture","fit":"2 short Hebrew sentences explaining the match in depth","matched":["skill1","skill2"],"gaps":["missing1"],"breakdown":{"skills":NN,"seniority":NN,"domain":NN,"location":NN,"bigpicture":NN},"cv":{"summary":"2-line professional summary tailored to THIS job","bullets":["XYZ bullet 1","XYZ bullet 2","XYZ bullet 3"],"missing":["keyword1","keyword2"]}}]
+[{"i":0,"score":NN,"cat":"AI/Data|Product|Growth|Business|Finance","level":"student|junior|entry|mid|senior","reason":"one short Hebrew sentence: why it fits + how it serves the big picture","fit":"2 short Hebrew sentences explaining the match in depth","matched":["skill1","skill2"],"gaps":["missing1"],"knockouts":[{"req":"short Hebrew label of the hard requirement","pass":true}],"breakdown":{"skills":NN,"seniority":NN,"domain":NN,"location":NN,"bigpicture":NN},"cv":{"summary":"2-line professional summary tailored to THIS job","bullets":["XYZ bullet 1","XYZ bullet 2","XYZ bullet 3"],"missing":["keyword1","keyword2"]}}]
+
+KNOCKOUTS (hard requirements — check each job's text and return a "knockouts" array):
+- Evaluate ONLY these hard, disqualifying requirements when the posting explicitly states them: (1) minimum years of experience the candidate cannot meet (candidate has ≤2 years), (2) a required spoken/written language the candidate lacks (candidate: Hebrew + English only), (3) a mandatory on-site location that conflicts with the candidate's allowed areas, (4) a required academic degree or professional certification the candidate does not hold.
+- For each hard requirement the posting states, add {"req":"<short Hebrew label, e.g. '5+ שנות ניסיון' / 'שפה: רוסית' / 'משרה במשרד בחיפה' / 'תואר בהנדסה'>","pass":<true if the candidate meets it, false if it disqualifies him>}.
+- If the posting states NO hard requirements, return "knockouts":[] (empty array). Do NOT invent requirements — only ones explicitly present in the text.
 
 TAILORED CV (only for jobs you score >=70 — for jobs <70 OMIT the "cv" field entirely to save tokens):
 - Add a "cv" object that reframes the candidate's REAL CV toward this specific job, embedding the job's top missing keywords.
@@ -214,8 +292,10 @@ async function uploadJob(job, m) {
         title: job.title, company: job.companyName, status: 'ready_to_apply',
         link: (job.link || '').split('?')[0], match: m.score,
         source: (job.descriptionText || '').includes('company-careers') ? 'company' : 'linkedin',
-        description: m.reason, location: job.location || '',
+        description: (job.ghost ? GHOST_PREFIX : '') + (m.reason || ''), location: job.location || '',
         posted_at: job.postedAt || job.postedDate || job.posted || null,
+        // interview-probability estimate (server mirror of client interviewChance)
+        interview_chance: computeInterviewChance(job, m.score, job.ghost),
         // rich match data → rendered in the job drawer
         job_type: m.level || '', match_explanation: m.fit || m.reason || '',
         match_breakdown: m.breakdown || null,
@@ -269,6 +349,30 @@ export async function runJobHunt(sendMessage, { force = false } = {}) {
   const comp = await scanCompanies(day, morning ? 0 : 1);
   jobs.push(...comp.jobs);
 
+  // 1c. Scan Comeet career pages (free public Comeet API)
+  const comeet = await scanComeet();
+  jobs.push(...comeet.jobs);
+
+  // 1d. Ghost detection — flag LinkedIn postings that are NOT on the company's own
+  // ATS/Comeet career page (scanned this run) as possible ghost jobs.
+  const careerByCompany = new Map(); // normCompany -> [titles found on career pages]
+  for (const cj of [...comp.jobs, ...comeet.jobs]) {
+    const k = normCompany(cj.companyName);
+    if (!careerByCompany.has(k)) careerByCompany.set(k, []);
+    careerByCompany.get(k).push(cj.title);
+  }
+  const scannedCompanies = new Set([...comp.scannedNames, ...comeet.scannedNames].map(normCompany));
+  for (const j of jobs) {
+    if ((j.descriptionText || '').includes('company-careers')) continue; // only LinkedIn-sourced
+    const cfg = COMPANIES.find(c => (c.ats || c.comeet) && companyMatches(c.name, j.companyName));
+    if (!cfg || !scannedCompanies.has(normCompany(cfg.name))) continue; // only judge companies scanned this run
+    const titles = careerByCompany.get(normCompany(cfg.name)) || [];
+    if (!titles.some(t => titlesSimilar(t, j.title))) {
+      j.ghost = true;
+      j.descriptionText = GHOST_PREFIX + (j.descriptionText || '');
+    }
+  }
+
   if (!jobs.length) { await sendMessage(`🎯 ציד משרות — לא התקבלו תוצאות מהסריקה (ייתכן שגיאת Apify).${SIG}`); return; }
 
   // 2. Hard filters (free — before spending Claude tokens)
@@ -299,10 +403,13 @@ export async function runJobHunt(sendMessage, { force = false } = {}) {
   const matches = scored.filter(s => s.score >= 70).sort((a, b) => b.score - a.score);
   const borderline = scored.filter(s => s.score >= 60 && s.score < 70);
 
-  // 4. Upload matches to Personal OS
+  // 4. Upload matches to Personal OS (skip any that fail a hard knockout)
   const lines = [];
+  const rejected = [];
   for (const m of matches) {
     const j = filtered[m.i];
+    const ko = Array.isArray(m.knockouts) ? m.knockouts.find(k => k && k.pass === false) : null;
+    if (ko) { rejected.push(`${j.title} — ${ko.req || 'דרישת חובה לא מתקיימת'}`); continue; }
     let ok = false;
     try { ok = await uploadJob(j, m); } catch {}
     if (ok) { seen.add(`${j.title}|${j.companyName}`); }
@@ -314,29 +421,30 @@ export async function runJobHunt(sendMessage, { force = false } = {}) {
 
   // 5. WhatsApp report
   const cost = (state.results * 0.001).toFixed(2);
-  let report = `🎯 *ציד משרות ${morning ? 'בוקר' : 'ערב'}* — ${matches.length} התאמות ≥70%\n`;
+  let report = `🎯 *ציד משרות ${morning ? 'בוקר' : 'ערב'}* — ${lines.length} התאמות ≥70%\n`;
   report += `🔎 ${searches.map(s => s[0]).join(' + ')}\n\n`;
-  report += matches.length ? lines.join('\n\n') : 'לא נמצאו התאמות חזקות בריצה זו.';
+  report += lines.length ? lines.join('\n\n') : 'לא נמצאו התאמות חזקות בריצה זו.';
   if (borderline.length) report += `\n\n*גבוליות (60-69%):*\n` + borderline.map(b => `• [${b.score}%] ${filtered[b.i].title} — ${filtered[b.i].companyName}`).join('\n');
-  report += `\n\n_לינקדאין: ${apifyCount} | אתרי חברות: ${comp.jobs.length} מועמדות מ-${comp.scanned} חברות | חדשות: ${newJobs.length} | החודש: ${state.results} (~$${cost} מתוך $5)_`;
-  if (matches.length) report += `\n📲 פתח את Personal OS כדי שהמשרות ייקלטו`;
+  if (rejected.length) report += `\n\n*נפסלו (דרישות חובה):*\n` + rejected.slice(0, 5).map(r => `• ${r}`).join('\n');
+  report += `\n\n_לינקדאין: ${apifyCount} | אתרי חברות: ${comp.jobs.length} מ-${comp.scanned} חברות | Comeet: ${comeet.jobs.length} מ-${comeet.scanned} | חדשות: ${newJobs.length} | החודש: ${state.results} (~$${cost} מתוך $5)_`;
+  if (lines.length) report += `\n📲 פתח את Personal OS כדי שהמשרות ייקלטו`;
   report += SIG;
   await sendMessage(report);
   console.log(`[jobhunt] done: ${matches.length} matches, ${jobs.length} scraped`);
 }
 
-// ── Scheduler: fires at 09:00 and 17:00 Asia/Jerusalem ───────────────────────
+// ── Scheduler: fires at 07:30 and 13:00 Asia/Jerusalem ───────────────────────
 let _send = null, _timer = null;
 
 export function setJobHuntSend(fn) { _send = fn; }
 
 export function startJobHuntScheduler() {
   if (_timer) return; // idempotent
-  console.log('[jobhunt] scheduler armed (09:00 + 17:00 Asia/Jerusalem)');
+  console.log('[jobhunt] scheduler armed (07:30 + 13:00 Asia/Jerusalem)');
   _timer = setInterval(async () => {
     const now = new Date();
     const [h, m] = now.toLocaleTimeString('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit' }).split(':').map(Number);
-    if (m !== 0 || (h !== 9 && h !== 17)) return;
+    if (!((h === 7 && m === 30) || (h === 13 && m === 0))) return;
     const state = loadState();
     const slotKey = now.toLocaleDateString('en-CA', { timeZone: TZ }) + '-' + h;
     if (state.lastSlot === slotKey) return; // already ran this slot

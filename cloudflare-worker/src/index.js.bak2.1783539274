@@ -82,18 +82,8 @@ const MCP_TOOLS = [
   },
   {
     name: 'get_jobs',
-    description: 'קריאה: מחזיר משרות (jobsV2) מה-state המסונכרן עם תאריכים (created_at/posted_at). פרמטרים: stage לסינון שלב, older_than_days לסינון משרות ישנות מ-N ימים.',
-    inputSchema: { type: 'object', properties: { stage: { type: 'string', description: 'saved/ready/applied/interview/offer/archive' }, older_than_days: { type: 'number', description: 'החזר רק משרות שנוצרו/פורסמו לפני יותר מ-N ימים' } } },
-  },
-  {
-    name: 'delete_job',
-    description: 'מחיקה/ארכוב של משרה לפי id. ברירת מחדל: ארכוב הפיך (stage=archive). hard:true = מחיקה מלאה.',
-    inputSchema: { type: 'object', properties: { id: { type: 'string' }, hard: { type: 'boolean' }, reason: { type: 'string' } }, required: ['id'] },
-  },
-  {
-    name: 'update_job',
-    description: 'כתיבה: עדכון שדות של משרה לפי id (stage/user_status/match_score/note).',
-    inputSchema: { type: 'object', properties: { id: { type: 'string' }, stage: { type: 'string' }, user_status: { type: 'string' }, match_score: { type: 'number' }, note: { type: 'string' } }, required: ['id'] },
+    description: 'מחזיר את משרות חיפוש העבודה (jobsV2) מה-state המסונכרן: כותרת, חברה, ציון התאמה, שלב, קובץ קו"ח, מילות מפתח. stage אופציונלי לסינון.',
+    inputSchema: { type: 'object', properties: { stage: { type: 'string', description: 'סינון שלב אופציונלי: saved/ready/applied/interview/offer/archive (ברירת מחדל: הכל חוץ מ-archive)' } } },
   },
   {
     name: 'add_task',
@@ -283,48 +273,16 @@ async function mcpRunTool(env, name, args) {
       const snap = await env.KV.get('pos_state', { type: 'json' });
       const all = (snap && snap.state && Array.isArray(snap.state.jobsV2)) ? snap.state.jobsV2 : [];
       const want = String(args.stage || '').toLowerCase();
-      const nDays = Number(args.older_than_days) || 0;
-      const now = Date.now();
       const rows = all
         .filter(j => want ? String(j.stage || '').toLowerCase() === want
                           : String(j.stage || '').toLowerCase() !== 'archive')
-        .filter(j => {
-          if (!nDays) return true;
-          const d = j.created_at || j.posted_at; if (!d) return true;
-          return (now - new Date(d).getTime()) > nDays * 86400000;
-        })
         .map(j => ({
           id: j.id, title: j.title, company: j.company, location: j.location || '',
           match_score: j.match_score || 0, stage: j.stage || 'saved', user_status: j.user_status || '',
-          category: j.category || '', posted_at: j.posted_at || null, created_at: j.created_at || null,
-          cv_file: j.cv_file || '', matched_keywords: j.matched_keywords || [], missing_keywords: j.missing_keywords || [],
+          category: j.category || '', posted_at: j.posted_at || null, cv_file: j.cv_file || '',
+          matched_keywords: j.matched_keywords || [], missing_keywords: j.missing_keywords || [],
         }));
       text = JSON.stringify({ count: rows.length, ts: (snap && snap.ts) || 0, jobs: rows });
-    } else if (name === 'delete_job') {
-      const snap = await env.KV.get('pos_state', { type: 'json' });
-      const arr = (snap && snap.state && Array.isArray(snap.state.jobsV2)) ? snap.state.jobsV2 : null;
-      if (!arr) { text = 'אין state מסונכרן'; isError = true; }
-      else {
-        const before = arr.length;
-        if (args.hard) { snap.state.jobsV2 = arr.filter(j => j.id !== args.id); }
-        else { const j = arr.find(x => x.id === args.id); if (j) { j.stage = 'archive'; j.archived_reason = args.reason || 'deleted via Zoro'; j.updated_at = new Date().toISOString(); } }
-        await env.KV.put('pos_state', JSON.stringify({ state: snap.state, ts: Date.now() }));
-        text = args.hard ? `נמחקה משרה ${args.id} (${before}→${(snap.state.jobsV2||[]).length})` : `אורכבה משרה ${args.id}`;
-      }
-    } else if (name === 'update_job') {
-      const snap = await env.KV.get('pos_state', { type: 'json' });
-      const arr = (snap && snap.state && Array.isArray(snap.state.jobsV2)) ? snap.state.jobsV2 : null;
-      const j = arr ? arr.find(x => x.id === args.id) : null;
-      if (!j) { text = 'לא נמצאה משרה ' + args.id; isError = true; }
-      else {
-        if (args.stage) j.stage = args.stage;
-        if (args.user_status) j.user_status = args.user_status;
-        if (typeof args.match_score === 'number') j.match_score = args.match_score;
-        if (args.note) j.user_notes = ((j.user_notes || '') + (j.user_notes ? ' | ' : '') + args.note);
-        j.updated_at = new Date().toISOString();
-        await env.KV.put('pos_state', JSON.stringify({ state: snap.state, ts: Date.now() }));
-        text = `עודכנה משרה ${j.title} → ${args.stage || args.user_status || 'עודכן'}`;
-      }
     } else if (MCP_TOOLS.some(t => t.name === name)) {
       const action = ACTION_MAP[name] || name;
       text = await forwardToPersonalOs(env, action, args);

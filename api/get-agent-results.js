@@ -188,6 +188,8 @@ export default async function handler(req, res) {
             jobs[s.i].match = Math.max(0, Math.min(100, parseInt(s.match) || 0));
             jobs[s.i].why = String(s.why || '').slice(0, 240);
             jobs[s.i].gap = String(s.gap || '').slice(0, 240);
+            // pass through interview_chance if the scorer/upstream provided one (no-op otherwise)
+            if (s.interview_chance != null) jobs[s.i].interview_chance = s.interview_chance;
           }
         });
         jobs.sort(function (a, b) { return (b.match || 0) - (a.match || 0); });

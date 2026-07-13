@@ -1,8 +1,8 @@
 {
   "version": 2,
   "crons": [
-    { "path": "/api/cron/job-hunt", "schedule": "0 8 * * *" },
-    { "path": "/api/cron/job-hunt", "schedule": "0 9 * * *" }
+    { "path": "/api/cron/job-hunt", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/job-hunt", "schedule": "0 6 * * *" }
   ],
   "functions": {
     "api/claude.js": { "maxDuration": 60 },
@@ -35,7 +35,6 @@
     { "src": "/sw.js", "dest": "/sw.js" },
     { "src": "/voice-hotspot", "dest": "/showcase/voice-hotspot.html" },
     { "src": "/icon.svg", "dest": "/icon.svg" },
-    { "src": "/jarvis.js", "dest": "/jarvis.js" },
     { "src": "/agent.js", "dest": "/agent.js" },
     { "src": "/assistant.js", "dest": "/assistant.js" },
     { "src": "/voice.js", "dest": "/voice.js" },

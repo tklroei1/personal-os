@@ -167,6 +167,18 @@
       dryRun:a => 'התקדמות הפרויקט "' + (a.id||'') + '" תעודכן ל-' + a.progress + '%',
       run:a => P().updateProject(a)
     },
+    archive_stale_jobs: {
+      label:'ארכוב משרות ישנות', riskLevel:2, area:'חיפוש עבודה',
+      schema:{ days:{type:'number',required:true}, keep_min_match:{type:'number'} },
+      dryRun:a => 'יאורכבו (יוסתרו) משרות ישנות מ-' + (a.days||10) + ' ימים — שומר שלב מתקדם וציון ≥' + (a.keep_min_match||90),
+      run:a => { const P0=P(); const S=P0.getState(); const days=Number(a.days)||10, keep=Number(a.keep_min_match)||90, now=Date.now(), adv=['applied','interview','offer','phone_screen']; let n=0; (S.jobsV2||[]).forEach(function(j){ const stg=(j.stage||'').toLowerCase(); if(stg==='archive'||adv.indexOf(stg)>=0)return; if((j.match_score||0)>=keep)return; const d=j.created_at||j.posted_at; if(!d)return; if((now-new Date(d).getTime())>days*86400000){ P0.updateJob({id:j.id,stage:'archive',note:'stale >'+days+'d'}); n++; } }); return 'אורכבו '+n+' משרות ישנות (מעל '+days+' ימים, ציון מתחת '+keep+').'; }
+    },
+    archive_job: {
+      label:'ארכוב משרה', riskLevel:2, area:'חיפוש עבודה',
+      schema:{ title:{type:'string'}, company:{type:'string'} },
+      dryRun:a => 'תאורכב המשרה התואמת ל-"' + (a.title||a.company||'') + '"',
+      run:a => { const P0=P(); const S=P0.getState(); const q=((a.title||a.company||'')+'').toLowerCase().trim(); if(!q)return 'צריך כותרת או חברה'; const j=(S.jobsV2||[]).find(function(x){ return (((x.title||'')+' '+(x.company||'')).toLowerCase().indexOf(q)>=0) && (x.stage||'')!=='archive'; }); if(!j)return 'לא נמצאה משרה פעילה תואמת'; P0.updateJob({id:j.id,stage:'archive'}); return 'אורכבה: '+j.title+' — '+j.company; }
+    },
     update_memory: {
       label:'עדכון זיכרון הסוכן', riskLevel:2, area:'זיכרון',
       schema:{ type:{type:'string',required:true}, item:{type:'string',required:true} },
@@ -308,7 +320,7 @@
       'זיכרון הסוכן:\n' + summarizeMemory() + '\n\n' +
       'כלים זמינים — השתמש אך ורק בשמות האלה:\n' + toolList + '\n\n' +
       'פעולות אסורות לחלוטין — לעולם אל תציע אותן. אם מבקשים — סרב בנימוס והצע חלופה בטוחה:\n' +
-      'מחיקת נתונים · שליחת מיילים/הודעות · גריפת אתרים/פייסבוק/לינקדאין · הרצת קוד · גישה לחשבונות חיצוניים · תשלומים.\n\n' +
+      'מחיקת נתונים לצמיתות (אבל ארכוב/הסתרה של משרות מותר ומומלץ — השתמש ב-archive_stale_jobs / archive_job כשמבקשים למחוק/לנקות/לארכב משרות ישנות) · שליחת מיילים/הודעות · גריפת אתרים/פייסבוק/לינקדאין · הרצת קוד · גישה לחשבונות חיצוניים · תשלומים.\n\n' +
       'ענה אך ורק ב-JSON תקין יחיד, בלי טקסט נוסף ובלי סימוני קוד:\n' +
       '{"intent":"schedule_planning|task_management|project_management|job_search|apartment_search|upselles_work|research|notes_to_tasks|fitness_planning|finance_personal|general_chat|prompt_generation",' +
       '"agent":"שם הסוכן","confidence":0.0-1.0,"understanding":"מה הבנת, משפט בעברית",' +

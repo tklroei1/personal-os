@@ -92,7 +92,16 @@ export const LOCATION_ALLOW = /(tel.?aviv|ramat.?gan|givatayim|herzliya|petah|pe
 
 // COMPANIES — interest: 3=dream/startup-relevant, 2=great, 1=solid.
 // ats: { type: 'greenhouse'|'lever', slug } → scanned automatically (free public API).
-// Companies without ats are kept for reference / future scraping.
+// comeet: { uid, token } → scanned automatically via the Comeet careers API
+//   (GET https://www.comeet.co/careers-api/2.0/company/{uid}/positions?token={token}&details=true).
+//   Both values are PUBLIC and embedded in the company's careers-page source: open the
+//   careers page → View Source / DevTools Network → look for a request to
+//   `careers-api/2.0/company/<uid>/positions?token=<token>` and copy uid + token here.
+//   Example (fill the token from the page source — UIDs verified from comeet.com/jobs):
+//     { name: 'CommIT', domain: 'devtools', interest: 2, comeet: { uid: '76.008', token: 'TODO_PUBLIC_TOKEN' } },
+//     { name: 'Port',   domain: 'devtools', interest: 2, comeet: { uid: '59.004', token: 'TODO_PUBLIC_TOKEN' } },
+//   TODO: paste the public `token` for 2-3 Comeet-using Israeli companies to enable free Comeet scanning.
+// Companies without ats/comeet are kept for reference / future scraping.
 export const COMPANIES = [
   // ── AI-first / hot startups (interest 3) ──
   { name: 'AI21 Labs', domain: 'ai', interest: 3, ats: { type: 'greenhouse', slug: 'ai21labs' } },

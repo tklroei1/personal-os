@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+render_cv.py — Reusable tailored-CV renderer for Roei Klein's job-hunt pipeline.
+
+Used by the job-hunt-agent (autonomous) and the assisted-apply flow.
+Takes a JSON spec of the TAILORED content and renders a polished .docx.
+
+Usage:
+  python3 render_cv.py --data spec.json --out /path/CV_Company_Role.docx
+  echo '<json>' | python3 render_cv.py --out /path/out.docx        # JSON via stdin
+
+JSON schema:
+{
+  "summary": "tailored professional summary paragraph",
+  "experience": [
+     {"title": "Role | Company", "dates": "2025 - Present", "bullets": ["XYZ bullet", ...]},
+     ...
+  ],
+  "education": ["line 1", "line 2"],          # optional, sensible defaults if omitted
+  "skills": [["Label","comma, separated, items"], ...]
+}
+Identity/contact are fixed (Roei) but can be overridden via "name","headline","contact".
+"""
+import sys, os, json, argparse, subprocess
+
+try:
+    from docx import Document
+except ImportError:
+    subprocess.run([sys.executable,"-m","pip","install","python-docx","--break-system-packages","-q"], check=False)
+    from docx import Document
+
+from docx.shared import Pt, RGBColor, Inches
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+
+import re
+NAVY=RGBColor(0x1F,0x33,0x55); GREY=RGBColor(0x55,0x55,0x55)
+
+# --- ATS date normalization ------------------------------------------------
+# ATS engines calculate Years-of-Experience from the Experience dates. A Jobscan
+# study found ~37% of resumes were down-ranked because dates could not be parsed.
+# We enforce a single consistent format: "MM/YYYY - MM/YYYY" (or "MM/YYYY - Present").
+# Year-only inputs default to month 01 (start) / 12 (end) to stay parseable.
+_MONTHS={'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12}
+def _norm_token(t, is_end):
+    t=(t or "").strip()
+    if not t: return t
+    if re.match(r'(?i)^(present|current|now|ongoing|today|now\.)$', t): return "Present"
+    m=re.match(r'^(\d{1,2})[/.\-](\d{4})$', t)                 # 02/2026, 2-2026
+    if m: return f"{int(m.group(1)):02d}/{m.group(2)}"
+    m=re.match(r'(?i)^([a-z]{3})[a-z]*\.?\s+(\d{4})$', t)       # Feb 2026, February 2026
+    if m and m.group(1).lower() in _MONTHS: return f"{_MONTHS[m.group(1).lower()]:02d}/{m.group(2)}"
+    m=re.match(r'^(\d{4})$', t)                                 # 2026 (year only)
+    if m: return f"{'12' if is_end else '01'}/{m.group(1)}"
+    return t  # unrecognized -> leave untouched
+def normalize_dates(s):
+    """Return a range normalized to 'MM/YYYY - MM/YYYY' / 'MM/YYYY - Present'."""
+    if not s: return s
+    parts=re.split(r'\s*[–—\-]\s*', s.strip(), maxsplit=1)  # –, —, -
+    if len(parts)==2:
+        return f"{_norm_token(parts[0], False)} - {_norm_token(parts[1], True)}"
+    return _norm_token(s, False)
+# ---------------------------------------------------------------------------
+
+DEFAULT_EDU=[
+ "M.Sc. Data Science & Artificial Intelligence | Bar-Ilan University, 2025–2027 — Coursework: Machine Learning, Advanced Python, SQL, Statistical Modeling, AI Applications.",
+ "B.A. Economics & Business Administration | Bar-Ilan University, 2022–2025 — GPA: 88, Graduated with Distinction.",
+]
+
+def add_hr(doc):
+    p=doc.add_paragraph(); pPr=p._p.get_or_add_pPr(); pbdr=OxmlElement('w:pBdr')
+    bo=OxmlElement('w:bottom')
+    for k,v in (('w:val','single'),('w:sz','6'),('w:space','1'),('w:color','1F3355')): bo.set(qn(k),v)
+    pbdr.append(bo); pPr.append(pbdr)
+
+def build(spec, out):
+    name=spec.get("name","ROEI KLEIN")
+    headline=spec.get("headline","Data Analyst  |  Product & Growth Oriented  |  Data Science Background")
+    contact=spec.get("contact","Hod HaSharon, Israel  •  tklroei1@gmail.com  •  054-3329092  •  linkedin.com/in/roei-klein")
+    doc=Document()
+    st=doc.styles['Normal']; st.font.name='Calibri'; st.font.size=Pt(10.5)
+    for s in doc.sections:
+        s.top_margin=Inches(0.6); s.bottom_margin=Inches(0.6); s.left_margin=Inches(0.7); s.right_margin=Inches(0.7)
+    p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
+    r=p.add_run(name); r.bold=True; r.font.size=Pt(20); r.font.color.rgb=NAVY
+    for txt,sz in ((headline,10.5),(contact,9.5)):
+        q=doc.add_paragraph(); q.alignment=WD_ALIGN_PARAGRAPH.CENTER
+        rr=q

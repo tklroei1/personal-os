@@ -686,6 +686,60 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 .agent-item{padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;line-height:1.5}
 .agent-item:last-child{border:none}
 .agent-item a{color:var(--accent);word-break:break-all}
+/* ===== HUNT/MANAGE v2 (Phase 1) ===== */
+.jmode-seg{display:flex;gap:3px;background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:3px;margin-bottom:14px}
+.jmode-btn{flex:1;border:none;background:transparent;color:var(--text2);font-size:14px;font-weight:600;padding:9px 12px;border-radius:11px;cursor:pointer;font-family:'Heebo',sans-serif;transition:all .2s ease}
+.jmode-btn.on{background:var(--bg2);color:var(--text);box-shadow:var(--shadow)}
+.soon-tag{font-size:9px;background:var(--amber-bg);color:var(--amber);border-radius:4px;padding:0 4px;margin-right:3px;font-weight:700}
+.fchip.on .soon-tag{background:rgba(255,255,255,.25);color:#fff}
+/* Daily queue */
+.dq-row{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow);transition:transform .2s ease,box-shadow .2s ease}
+.dq-row:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.dq-main{flex:1;min-width:0;cursor:pointer}
+.dq-title{font-size:14px;font-weight:700;margin-bottom:2px}
+.dq-co{font-size:12px;color:var(--text2);margin-bottom:7px}
+.dq-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.dq-chip{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);white-space:nowrap}
+.dq-fresh.hot{background:var(--orange-bg);color:var(--orange);border-color:var(--orange)}
+.dq-match.kb-match-high{background:var(--green-bg);color:var(--green);border-color:var(--green)}
+.dq-match.kb-match-mid{background:var(--amber-bg);color:var(--amber);border-color:var(--amber)}
+.dq-match.kb-match-low{background:var(--red-bg);color:var(--red);border-color:var(--red)}
+.dq-ic{background:var(--accent-light);color:var(--accent);border-color:var(--accent)}
+.dq-cv{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
+.dq-ready{background:var(--green-bg);color:var(--green);border-color:var(--green)}
+.dq-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.dq-empty{text-align:center;color:var(--text3);font-size:13px;padding:26px 10px;line-height:1.7}
+@media(max-width:768px){.dq-row{flex-direction:column;align-items:stretch}.dq-actions{flex-direction:row}.dq-actions .btn{flex:1;justify-content:center}}
+/* Manage-mode kanban: hide discovery columns (+ archive unless toggled) */
+.kanban-wrap.jm-manage .kb-col[data-stage="discovered"],
+.kanban-wrap.jm-manage .kb-col[data-stage="saved"],
+.kanban-wrap.jm-manage:not(.jm-show-archive) .kb-col[data-stage="archive"]{display:none}
+/* Submission card (modal) */
+.sub-card-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.sub-card-bg.open{display:flex}
+@keyframes subPop{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+.sub-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;position:relative;box-shadow:var(--shadow-md)}
+.sub-card-bg.open .sub-card{animation:subPop .24s cubic-bezier(.34,1.56,.64,1)}
+.sub-close{position:absolute;top:14px;left:14px;background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:13px;color:var(--text2);line-height:1}
+.sub-title{font-size:18px;font-weight:800;margin-bottom:3px;padding-left:34px}
+.sub-co{font-size:13px;color:var(--text2);margin-bottom:8px}
+.sub-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.sub-score-row{display:flex;gap:16px;align-items:center;margin-bottom:6px;background:var(--bg3);border-radius:16px;padding:14px}
+.sub-donut{width:86px;height:86px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.sub-donut-in{width:62px;height:62px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800}
+.sub-ic{font-size:13px;font-weight:700;color:var(--accent);margin-top:4px}
+.sub-ic-exp{font-size:11px;color:var(--text3);margin-top:2px}
+.sub-sec-lbl{font-size:10px;text-transform:uppercase;color:var(--text3);margin:12px 0 5px;font-weight:700}
+.sub-kw{display:flex;gap:5px;flex-wrap:wrap}
+.kw-ok{background:var(--green-bg);color:var(--green);border-color:var(--green)}
+.kw-miss{background:var(--red-bg);color:var(--red);border-color:var(--red)}
+.sub-cv-block{background:var(--green-bg);border:1px solid var(--green);border-radius:14px;padding:11px 13px;font-size:12px;line-height:1.6;color:var(--text2)}
+.sub-check{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 0;color:var(--text)}
+.sub-warn{background:var(--amber-bg);color:var(--amber);border-radius:10px;padding:8px 11px;font-size:12px;line-height:1.6;margin-top:6px}
+.sub-actions{display:flex;gap:8px;margin-top:16px}
+.sub-actions .btn,.sub-actions a.btn{flex:1;justify-content:center;padding:11px 14px;font-size:14px;text-decoration:none}
+#sub-ai-out{font-size:12px;line-height:1.7;white-space:pre-wrap;background:var(--bg3);border-radius:10px;padding:9px 11px;margin-top:8px;display:none;max-height:40vh;overflow:auto}
+@media(max-width:768px){.sub-card-bg{padding:0;align-items:flex-end}.sub-card{max-height:94vh;border-radius:20px 20px 0 0;max-width:none}}
 </style>
 </head>
 <body>
@@ -1145,6 +1199,12 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     </div>
   </div>
 
+  <!-- ===== HUNT/MANAGE v2 (Phase 1): mode toggle ===== -->
+  <div class="jmode-seg" id="jmode-seg">
+    <button class="jmode-btn" id="jmode-btn-hunt" onclick="setJobMode('hunt')">🎯 ציד</button>
+    <button class="jmode-btn" id="jmode-btn-manage" onclick="setJobMode('manage')">📋 ניהול</button>
+  </div>
+
   <!-- Pipeline stats -->
   <div class="sr s4">
     <div class="sc sc-b"><div class="sl">סה"כ במעקב</div><div class="sv" id="j-total">0</div></div>
@@ -1154,7 +1214,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   </div>
 
   <!-- Source filter + min-match -->
-  <div class="card">
+  <div class="card" id="job-filter-card">
     <div class="ch">
       <div class="ct">🔍 פילטר + חיפוש</div>
       <div style="display:flex;gap:6px">
@@ -1168,8 +1228,8 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
         <div class="fchip on" data-g="source" data-v="linkedin" onclick="toggleJobFilter(this)">LinkedIn</div>
         <div class="fchip on" data-g="source" data-v="alljobs" onclick="toggleJobFilter(this)">AllJobs</div>
         <div class="fchip on" data-g="source" data-v="comeet" onclick="toggleJobFilter(this)">Comeet</div>
-        <div class="fchip" data-g="source" data-v="drushim" onclick="toggleJobFilter(this)">דרושים</div>
-        <div class="fchip" data-g="source" data-v="wellfound" onclick="toggleJobFilter(this)">Wellfound</div>
+        <div class="fchip" data-g="source" data-v="drushim" onclick="toggleJobFilter(this)" title="המקור עדיין לא מחובר לסורק">דרושים <span class="soon-tag">בקרוב</span></div>
+        <div class="fchip" data-g="source" data-v="wellfound" onclick="toggleJobFilter(this)" title="המקור עדיין לא מחובר לסורק">Wellfound <span class="soon-tag">בקרוב</span></div>
         <div class="fchip" data-g="source" data-v="other" onclick="toggleJobFilter(this)">אחר</div>
       </div>
     </div>
@@ -1195,13 +1255,23 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     <div id="job-live-list"></div>
   </div>
 
+  <!-- ===== HUNT/MANAGE v2 (Phase 1): Daily Queue ===== -->
+  <div class="card" id="daily-queue-card" style="display:none">
+    <div class="ch">
+      <div class="ct">🎯 התור היומי</div>
+      <span style="font-size:11px;color:var(--text3)" id="dq-count"></span>
+    </div>
+    <div id="daily-queue"></div>
+  </div>
+
   <!-- Pipeline: Kanban + Table views -->
-  <div class="card" style="padding:0;overflow:hidden">
+  <div class="card" id="job-pipeline-card" style="padding:0;overflow:hidden">
     <div class="ch" style="padding:12px 14px 0">
       <div class="jview-toggle">
         <button class="jview-btn" id="jview-btn-table" onclick="setJobView('table')">📊 טבלה</button>
         <button class="jview-btn" id="jview-btn-kanban" onclick="setJobView('kanban')">📋 Kanban</button>
       </div>
+      <span class="ca" id="jm-archive-link" style="display:none;font-size:11px" onclick="toggleManageArchive()">📦 הצג ארכיון</span>
       <span style="font-size:11px;color:var(--text3)" id="jview-hint">מחולק לפי תחומים • לחץ שורה לפרטים</span>
     </div>
     <!-- TABLE VIEW -->
@@ -1984,6 +2054,11 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
   <div class="drawer-body" id="drawer-body"></div>
 </div>
 
+<!-- ===== HUNT/MANAGE v2 (Phase 1): Submission Card ===== -->
+<div class="sub-card-bg" id="sub-card-bg" onclick="if(event.target===this)closeSubmitCard()">
+  <div class="sub-card" id="sub-card"></div>
+</div>
+
 <script>
 const MO=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 const DH=["א'","ב'","ג'","ד'","ה'","ו'","ש'"];
@@ -2540,7 +2615,7 @@ function goPage(p,el){
   const T={dashboard:'דשבורד',agent:'🛰️ מרכז הפיקוד',voice:'🎙️ שיחה קולית',agenda:'לוז שבועי',tasks:'משימות',reminders:'תזכורות',jobs:'חיפוש עבודה',upselles:'Upselles',health:'כושר ותזונה',apartment:'מציאת דירה',family:'זמן משפחתי',ideas:'רעיונות',journal:'יומן',goals:'מטרות',finance:'פיננסים',notes:'פתקים',inbox:'תיבת כניסה',news:'חדשות','ds-ai':'🧠 דאטה סיינס & AI'};
   document.getElementById('pt').textContent=T[p]||p;
   if(p==='agenda')buildWeekGrid();
-  if(p==='jobs'&&typeof renderKanban==='function')setTimeout(renderKanban,50);
+  if(p==='jobs')setTimeout(()=>{if(typeof renderJobsPage==='function')renderJobsPage();else if(typeof renderKanban==='function')renderKanban();},50);
   if(p==='finance')renderFinance();
   if(p==='notes')renderNotes();
   if(p==='inbox')renderInbox();
@@ -7661,6 +7736,224 @@ function deleteDSExam(id){
   DS.courses.forEach(c=>{c.examIds=(c.examIds||[]).filter(x=>x!==id);});
   saveDS();renderDSHW();renderDSCourses();updateDSStats();
 }
+
+/* ===== HUNT/MANAGE v2 (Phase 1) ===== */
+// Two page modes: 'hunt' (daily submission queue) / 'manage' (pipeline kanban).
+// Persisted in localStorage pos_job_mode. All markup hooks carry the same marker comment.
+let jobMode=(()=>{try{return localStorage.getItem('pos_job_mode')||'hunt';}catch(e){return'hunt';}})();
+let jmShowArchive=false;
+let submitCardJobId=null;
+
+function setJobMode(m){
+  jobMode=(m==='manage')?'manage':'hunt';
+  try{localStorage.setItem('pos_job_mode',jobMode);}catch(e){}
+  if(jobMode==='manage'&&typeof setJobView==='function')setJobView('kanban'); // manage opens on the pipeline board
+  renderJobsPage();
+}
+
+// Central page renderer — decides which sections are visible per mode.
+function renderJobsPage(){
+  const hunt=jobMode==='hunt';
+  const bh=document.getElementById('jmode-btn-hunt'),bm=document.getElementById('jmode-btn-manage');
+  if(bh)bh.classList.toggle('on',hunt);
+  if(bm)bm.classList.toggle('on',!hunt);
+  const fc=document.getElementById('job-filter-card');
+  const qc=document.getElementById('daily-queue-card');
+  const pc=document.getElementById('job-pipeline-card');
+  const al=document.getElementById('jm-archive-link');
+  if(fc)fc.style.display=hunt?'':'none';
+  if(qc)qc.style.display=hunt?'':'none';
+  if(pc)pc.style.display=hunt?'none':'';
+  if(al){al.style.display=hunt?'none':'';al.textContent=jmShowArchive?'📦 הסתר ארכיון':'📦 הצג ארכיון';}
+  const kw=document.getElementById('kanban-wrap');
+  if(kw){kw.classList.toggle('jm-manage',!hunt);kw.classList.toggle('jm-show-archive',jmShowArchive);}
+  renderKanban(); // keeps the stat counters (#j-total etc.) fresh in both modes
+  if(hunt)renderDailyQueue();
+  else if(typeof setJobView==='function')setJobView(jobView); // respects table/kanban pref (backward compat)
+}
+
+function toggleManageArchive(){
+  jmShowArchive=!jmShowArchive;
+  const kw=document.getElementById('kanban-wrap');
+  if(kw)kw.classList.toggle('jm-show-archive',jmShowArchive);
+  const al=document.getElementById('jm-archive-link');
+  if(al)al.textContent=jmShowArchive?'📦 הסתר ארכיון':'📦 הצג ארכיון';
+}
+
+// ── Interview-chance score (Phase 1 heuristic) ──
+// base by match %, multiplied by freshness; ghost (>30d) penalized. Clamped 1–40.
+function interviewChance(job){
+  const m=job.match_score||0;
+  const base=m>=85?12:m>=75?8:m>=65?5:3;
+  const ref=new Date(job.posted_at||job.created_at||0).getTime();
+  const ageH=ref>0?(Date.now()-ref)/3600000:9999;
+  let mult=ageH<24?1.5:ageH<72?1.0:ageH<168?0.6:0.25;
+  if(ageH>720)mult*=0.3; // ghost-job penalty (>30 days)
+  return Math.max(1,Math.min(40,Math.round(base*mult)||1));
+}
+window.interviewChance=interviewChance;
+
+function jobFreshness(job){
+  const ref=new Date(job.posted_at||job.created_at||0).getTime();
+  if(!(ref>0))return{ageH:9999,label:'תאריך לא ידוע',hot:false};
+  const ageH=(Date.now()-ref)/3600000;
+  if(ageH<24)return{ageH,label:'🔥 לפני '+Math.max(1,Math.round(ageH))+' שע׳',hot:true};
+  return{ageH,label:'לפני '+Math.floor(ageH/24)+' ימים',hot:false};
+}
+
+// ── Daily Queue ──
+function dqFilteredJobs(){
+  const minMatch=parseInt(document.getElementById('min-match-slider')?.value||0);
+  const activeSources=new Set([...document.querySelectorAll('.fchip.on[data-g="source"]')].map(el=>el.dataset.v));
+  return getJobsV2().filter(j=>{
+    if(j.stage!=='discovered'&&j.stage!=='saved')return false;
+    if((j.match_score||0)<minMatch)return false;
+    if(activeSources.size>0){const _SP=['linkedin','alljobs','comeet','drushim','wellfound'];
+      if(_SP.indexOf(j.source)>=0&&!activeSources.has(j.source))return false;}
+    return true;
+  }).sort((a,b)=>interviewChance(b)-interviewChance(a)||(b.match_score||0)-(a.match_score||0));
+}
+
+function dqRowHTML(job){
+  const mc=matchClass(job.match_score||0);
+  const fr=jobFreshness(job);
+  const ic=interviewChance(job);
+  const hasCV=!!(job.cv_summary||(job.cv_bullets&&job.cv_bullets.length));
+  return`<div class="dq-row" data-id="${job.id}">
+    <div class="dq-main" onclick="openSubmitCard('${job.id}')">
+      <div class="dq-title">${escH(job.title)}</div>
+      <div class="dq-co">${escH(job.company||'—')}${job.location?' · '+escH(job.location):''}</div>
+      <div class="dq-meta">
+        <span class="dq-chip">${escH(job.source_label||job.source||'')}</span>
+        <span class="dq-chip dq-fresh${fr.hot?' hot':''}">${fr.label}</span>
+        <span class="dq-chip dq-match ${mc}">${job.match_score||0}% התאמה</span>
+        <span class="dq-chip dq-ic">סיכוי לראיון ~${ic}%</span>
+        ${hasCV?'<span class="dq-chip dq-cv">📄 קו״ח מוכן</span>':''}
+        ${job.user_status==='ready_to_apply'?'<span class="dq-chip dq-ready">🟢 מוכן להגשה</span>':''}
+      </div>
+    </div>
+    <div class="dq-actions">
+      <button class="btn bp bsm" onclick="openSubmitCard('${job.id}')">🚀 הגש</button>
+      <button class="btn bs bsm" onclick="dqSave('${job.id}')">⭐ שמור</button>
+      <button class="btn bs bsm" onclick="dqSkip('${job.id}')">דלג</button>
+    </div>
+  </div>`;
+}
+
+function renderDailyQueue(){
+  const wrap=document.getElementById('daily-queue');
+  if(!wrap)return;
+  const jobs=dqFilteredJobs();
+  const cnt=document.getElementById('dq-count');
+  if(cnt)cnt.textContent=jobs.length?jobs.length+' משרות בתור • ממוין לפי סיכוי לראיון':'';
+  wrap.innerHTML=jobs.length?jobs.map(dqRowHTML).join(''):'<div class="dq-empty">🎉 התור ריק!<br>הסוכן יוסיף משרות חדשות בסריקה הבאה, או הרחב את הפילטרים / הוסף ידנית.</div>';
+}
+
+function dqSave(id){moveJobToStage(id,'saved');renderDailyQueue();}
+function dqSkip(id){
+  const job=getJobsV2().find(j=>j.id===id);
+  if(job)job.archived_reason='skipped';
+  moveJobToStage(id,'archive');
+  renderDailyQueue();
+}
+
+// Filters (chips / slider) call renderJobs() — refresh the queue too.
+const _hmPrevRenderJobs=renderJobs;
+renderJobs=function(){_hmPrevRenderJobs();if(jobMode==='hunt')renderDailyQueue();};
+
+// ── Submission Card ──
+function openSubmitCard(jobId){
+  const job=getJobsV2().find(j=>j.id===jobId);
+  if(!job)return;
+  submitCardJobId=jobId;
+  const m=job.match_score||0;
+  const mcol=m>=75?'var(--green)':m>=50?'var(--amber)':'var(--red)';
+  const fr=jobFreshness(job);
+  const ic=interviewChance(job);
+  const hasCV=!!(job.cv_summary||(job.cv_bullets&&job.cv_bullets.length));
+  const desc=(job.description_full||'')+' '+(job.description_summary||'');
+  const emailM=desc.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+  const knock=(job.missing_keywords||[]).filter(k=>/שנות ניסיון|years/i.test(String(k)));
+  const icExp=fr.ageH<24?'משרה טרייה (פחות מ-24 שעות) + '+m+'% התאמה — חלון הזהב להגשה':
+    fr.ageH<168?'המשרה עדיין רלוונטית ('+fr.label+') עם '+m+'% התאמה — כדאי להגיש היום':
+    'משרה ותיקה ('+fr.label+') — הסיכוי יורד עם הזמן, עדיף להתמקד בטריות';
+  const box=document.getElementById('sub-card');
+  if(!box)return;
+  box.innerHTML=`
+    <button class="sub-close" onclick="closeSubmitCard()">✕</button>
+    <div class="sub-title">${escH(job.title)}</div>
+    <div class="sub-co">${escH(job.company||'—')}${job.location?' · '+escH(job.location):''}</div>
+    <div class="sub-meta">
+      <span class="dq-chip">${escH(job.source_label||job.source||'')}</span>
+      <span class="dq-chip dq-fresh${fr.hot?' hot':''}">${fr.label}</span>
+    </div>
+    <div class="sub-score-row">
+      <div class="sub-donut" style="background:conic-gradient(${mcol} ${m*3.6}deg,var(--bg4) 0)"><div class="sub-donut-in">${m}%</div></div>
+      <div style="flex:1;min-width:0">
+        ${(typeof jobBreakdownHTML==='function'?jobBreakdownHTML(job.match_breakdown):'')||''}
+        <div class="sub-ic">🎯 סיכוי לזימון לראיון: ~${ic}%</div>
+        <div class="sub-ic-exp">${icExp}</div>
+      </div>
+    </div>
+    ${job.matched_keywords?.length?`<div class="sub-sec-lbl">מיומנויות שנמצאו</div><div class="sub-kw">${job.matched_keywords.map(k=>`<span class="dq-chip kw-ok">${escH(k)}</span>`).join('')}</div>`:''}
+    ${job.missing_keywords?.length?`<div class="sub-sec-lbl">מיומנויות חסרות</div><div class="sub-kw">${job.missing_keywords.map(k=>`<span class="dq-chip kw-miss">${escH(k)}</span>`).join('')}</div>`:''}
+    ${hasCV?`<div class="sub-sec-lbl">📄 קו״ח מותאם (אמת בלבד — השלם [add %])</div>
+    <div class="sub-cv-block">
+      ${job.cv_summary?`<div style="margin-bottom:6px">${escH(job.cv_summary)}</div>`:''}
+      ${(job.cv_bullets&&job.cv_bullets.length)?`<ul style="margin:0 0 8px;padding-inline-start:18px">${job.cv_bullets.map(b=>`<li>${escH(b)}</li>`).join('')}</ul>`:''}
+      <button class="btn bs bsm" onclick="downloadTailoredCV('${job.id}')">⬇️ הורד קו״ח (Word)</button>
+    </div>`:''}
+    <div class="sub-sec-lbl">לפני הגשה</div>
+    <div class="sub-check">${hasCV?'✅ קו״ח מותאם מוכן':'✖️ אין קו״ח מותאם — הסוכן מכין רק למשרות ≥70%'}</div>
+    <div class="sub-check">✍️ מכתב מקדים: <button class="btn bs bxs" onclick="genCoverNote('${job.id}')">✍️ צור מכתב מקדים</button></div>
+    <div id="sub-ai-out"></div>
+    ${knock.length?`<div class="sub-warn">⚠️ אזהרת נוק-אאוט: המודעה דורשת ${escH(knock.join(', '))} — צפה לשאלת סינון אוטומטית בטופס. ענה בזהירות ובאמת.</div>`:''}
+    <div class="sub-actions">
+      ${emailM?`<a class="btn bp" href="mailto:${escH(emailM[0])}">📧 הגש במייל: ${escH(emailM[0])}</a>`
+        :(job.url||job.link)?`<button class="btn bp" onclick="subOpenUrl('${job.id}')">🚀 פתח את דף ההגשה</button>`
+        :'<span class="dq-chip" style="align-self:center">⚠️ אין קישור למשרה</span>'}
+      <button class="btn bs" onclick="subMarkApplied()">✅ הגשתי</button>
+    </div>`;
+  document.getElementById('sub-card-bg').classList.add('open');
+}
+
+function subOpenUrl(jobId){
+  const job=getJobsV2().find(j=>j.id===jobId);
+  const u=job&&(job.url||job.link);
+  if(u)window.open(u,'_blank');
+}
+
+function subMarkApplied(){
+  if(!submitCardJobId)return;
+  moveJobToStage(submitCardJobId,'applied'); // sets applied_at + save() + toast
+  closeSubmitCard();
+  if(jobMode==='hunt')renderDailyQueue(); // stay in hunt — row disappears
+}
+
+function closeSubmitCard(){
+  const bg=document.getElementById('sub-card-bg');
+  if(bg)bg.classList.remove('open');
+  submitCardJobId=null;
+}
+
+// 3-line Hebrew cover note — same Gemini→Claude pipeline as jobFollowupEmail.
+async function genCoverNote(jobId){
+  const job=getJobsV2().find(j=>j.id===jobId);
+  if(!job)return;
+  const out=document.getElementById('sub-ai-out');
+  if(out){out.style.display='block';out.textContent='✍️ מנסח מכתב מקדים...';}
+  const name=(typeof ensureJHC==='function'?(ensureJHC().name||''):'')||'רואי קליין';
+  const kws=(job.matched_keywords||[]).slice(0,5).join(', ');
+  const p='כתוב מכתב מקדים (cover note) של 3 שורות בלבד בעברית להגשת מועמדות למשרת "'+(job.title||'')+'" ב"'+(job.company||'')+'".'+(kws?' שלב בעדינות: '+kws+'.':'')+(job.description_summary?' תיאור המשרה: '+String(job.description_summary).slice(0,400):'')+' טון בטוח, חם ותמציתי, מבוסס אמת בלבד, בלי סופרלטיבים ריקים. חתום בשם '+name+'.';
+  let r=null;
+  try{r=await callGemini([{role:'user',content:p}],'ענה בעברית. 3 שורות בלבד.');}catch(e){}
+  if(!r){try{r=await claude(p,SYS.jobs);}catch(e){}}
+  if(out)out.textContent=r||'לא הצלחתי לנסח כרגע — נסה שוב.';
+}
+
+// Apply the saved mode on first load (init and setJobView already ran above).
+try{if(document.getElementById('page-jobs'))renderJobsPage();}catch(e){}
+/* ===== END HUNT/MANAGE v2 (Phase 1) ===== */
 </script>
 
 <script src="/assistant.js" defer></script>
@@ -7913,6 +8206,7 @@ async function jhUploadCV(input){
   }
   document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{if(document.getElementById('page-jobs')&&document.getElementById('page-jobs').classList.contains('active'))renderJobHuntPanel();},1500);});
 })();
+// Phase 1 — Hunt/Manage v2 (2026-07-13)
 </script>
 </body>
 </html>

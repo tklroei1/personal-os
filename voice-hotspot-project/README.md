@@ -20,7 +20,8 @@
 
 ## מסמכים בפרויקט
 - `prompts/voice-hotspot-prompt-FULL.md` — הפרומפט הראשי המלא (3 פונקציות + עיצוב + מצב חינם).
-- `prompts/voice-hotspot-roadmap.md` — תוכנית עבודה רחבה (שיפור מודל + רב‑תחומיות + NLP מתקדם).
+- `prompts/voice-hotspot-roadmap.md` — תוכנית עבודה רחבה (שיפור מודל + רב‑תחומיות + NLP מתקדם). כולל הרחבה E (ציון עסקה) + הרחבה F (אגנטיות).
+- `prompts/voice-hotspot-dealscore-agentic-plan.md` — תוכנית מפורקת לקלוד‑קוד: ציון עסקה + אגנטיות (בלוקים E0–E3, F1–F3).
 - `prompts/voice-hotspot-no-engine-track.md` — מה להתקדם בו בלי מנועי LLM.
 - `prompts/voice-hotspot-triple-coaching.md` — 3 שכבות אימון + יעד דיוק 88–92%.
 - `prompts/voice-hotspot-next-debounce-extension.md` — debounce + תוסף Chrome ל‑Meet/Zoom.
