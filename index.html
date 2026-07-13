@@ -5089,6 +5089,12 @@ function jobColorMeta(job){
   return {key:'red', color:'#EF4444', label:'ישן'};
 }
 
+// Hebrew label for a job seniority type. Defined here (main block) because it's
+// used during init(); the later drop-in script re-declares the same function harmlessly.
+function jobTypeHe(t){
+  return ({student:'סטודנט',junior:'ג\'וניור',entry:'אנטרי',intern:'התמחות',mid:'מיד-לבל',senior:'סיניור'})[String(t||'').toLowerCase()]||t;
+}
+
 // Tiny one-line description: job type (if known) + start of the summary.
 function jobShortDesc(job){
   const t=job.job_type?jobTypeHe(job.job_type):'';
