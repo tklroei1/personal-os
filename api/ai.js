@@ -176,18 +176,33 @@ async function coachHandler(req, res) {
   const jobTitle = String(b.jobTitle || '').slice(0, 200);
   const jobCompany = String(b.jobCompany || '').slice(0, 120);
   const jobDesc = String(b.jobDesc || '').slice(0, 4000);
+  // ═══ TAILORED-CV: ATS keyword hints from the caller (real mirroring) ═══
+  const matchedKw = Array.isArray(b.matchedKeywords) ? b.matchedKeywords.map(String).slice(0, 40) : [];
+  const missingKw = Array.isArray(b.missingKeywords) ? b.missingKeywords.map(String).slice(0, 40) : [];
   if (!cv) return res.status(200).json({ error: 'חסר קורות חיים — העלה קו״ח בכוונון הסוכן' });
   const jobLine = '=== משרה: ' + jobTitle + (jobCompany ? ' @' + jobCompany : '') + ' ===\n' + (jobDesc || '(אין תיאור מלא — התבסס על שם התפקיד והנורמות בתחום)');
   let prompt, maxTokens;
   if (mode === 'tailor') {
-    maxTokens = 2200;
+    // ═══ TAILORED-CV (rewritten 2026-07-13): return the COMPLETE mirrored CV ═══
+    maxTokens = 3000;
+    const kwLine = (matchedKw.length || missingKw.length)
+      ? '\n=== JOB KEYWORDS TO MIRROR (ATS) ===\n' +
+        (matchedKw.length ? 'Already-matched (emphasize / state explicitly): ' + matchedKw.join(', ') + '\n' : '') +
+        (missingKw.length ? 'From the ad (embed ONLY where genuinely true for the candidate, else omit): ' + missingKw.join(', ') + '\n' : '')
+      : '';
     prompt =
-      'אתה כותב קורות חיים מקצועי. להלן הקו״ח של המועמד ותיאור משרה.\n' +
-      'כתוב גרסת קו״ח מותאמת למשרה — באותה שפה של הקו״ח המקורי.\n' +
-      'חוקים קשיחים: אסור להמציא ניסיון/תפקיד/הישג/כישור/תאריך שלא מופיע בקו״ח המקורי. ' +
-      'מותר רק: לסדר מחדש לפי רלוונטיות, להדגיש, לנסח מחדש, ולשלב מילות מפתח מתיאור המשרה שבאמת תואמות למה שכבר יש למועמד (להעברת מסנני ATS).\n' +
-      'החזר אך ורק JSON תקין: {"cv":"<קו״ח מותאם כטקסט/markdown>","keywords":["מילות מפתח שהודגשו/שולבו"],"note":"<משפט קצר מה שונה>"}\n\n' +
-      '=== קורות חיים ===\n' + cv + '\n\n' + jobLine;
+      'You are an expert resume writer performing ATS keyword mirroring. Below is a candidate\'s COMPLETE base CV and a job description.\n' +
+      'Return the candidate\'s COMPLETE tailored CV — every section, top to bottom: the header/name line, a PROFESSIONAL SUMMARY, ALL experience entries (each with its bullet points), EDUCATION, and SKILLS. Output the WHOLE document, never a fragment or excerpt.\n' +
+      'STRICT RULES:\n' +
+      '1. Strictly truthful. Never invent a job, title, employer, achievement, skill, metric, or date that is not already in the base CV.\n' +
+      '2. Only reorder, re-emphasize, and rephrase existing facts so the most job-relevant content comes first.\n' +
+      '3. Embed the EXACT keywords and phrases from the job description wherever they truthfully apply to the candidate (ATS mirroring) — use the job\'s own wording.\n' +
+      '4. Keep it to ONE page of content, concise and professional.\n' +
+      '5. Write in English (same language as the base CV). Keep all dates exactly as in the base CV.\n' +
+      '6. For any metric/number the candidate has not provided, write the literal placeholder "[add %]" — never fabricate a figure.\n' +
+      'FORMAT of the "cv" string: plain text with \\n line breaks. Section headings in ALL CAPS on their own line (e.g. PROFESSIONAL SUMMARY, EXPERIENCE, EDUCATION, SKILLS). Bullet lines start with "• ".\n' +
+      'Return ONLY valid JSON: {"cv":"<full tailored CV text with \\n line breaks>","keywords":["exact job keywords you embedded"],"note":"<one short sentence on what was reordered/emphasized>"}\n\n' +
+      '=== BASE CV (complete) ===\n' + cv + '\n\n' + jobLine + kwLine;
   } else {
     maxTokens = 1300;
     prompt =

@@ -5287,26 +5287,82 @@ function openJobDrawer(jobId){
   document.getElementById('job-drawer').classList.add('open');
 }
 
-// Build & download a tailored CV (.doc) from the truthful, system-stored cv content.
-function downloadTailoredCV(jobId){
-  const job=getJobsV2().find(j=>j.id===jobId);if(!job){showNotif&&showNotif('משרה לא נמצאה');return;}
+// ═══════════════════════════════════════════════════════════════════════════
+//  TAILORED CV — REAL full-CV mirroring (rewritten 2026-07-13)
+//  Takes Roei's COMPLETE base CV (ensureJHC().cv), mirrors it against the job
+//  description via the same coach endpoint jobTailorCV uses (mode 'tailor'),
+//  caches the full result on job.cv_full, and renders a COMPLETE Word document.
+//  NEVER renders the old 3-bullet skeleton.
+// ═══════════════════════════════════════════════════════════════════════════
+async function downloadTailoredCV(jobId){
+  const jobs=getJobsV2();
+  const job=jobs.find(j=>j.id===jobId);
+  if(!job){showNotif&&showNotif('משרה לא נמצאה');return;}
+  // (a) cached full CV → render straight away
+  if(job.cv_full){renderTailoredCVDoc(job,job.cv_full,false);return;}
+  // (b) base CV must exist
+  const baseCV=(typeof ensureJHC==='function'?(ensureJHC().cv||''):'').trim();
+  if(!baseCV){showNotif&&showNotif('אין קו״ח בסיס במערכת — הדבק אותו בהגדרות הצייד');return;}
+  // (c) call the tailor endpoint (same one jobTailorCV uses)
+  showNotif&&showNotif('🎯 מתאים קו״ח למשרה — כמה שניות...');
+  const desc=job.description_full||job.description_summary||job.description||'';
+  let fullCV='',warn=false;
+  try{
+    const r=await fetch('/api/job-coach',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mode:'tailor',cv:baseCV,jobTitle:job.title||'',jobCompany:job.company||'',jobDesc:desc,
+        matchedKeywords:job.matched_keywords||[],missingKeywords:job.missing_keywords||[]})});
+    const d=await r.json();
+    if(d&&d.cv&&!d.error){
+      fullCV=d.cv;
+      job.cv_full=d.cv;
+      job.cv_keywords=d.keywords||[];
+      job.updated_at=new Date().toISOString();
+      S.jobsV2=jobs;save(); // persist the cached full CV
+      showNotif&&showNotif('✓ קו״ח מותאם מוכן'+(d.keywords&&d.keywords.length?` · ${d.keywords.length} מילות מפתח`:''));
+    }else{
+      warn=true;fullCV=baseCV;
+      showNotif&&showNotif('⚠️ ההתאמה נכשלה — מוריד קו״ח בסיס');
+    }
+  }catch(err){
+    warn=true;fullCV=baseCV;
+    showNotif&&showNotif('⚠️ ההתאמה נכשלה — מוריד קו״ח בסיס');
+  }
+  renderTailoredCVDoc(job,fullCV,warn);
+}
+
+// Render a Word-compatible .doc from FULL CV text. ALL-CAPS lines → section
+// headings; •/- lines → bullets; blank lines → spacing; else → paragraphs.
+function renderTailoredCVDoc(job,fullText,warn){
   const e=s=>(s||'').toString().replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  const summary=job.cv_summary||'Analytically driven — M.Sc Data Science & AI; B.A. Economics (GPA 88, Distinction); founder of Upselles.';
-  const bullets=(job.cv_bullets&&job.cv_bullets.length)?job.cv_bullets:['[add tailored, truthful bullet]'];
-  const html=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body style="font-family:Calibri,Arial,sans-serif;color:#1b2330">
-  <h1 style="margin:0;color:#1F3355">ROEI KLEIN</h1>
-  <div style="color:#555">Data Analyst | Product &amp; Growth Oriented | Data Science Background</div>
-  <div style="color:#555;font-size:11px">Hod HaSharon, Israel • tklroei1@gmail.com • 054-3329092 • linkedin.com/in/roei-klein</div>
-  <h3 style="color:#1F3355;border-bottom:1px solid #1F3355">PROFESSIONAL SUMMARY — ${e(job.title)} @ ${e(job.company)}</h3>
-  <div>${e(summary)}</div>
-  <h3 style="color:#1F3355;border-bottom:1px solid #1F3355">EXPERIENCE (tailored)</h3>
-  <b>Founder &amp; Product/Data Owner — Upselles (2025–Present)</b>
-  <ul>${bullets.map(b=>'<li>'+e(b)+'</li>').join('')}</ul>
-  <b>Independent Market Analyst &amp; Trader (2021–Present)</b> · <b>Licensed Real Estate Agent (2020–2023)</b>
-  <h3 style="color:#1F3355;border-bottom:1px solid #1F3355">EDUCATION</h3>
-  <div>M.Sc. Data Science &amp; AI — Bar-Ilan (2025–2027) · B.A. Economics &amp; Business Administration — Bar-Ilan (GPA 88, Distinction)</div>
-  ${(job.missing_keywords&&job.missing_keywords.length)?`<h3 style="color:#1F3355;border-bottom:1px solid #1F3355">KEYWORDS TO EMPHASIZE</h3><div>${job.missing_keywords.map(e).join(', ')}</div>`:''}
-  <p style="color:#888;font-size:10px">⚠️ נוצר מהתאמת המערכת, מבוסס על קורות החיים האמיתיים בלבד. החלף כל [add %] בנתון אמיתי לפני שליחה.</p>
+  const lines=String(fullText||'').replace(/\r/g,'').split('\n');
+  // Parse the first non-empty line as the name if it looks like one; else fixed.
+  let name='ROEI KLEIN',startIdx=0;
+  for(let i=0;i<lines.length;i++){
+    if(lines[i].trim()){
+      const first=lines[i].trim();
+      if(/^[A-Za-z][A-Za-z .'-]{2,40}$/.test(first)&&first.split(/\s+/).length<=4){
+        name=first.toUpperCase();startIdx=i+1;
+      }
+      break;
+    }
+  }
+  const isHeading=t=>{const s=t.trim();return s.length>=4&&s.length<=48&&/^[A-Z0-9 &—–\-\/]+$/.test(s)&&/[A-Z]/.test(s)&&!/^[•\-]/.test(s);};
+  let bodyHtml='',inList=false;
+  const closeList=()=>{if(inList){bodyHtml+='</ul>';inList=false;}};
+  for(let i=startIdx;i<lines.length;i++){
+    const t=lines[i].trim();
+    if(!t){closeList();bodyHtml+='<div style="height:6px"></div>';continue;}
+    if(isHeading(t)){closeList();bodyHtml+=`<h3 style="color:#1F3355;border-bottom:1px solid #1F3355;margin:12px 0 5px;font-size:13px;text-transform:uppercase">${e(t)}</h3>`;continue;}
+    if(/^[•\-]/.test(t)){if(!inList){bodyHtml+='<ul style="margin:3px 0 6px;padding-inline-start:20px">';inList=true;}bodyHtml+=`<li style="margin:2px 0">${e(t.replace(/^[•\-]\s*/,''))}</li>`;continue;}
+    closeList();bodyHtml+=`<div style="margin:2px 0">${e(t)}</div>`;
+  }
+  closeList();
+  const warnBanner=warn?`<div style="background:#fde68a;color:#92400e;padding:6px 9px;border-radius:4px;margin-bottom:8px;font-size:11px">⚠️ ההתאמה נכשלה — זהו קו״ח הבסיס</div>`:'';
+  const html=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body style="font-family:Calibri,Arial,sans-serif;color:#1b2330;font-size:12px;line-height:1.5">
+  ${warnBanner}
+  <h1 style="margin:0;color:#1F3355;font-size:22px">${e(name)}</h1>
+  ${bodyHtml}
+  <p style="color:#888;font-size:10px;margin-top:12px">⚠️ נוצר מהתאמת המערכת, מבוסס על קורות החיים האמיתיים בלבד. החלף כל [add %] בנתון אמיתי לפני שליחה.</p>
   </body></html>`;
   try{const blob=new Blob(['﻿'+html],{type:'application/msword'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -7878,7 +7934,7 @@ function openSubmitCard(jobId){
   const mcol=m>=75?'var(--green)':m>=50?'var(--amber)':'var(--red)';
   const fr=jobFreshness(job);
   const ic=interviewChance(job);
-  const hasCV=!!(job.cv_summary||(job.cv_bullets&&job.cv_bullets.length));
+  const hasCV=!!(job.cv_full||job.cv_summary||(job.cv_bullets&&job.cv_bullets.length)); // full mirrored CV counts too
   const desc=(job.description_full||'')+' '+(job.description_summary||'');
   const emailM=desc.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
   const knock=(job.missing_keywords||[]).filter(k=>/שנות ניסיון|years/i.test(String(k)));
@@ -7905,12 +7961,24 @@ function openSubmitCard(jobId){
     </div>
     ${job.matched_keywords?.length?`<div class="sub-sec-lbl">מיומנויות שנמצאו</div><div class="sub-kw">${job.matched_keywords.map(k=>`<span class="dq-chip kw-ok">${escH(k)}</span>`).join('')}</div>`:''}
     ${job.missing_keywords?.length?`<div class="sub-sec-lbl">מיומנויות חסרות</div><div class="sub-kw">${job.missing_keywords.map(k=>`<span class="dq-chip kw-miss">${escH(k)}</span>`).join('')}</div>`:''}
-    ${hasCV?`<div class="sub-sec-lbl">📄 קו״ח מותאם (אמת בלבד — השלם [add %])</div>
-    <div class="sub-cv-block">
-      ${job.cv_summary?`<div style="margin-bottom:6px">${escH(job.cv_summary)}</div>`:''}
-      ${(job.cv_bullets&&job.cv_bullets.length)?`<ul style="margin:0 0 8px;padding-inline-start:18px">${job.cv_bullets.map(b=>`<li>${escH(b)}</li>`).join('')}</ul>`:''}
-      <button class="btn bs bsm" onclick="downloadTailoredCV('${job.id}')">⬇️ הורד קו״ח (Word)</button>
-    </div>`:''}
+    ${(()=>{
+      // ═══ TAILORED-CV block (rewritten 2026-07-13): full mirrored CV ═══
+      const skel=(job.cv_summary?`<div style="margin-bottom:6px">${escH(job.cv_summary)}</div>`:'')+
+        ((job.cv_bullets&&job.cv_bullets.length)?`<ul style="margin:0;padding-inline-start:18px">${job.cv_bullets.map(b=>`<li>${escH(b)}</li>`).join('')}</ul>`:'');
+      const skelBlock=skel?`<div class="sub-cv-block" style="margin-top:6px">${skel}</div>`:'';
+      if(job.cv_full){
+        const prev=escH(String(job.cv_full).slice(0,400))+(job.cv_full.length>400?'…':'');
+        return `<div class="sub-sec-lbl">📄 קו״ח מותאם מלא (אמת בלבד — השלם [add %])</div>
+        <div class="sub-cv-block">
+          <div style="max-height:150px;overflow:auto;white-space:pre-wrap;font-size:11px;line-height:1.5;background:var(--bg3);border-radius:6px;padding:8px;margin-bottom:6px">${prev}</div>
+          <button class="btn bp bsm" onclick="downloadTailoredCV('${job.id}')">⬇️ הורד קו״ח מלא (Word)</button>
+        </div>`+skelBlock;
+      }
+      return `<div class="sub-sec-lbl">📄 קו״ח מותאם</div>
+      <div class="sub-cv-block">
+        <button class="btn bp bsm" onclick="submitCardTailorCV('${job.id}')">🎯 צור קו״ח מותאם מלא</button>
+      </div>`+skelBlock;
+    })()}
     <div class="sub-sec-lbl">לפני הגשה</div>
     <div class="sub-check">${hasCV?'✅ קו״ח מותאם מוכן':'✖️ אין קו״ח מותאם — הסוכן מכין רק למשרות ≥70%'}</div>
     <div class="sub-check">✍️ מכתב מקדים: <button class="btn bs bxs" onclick="genCoverNote('${job.id}')">✍️ צור מכתב מקדים</button></div>
@@ -7942,6 +8010,12 @@ function closeSubmitCard(){
   const bg=document.getElementById('sub-card-bg');
   if(bg)bg.classList.remove('open');
   submitCardJobId=null;
+}
+
+// ═══ TAILORED-CV: generate full mirrored CV from the submit card, then re-render ═══
+async function submitCardTailorCV(jobId){
+  await downloadTailoredCV(jobId); // generates + caches job.cv_full + downloads
+  if(submitCardJobId===jobId)openSubmitCard(jobId); // re-render with the new preview
 }
 
 // 3-line Hebrew cover note — same Gemini→Claude pipeline as jobFollowupEmail.
