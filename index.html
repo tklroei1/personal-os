@@ -728,6 +728,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 .sub-donut{width:86px;height:86px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .sub-donut-in{width:62px;height:62px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800}
 .sub-ic{font-size:13px;font-weight:700;color:var(--accent);margin-top:4px}
+.sub-ic-ref{font-size:12px;font-weight:700;color:var(--green)}
 .sub-ic-exp{font-size:11px;color:var(--text3);margin-top:2px}
 .sub-sec-lbl{font-size:10px;text-transform:uppercase;color:var(--text3);margin:12px 0 5px;font-weight:700}
 .sub-kw{display:flex;gap:5px;flex-wrap:wrap}
@@ -739,6 +740,16 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 .sub-actions{display:flex;gap:8px;margin-top:16px}
 .sub-actions .btn,.sub-actions a.btn{flex:1;justify-content:center;padding:11px 14px;font-size:14px;text-decoration:none}
 #sub-ai-out{font-size:12px;line-height:1.7;white-space:pre-wrap;background:var(--bg3);border-radius:10px;padding:9px 11px;margin-top:8px;display:none;max-height:40vh;overflow:auto}
+/* Referrer engine (Phase 3) */
+.sub-ref{display:flex;flex-direction:column;gap:8px}
+.ref-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+.ref-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px}
+.ref-name{font-size:13px;font-weight:700;color:var(--text)}
+.ref-role{font-size:11px;color:var(--text3);margin-top:1px}
+.ref-type{white-space:nowrap;background:var(--accent-bg,var(--bg4));color:var(--accent);border-color:var(--accent)}
+.ref-link{display:inline-block;font-size:11.5px;color:var(--accent);text-decoration:none;margin:2px 0 6px}
+.ref-msg{font-size:12px;line-height:1.6;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;white-space:pre-wrap;margin-bottom:6px}
+.ref-copy{font-size:11px}
 @media(max-width:768px){.sub-card-bg{padding:0;align-items:flex-end}.sub-card{max-height:94vh;border-radius:20px 20px 0 0;max-width:none}}
 </style>
 </head>
@@ -5258,7 +5269,9 @@ function openJobDrawer(jobId){
       ${job.cv_summary?`<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:6px">${escH(job.cv_summary)}</div>`:''}
       ${(job.cv_bullets&&job.cv_bullets.length)?`<ul style="margin:0 0 8px;padding-inline-start:18px;font-size:12px;color:var(--text2);line-height:1.6">${job.cv_bullets.map(b=>`<li>${escH(b)}</li>`).join('')}</ul>`:''}
       <button class="btn bs bsm" onclick="downloadTailoredCV('${job.id}')">⬇️ הורד קו״ח מותאם (Word)</button>
+      <button class="btn bs bsm" onclick="printTailoredCV('${job.id}')">🖨️ PDF</button>
     </div>`:''}
+    ${((job.match_score||0)>=80||(Array.isArray(job.referrers)&&job.referrers.length))?referrersSectionHTML(job,'drawer'):''}
     <div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">סטטוס שלי (חופשי)</div>
     <input id="drawer-status-inp" class="inp inp-full" type="text" placeholder="לדוגמה: הוגש 8/6, ממתין לתשובה..." value="${escH(job.user_status||'')}" style="margin-bottom:8px">
     <div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">הערות אישיות</div>
@@ -5370,6 +5383,165 @@ function renderTailoredCVDoc(job,fullText,warn){
     a.download='CV_Roei_Klein_'+((job.company||'job').replace(/[^A-Za-z0-9]+/g,'_'))+'.doc';
     document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
   }catch(err){showNotif&&showNotif('שגיאה ביצירת הקובץ');}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  PRINT-TO-PDF CV (Phase 3) — no Python. Opens a clean, ATS-safe print window
+//  from job.cv_full (falls back to the base CV) → window.print() → save as PDF.
+//  Single column, Calibri/Arial, navy headings w/ bottom border, MM/YYYY dates
+//  left untouched, no header/footer content, @page margins 0.6in.
+//  Reuses the print-window pattern already used by genCV (~line 3611).
+// ═══════════════════════════════════════════════════════════════════════════
+function printTailoredCV(jobId){
+  const jobs=getJobsV2();
+  const job=jobs.find(j=>j.id===jobId);
+  if(!job){showNotif&&showNotif('משרה לא נמצאה');return;}
+  let fullText=String(job.cv_full||'').trim();
+  if(!fullText)fullText=(typeof ensureJHC==='function'?(ensureJHC().cv||''):'').trim();
+  if(!fullText){showNotif&&showNotif('אין קו״ח להדפסה — צור קו״ח מותאם או הדבק קו״ח בסיס בהגדרות הצייד');return;}
+  const e=s=>(s||'').toString().replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const lines=String(fullText).replace(/\r/g,'').split('\n');
+  // First name-looking line → <h1>, rest parsed like renderTailoredCVDoc.
+  let name='ROEI KLEIN',startIdx=0;
+  for(let i=0;i<lines.length;i++){
+    if(lines[i].trim()){
+      const first=lines[i].trim();
+      if(/^[A-Za-z][A-Za-z .'-]{2,40}$/.test(first)&&first.split(/\s+/).length<=4){name=first.toUpperCase();startIdx=i+1;}
+      break;
+    }
+  }
+  const isHeading=t=>{const s=t.trim();return s.length>=4&&s.length<=48&&/^[A-Z0-9 &—–\-\/]+$/.test(s)&&/[A-Z]/.test(s)&&!/^[•\-]/.test(s);};
+  let bodyHtml='',inList=false;
+  const closeList=()=>{if(inList){bodyHtml+='</ul>';inList=false;}};
+  for(let i=startIdx;i<lines.length;i++){
+    const t=lines[i].trim();
+    if(!t){closeList();bodyHtml+='<div style="height:5pt"></div>';continue;}
+    if(isHeading(t)){closeList();bodyHtml+=`<h2>${e(t)}</h2>`;continue;}
+    if(/^[•\-]/.test(t)){if(!inList){bodyHtml+='<ul>';inList=true;}bodyHtml+=`<li>${e(t.replace(/^[•\-]\s*/,''))}</li>`;continue;}
+    closeList();bodyHtml+=`<p>${e(t)}</p>`;
+  }
+  closeList();
+  const win=window.open('','_blank');
+  if(!win){showNotif&&showNotif('חלון ההדפסה נחסם — אפשר חלונות קופצים (popups) ונסה שוב');return;}
+  win.document.write(`<html><head><meta charset="UTF-8"><title>${e(name)} — CV</title>
+  <style>
+    @page{margin:0.6in}
+    *{box-sizing:border-box}
+    body{font-family:Calibri,Arial,sans-serif;color:#000;font-size:11pt;line-height:1.4;margin:0;max-width:7.3in}
+    h1{font-size:20pt;color:#1F3355;margin:0 0 2pt}
+    .contact{font-size:9.5pt;color:#333;margin:0 0 10pt}
+    h2{font-size:12pt;color:#1F3355;border-bottom:1.5px solid #1F3355;padding-bottom:2pt;margin:12pt 0 5pt;text-transform:uppercase}
+    p{margin:2pt 0}
+    ul{margin:3pt 0 6pt;padding-inline-start:18pt}
+    li{margin:2pt 0}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style></head><body>
+  <h1>${e(name)}</h1>
+  <div class="contact">tklroei1@gmail.com · +972-54-3329092 · Hod HaSharon, Israel</div>
+  ${bodyHtml}
+  <script>setTimeout(function(){window.print();},400)<\/script>
+  </body></html>`);
+  win.document.close();
+  showNotif&&showNotif('🖨️ חלון הדפסה נפתח — בחר "שמור כ-PDF"');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  ATS VALIDATION (Phase 3) — client-side pre-submit checks on the tailored CV.
+//  Returns [{label,pass}]. Rendered as a ✓/✗ list in the submission-card checklist.
+// ═══════════════════════════════════════════════════════════════════════════
+function atsCheck(job){
+  const cv=String((job&&job.cv_full)||'');
+  const checks=[];
+  // (a) tailored CV exists (cv_full or cv_summary)
+  checks.push({label:'קו״ח מותאם קיים',pass:!!(cv.trim()||(job&&job.cv_summary))});
+  // (b) dates in MM/YYYY format present
+  checks.push({label:'תאריכים בפורמט MM/YYYY',pass:/\b(0[1-9]|1[0-2])\/\d{4}\b/.test(cv)});
+  // (c) ≥60% of the ad's keywords appear (case-insensitive) inside cv_full
+  const kws=[].concat((job&&job.matched_keywords)||[],(job&&job.missing_keywords)||[])
+    .map(k=>String(k).toLowerCase().trim()).filter(Boolean);
+  let kwPass=true;
+  if(kws.length){
+    const low=cv.toLowerCase();
+    const found=kws.filter(k=>low.indexOf(k)>=0).length;
+    kwPass=(found/kws.length)>=0.6;
+  }
+  checks.push({label:'מילות מפתח מהמודעה בפנים',pass:kwPass});
+  // (d) sane length (1200–6500 chars ≈ up to 2 pages)
+  checks.push({label:'אורך סביר (1200–6500 תווים)',pass:cv.length>=1200&&cv.length<=6500});
+  // (e) no leftover [add %] placeholder
+  const hasPh=/\[add %\]/i.test(cv);
+  checks.push({label:hasPh?'⚠️ החלף [add %] בנתון אמיתי':'אין placeholder שנשאר',pass:!hasPh});
+  return checks;
+}
+function atsCheckHTML(job){
+  return atsCheck(job).map(c=>`<div class="sub-check">${c.pass?'✅':'✖️'} ${escH(c.label)}</div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  REFERRER ENGINE UI (Phase 3) — find potential referrers for a job (server:
+//  POST {mode:'referrers'} to /api/get-agent-results), cache on job.referrers,
+//  render cards with a copyable ready-to-send Hebrew outreach message.
+//  Used in BOTH openSubmitCard (match≥80) and openJobDrawer.
+// ═══════════════════════════════════════════════════════════════════════════
+function referrerCardHTML(jobId,r,i){
+  const url=String(r.linkedin_url||'');
+  const safeUrl=/^https?:\/\//i.test(url)?url:'';
+  const msg=String(r.message||'');
+  return `<div class="ref-card">
+    <div class="ref-head">
+      <div><div class="ref-name">${escH(r.name||'—')}</div>${r.role?`<div class="ref-role">${escH(r.role)}</div>`:''}</div>
+      ${r.connection_type?`<span class="dq-chip ref-type">${escH(r.connection_type)}</span>`:''}
+    </div>
+    ${safeUrl?`<a class="ref-link" href="${escH(safeUrl)}" target="_blank" rel="noopener">🔗 פרופיל לינקדאין</a>`:''}
+    ${msg?`<div class="ref-msg">${escH(msg)}</div>
+    <button class="btn bs ref-copy" onclick="copyReferrerMsg('${jobId}',${i},this)">📋 העתק</button>`:''}
+  </div>`;
+}
+function referrersSectionHTML(job,ctx){
+  const cid=(ctx==='drawer'?'drawer-ref-wrap':'sub-ref-wrap');
+  const arr=Array.isArray(job.referrers)?job.referrers:null;
+  let inner;
+  if(arr&&arr.length){
+    inner=arr.map((r,i)=>referrerCardHTML(job.id,r,i)).join('');
+  }else if(arr){ // searched, none found
+    inner=`<div style="font-size:12px;color:var(--text3);padding:2px 0 6px">לא נמצאו ממליצים כרגע. אפשר לחפש ידנית: <a href="https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(job.company||'')}" target="_blank" rel="noopener" style="color:var(--accent)">לינקדאין</a>.</div>
+    <button class="btn bs bxs" onclick="findReferrers('${job.id}','${ctx}')">🔄 חפש שוב</button>`;
+  }else{
+    inner=`<button class="btn bs bsm" onclick="findReferrers('${job.id}','${ctx}')">🔎 מצא ממליצים</button>`;
+  }
+  return `<div class="sub-sec-lbl">👥 ממליצים פוטנציאליים</div><div id="${cid}" class="sub-ref">${inner}</div>`;
+}
+function copyReferrerMsg(jobId,i,btn){
+  const job=getJobsV2().find(j=>j.id===jobId);
+  const r=job&&Array.isArray(job.referrers)&&job.referrers[i];
+  const txt=(r&&r.message)||'';
+  if(!txt)return;
+  const done=()=>{if(btn){const o=btn.textContent;btn.textContent='✓ הועתק';setTimeout(()=>{btn.textContent=o;},1500);}};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done,()=>done());}
+  else{try{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();done();}catch(e){}}
+}
+async function findReferrers(jobId,ctx){
+  const jobs=getJobsV2();
+  const job=jobs.find(j=>j.id===jobId);
+  if(!job)return;
+  const cid=(ctx==='drawer'?'drawer-ref-wrap':'sub-ref-wrap');
+  const wrap=document.getElementById(cid);
+  if(wrap)wrap.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">🔎 מחפש ממליצים בלינקדאין...</div>';
+  try{
+    const r=await fetch('/api/get-agent-results',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mode:'referrers',company:job.company||'',title:job.title||''})});
+    const d=await r.json();
+    job.referrers=Array.isArray(d.referrers)?d.referrers:[];
+    job.updated_at=new Date().toISOString();
+    S.jobsV2=jobs;save();
+    showNotif&&showNotif(job.referrers.length?('✓ נמצאו '+job.referrers.length+' ממליצים'):'לא נמצאו ממליצים כרגע');
+  }catch(e){
+    job.referrers=[];
+    showNotif&&showNotif('⚠️ חיפוש הממליצים נכשל — נסה שוב');
+  }
+  // re-render the host card so the cached result shows
+  if(ctx==='drawer'){if(typeof drawerJobId!=='undefined'&&drawerJobId===jobId&&typeof openJobDrawer==='function')openJobDrawer(jobId);}
+  else{if(typeof submitCardJobId!=='undefined'&&submitCardJobId===jobId&&typeof openSubmitCard==='function')openSubmitCard(jobId);}
 }
 
 async function jobInterviewPrep(jobId){
@@ -7963,7 +8135,7 @@ function openSubmitCard(jobId){
       <div class="sub-donut" style="background:conic-gradient(${mcol} ${m*3.6}deg,var(--bg4) 0)"><div class="sub-donut-in">${m}%</div></div>
       <div style="flex:1;min-width:0">
         ${(typeof jobBreakdownHTML==='function'?jobBreakdownHTML(job.match_breakdown):'')||''}
-        <div class="sub-ic">🎯 סיכוי לזימון לראיון: ~${ic}%</div>
+        <div class="sub-ic">🎯 סיכוי לזימון לראיון: ~${ic}%${(m>=80||(Array.isArray(job.referrers)&&job.referrers.length))?`<span class="sub-ic-ref"> · עם ממליץ: ~${Math.min(60,ic*4)}%</span>`:''}</div>
         <div class="sub-ic-exp">${icExp}</div>
       </div>
     </div>
@@ -7980,6 +8152,7 @@ function openSubmitCard(jobId){
         <div class="sub-cv-block">
           <div style="max-height:150px;overflow:auto;white-space:pre-wrap;font-size:11px;line-height:1.5;background:var(--bg3);border-radius:6px;padding:8px;margin-bottom:6px">${prev}</div>
           <button class="btn bp bsm" onclick="downloadTailoredCV('${job.id}')">⬇️ הורד קו״ח מלא (Word)</button>
+          <button class="btn bs bsm" onclick="printTailoredCV('${job.id}')">🖨️ PDF</button>
         </div>`+skelBlock;
       }
       return `<div class="sub-sec-lbl">📄 קו״ח מותאם</div>
@@ -7987,11 +8160,12 @@ function openSubmitCard(jobId){
         <button class="btn bp bsm" onclick="submitCardTailorCV('${job.id}')">🎯 צור קו״ח מותאם מלא</button>
       </div>`+skelBlock;
     })()}
-    <div class="sub-sec-lbl">לפני הגשה</div>
-    <div class="sub-check">${hasCV?'✅ קו״ח מותאם מוכן':'✖️ אין קו״ח מותאם — הסוכן מכין רק למשרות ≥70%'}</div>
+    <div class="sub-sec-lbl">לפני הגשה — בדיקת ATS</div>
+    ${atsCheckHTML(job)}
     <div class="sub-check">✍️ מכתב מקדים: <button class="btn bs bxs" onclick="genCoverNote('${job.id}')">✍️ צור מכתב מקדים</button></div>
     <div id="sub-ai-out"></div>
     ${knock.length?`<div class="sub-warn">⚠️ אזהרת נוק-אאוט: המודעה דורשת ${escH(knock.join(', '))} — צפה לשאלת סינון אוטומטית בטופס. ענה בזהירות ובאמת.</div>`:''}
+    ${(m>=80||(Array.isArray(job.referrers)&&job.referrers.length))?referrersSectionHTML(job,'sub'):''}
     <div class="sub-actions">
       ${emailM?`<a class="btn bp" href="mailto:${escH(emailM[0])}">📧 הגש במייל: ${escH(emailM[0])}</a>`
         :(job.url||job.link)?`<button class="btn bp" onclick="subOpenUrl('${job.id}')">🚀 פתח את דף ההגשה</button>`

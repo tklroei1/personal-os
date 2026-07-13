@@ -80,6 +80,71 @@ export default async function handler(req, res) {
 
   const q = req.query || {};
   const body = req.body || {};
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  REFERRER ENGINE (Phase 3) — POST {mode:'referrers', company, title}
+  //  2 Tavily LinkedIn searches → Claude Haiku classifies + drafts ready Hebrew
+  //  outreach messages (≤300 chars, tailored per connection type). Silent
+  //  empty-array fallback whenever keys/network/parse fail.
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (req.method === 'POST' && String(body.mode || '') === 'referrers') {
+    const rkey = process.env.TAVILY_API_KEY;
+    const ranthropic = process.env.ANTHROPIC_API_KEY;
+    const rcompany = String(body.company || '').slice(0, 120).trim();
+    const rtitle = String(body.title || '').slice(0, 160).trim();
+    if (!rkey || !rcompany) return res.status(200).json({ referrers: [] });
+    try {
+      const rq1 = 'site:linkedin.com/in "' + rcompany + '" (analyst OR data OR "talent acquisition" OR recruiter OR "team lead")';
+      const rq2 = 'site:linkedin.com/in "' + rcompany + '" "Bar-Ilan"';
+      const rr = await Promise.all([tavily(rkey, rq1, 6), tavily(rkey, rq2, 4)]);
+      const seenU = new Set();
+      const cand = [];
+      [].concat(rr[0].results || [], rr[1].results || []).forEach(function (it) {
+        if (!/linkedin\.com\/in\//i.test(it.url || '')) return;
+        if (seenU.has(it.url)) return;
+        seenU.add(it.url);
+        cand.push({ url: it.url, heading: it.title || '', snippet: (it.content || '').slice(0, 180) });
+      });
+      const top = cand.slice(0, 8);
+      if (!top.length || !ranthropic) return res.status(200).json({ referrers: [] });
+      const list = top.map(function (c, i) { return i + '|' + c.heading + ' :: ' + c.snippet + ' :: ' + c.url; }).join('\n');
+      const rprompt =
+        'אתה עוזר גיוס שמסייע למועמד ישראלי בשם רואי קליין למצוא ממליצים (referrals) בחברה "' + rcompany + '" עבור משרת "' + rtitle + '".\n' +
+        'לפניך תוצאות חיפוש של פרופילי לינקדאין. לכל פרופיל שנראה עובד/ת בחברה, סווג את סוג הקשר והכן הודעת פנייה קצרה בעברית מוכנה לשליחה.\n' +
+        'סוגי קשר (connection_type): "מגייסת" (recruiter / talent acquisition / HR), "עמית מקצועי" (אנליסט / דאטה / תפקיד דומה בצוות), "בוגר בר-אילן" (למד/ה בבר-אילן), "מוביל צוות" (team lead / manager).\n' +
+        'החזר אך ורק JSON תקין במבנה: [{"name":"<שם מלא>","role":"<תפקיד בחברה>","linkedin_url":"<url>","connection_type":"<אחד מהסוגים>","message":"<הודעת פנייה בעברית עד 300 תווים>"}].\n' +
+        'כללי ניסוח ההודעה לפי סוג: מגייסת → פנייה ישירה ומנומסת המזכירה את המשרה "' + rtitle + '" ומבקשת להעביר קורות חיים (בסגנון תבנית Ospovat למגייסים). עמית מקצועי → בקשת הפניה (referral) המזכירה בעדינות "חבר מביא חבר" ואת המשרה "' + rtitle + '". מוביל צוות → פיץ׳ קצר וממוקד על ההתאמה למשרה "' + rtitle + '". בוגר בר-אילן → פנייה חמה על בסיס הרקע האקדמי המשותף בבר-אילן ובקשת עצה/הפניה למשרה "' + rtitle + '".\n' +
+        'כל הודעה חייבת: להזכיר את שם המשרה המדויק "' + rtitle + '", להיות עד 300 תווים, כתובה בעברית, חתומה בשם רואי. אם פרופיל לא נראה רלוונטי לחברה — דלג עליו לגמרי.\n' +
+        'פרופילים:\n' + list;
+      const ar = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': ranthropic, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1800, messages: [{ role: 'user', content: rprompt }] }),
+      });
+      const ad = await ar.json();
+      const atxt = (ad.content && ad.content[0] && ad.content[0].text) || '';
+      const am = atxt.match(/\[[\s\S]*\]/);
+      let referrers = [];
+      if (am) { try { referrers = JSON.parse(am[0]); } catch (e) { referrers = []; } }
+      if (!Array.isArray(referrers)) referrers = [];
+      referrers = referrers
+        .filter(function (x) { return x && (x.name || x.linkedin_url); })
+        .map(function (x) {
+          return {
+            name: String(x.name || '').slice(0, 120),
+            role: String(x.role || '').slice(0, 160),
+            linkedin_url: String(x.linkedin_url || '').slice(0, 400),
+            connection_type: String(x.connection_type || '').slice(0, 40),
+            message: String(x.message || '').slice(0, 320),
+          };
+        })
+        .slice(0, 6);
+      return res.status(200).json({ referrers: referrers });
+    } catch (e) {
+      return res.status(200).json({ referrers: [] });
+    }
+  }
+
   const broad = String(q.broad || body.broad || '') === '1';
   const startupFocus = String(q.startup != null ? q.startup : (body.startup != null ? body.startup : '1')) === '1';
   const roles = (q.roles || body.roles ? String(q.roles || body.roles).split(',').map(function (s) { return s.trim(); }).filter(Boolean) : DEFAULT_ROLES);
