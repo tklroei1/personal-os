@@ -20,6 +20,10 @@ const TZ          = 'Asia/Jerusalem';
 const PER_SEARCH    = 10;   // results per search
 const PER_RUN       = 20;   // results per run (2 searches)
 const MONTHLY_CAP   = 4000; // results/month ≈ $4.0 — leaves margin under $5
+// Applicant-crowding threshold: LinkedIn has NO public URL param for "under N
+// applicants", so we parse the count from scraped data and score on our side.
+// ≤ MAX_APPLICANTS = uncrowded (boost); 26–100 = neutral; >100 = skip entirely.
+const MAX_APPLICANTS = 25;
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -37,14 +41,36 @@ const ABROAD_RE = /\b(bangkok|relocation|remote.{0,15}(us|usa|europe)|based in (
 // not found on the company's own ATS/Comeet career page).
 const GHOST_PREFIX = '⚠️ ייתכן משרת רפאים — לא נמצאה בדף הקריירה. ';
 
+// ── Applicant-count parsing (LinkedIn has no URL filter for this) ─────────────
+// Try the structured Apify fields first, then fall back to regexes on any text
+// snippet. Returns an integer applicant count, or null when unknown.
+function parseApplicants(j) {
+  if (!j) return null;
+  for (const v of [j.applicantsCount, j.applicationsCount, j.applicants]) {
+    if (v === null || v === undefined || v === '') continue;
+    const n = parseInt(v, 10);
+    if (Number.isFinite(n) && n >= 0) return n;
+  }
+  const txt = `${j.applicantsText || ''} ${j.descriptionText || j.description || ''}`;
+  let m = txt.match(/(\d+)\s*applicants/i);
+  if (m) return parseInt(m[1], 10);
+  m = txt.match(/Be among the first (\d+)/i);
+  if (m) return parseInt(m[1], 10);
+  return null;
+}
+
 // ── Interview-chance model (mirrors the client-side interviewChance in index.html) ──
-// base by score, × freshness multiplier from posted date, × ghost penalty; clamp 1-40.
+// base by score, × freshness multiplier from posted date, × ghost penalty,
+// × applicant-crowding multiplier; clamp 1-40.
 function computeInterviewChance(job, score, ghost) {
   const base = score >= 85 ? 12 : score >= 75 ? 8 : score >= 65 ? 5 : 3;
   const ref = new Date(job.postedAt || job.postedDate || job.posted || 0).getTime();
   const ageH = ref > 0 ? (Date.now() - ref) / 3600000 : 9999;
   let mult = ageH < 24 ? 1.5 : ageH < 72 ? 1.0 : ageH < 168 ? 0.6 : 0.25;
   if (ghost) mult *= 0.3;
+  // Crowding: ≤25 applicants → boost, 26–100 → neutral, >100 → penalty. Unknown → neutral.
+  const ap = job.applicants;
+  if (typeof ap === 'number') mult *= ap <= MAX_APPLICANTS ? 1.3 : ap <= 100 ? 1.0 : 0.6;
   return Math.max(1, Math.min(40, Math.round(base * mult) || 1));
 }
 
@@ -103,7 +129,7 @@ async function apifySearch(keywords, location) {
     const status = run?.data?.status;
     if (status === 'SUCCEEDED') {
       const dsId = run.data.defaultDatasetId;
-      return fetch(`https://api.apify.com/v2/datasets/${dsId}/items?token=${APIFY_TOKEN}&limit=${PER_SEARCH}&fields=id,title,companyName,location,link,seniorityLevel,descriptionText,postedAt`).then(r => r.json());
+      return fetch(`https://api.apify.com/v2/datasets/${dsId}/items?token=${APIFY_TOKEN}&limit=${PER_SEARCH}&fields=id,title,companyName,location,link,seniorityLevel,descriptionText,postedAt,applicantsCount,applicationsCount,applicants,applicantsText`).then(r => r.json());
     }
     if (['FAILED', 'ABORTED', 'TIMED-OUT'].includes(status)) throw new Error('Apify run ' + status);
   }
@@ -294,6 +320,8 @@ async function uploadJob(job, m) {
         source: (job.descriptionText || '').includes('company-careers') ? 'company' : 'linkedin',
         description: (job.ghost ? GHOST_PREFIX : '') + (m.reason || ''), location: job.location || '',
         posted_at: job.postedAt || job.postedDate || job.posted || null,
+        // parsed applicant count (null when unknown) — drives crowding logic
+        applicants: (typeof job.applicants === 'number') ? job.applicants : null,
         // interview-probability estimate (server mirror of client interviewChance)
         interview_chance: computeInterviewChance(job, m.score, job.ghost),
         // rich match data → rendered in the job drawer
@@ -376,11 +404,15 @@ export async function runJobHunt(sendMessage, { force = false } = {}) {
   if (!jobs.length) { await sendMessage(`🎯 ציד משרות — לא התקבלו תוצאות מהסריקה (ייתכן שגיאת Apify).${SIG}`); return; }
 
   // 2. Hard filters (free — before spending Claude tokens)
+  // Attach a parsed applicant count to every job so the crowding rules below and
+  // the interview-chance model can use it.
+  jobs.forEach(j => { j.applicants = parseApplicants(j); });
   const seen = new Set(state.uploaded || []);
   const seenIds = new Set(state.seenIds || []);
   const newJobs = jobs.filter(j => !seenIds.has(j.id)); // never re-process a job seen in any past run
   jobs.forEach(j => j.id && seenIds.add(j.id));
   state.seenIds = [...seenIds].slice(-1500);
+  let crowdedSkip = 0; // known applicant count > 100 → too crowded, skip entirely
   const filtered = newJobs.filter(j => {
     const t = j.title || '';
     if (SENIOR_RE.test(t) && !MANAGER_OK_RE.test(t)) return false;
@@ -388,8 +420,12 @@ export async function runJobHunt(sendMessage, { force = false } = {}) {
     if (ABROAD_RE.test(t + ' ' + (j.descriptionText || '').slice(0, 300))) return false;
     if (!LOCATION_ALLOW.test(j.location || '')) return false;
     if (seen.has(`${t}|${j.companyName}`)) return false; // already uploaded before
+    // Applicant crowding: KNOWN count >100 → skip; 26–100 kept (penalized later);
+    // ≤25 kept (boosted later); unknown (null) → neutral, kept.
+    if (typeof j.applicants === 'number' && j.applicants > 100) { crowdedSkip++; return false; }
     return true;
   });
+  if (crowdedSkip) console.log(`[jobhunt] skipped ${crowdedSkip} over-crowded roles (>100 applicants)`);
 
   // 3. Score with Claude
   let scored = [];
@@ -414,7 +450,9 @@ export async function runJobHunt(sendMessage, { force = false } = {}) {
     try { ok = await uploadJob(j, m); } catch {}
     if (ok) { seen.add(`${j.title}|${j.companyName}`); }
     const lvl = m.level ? ` (${m.level})` : '';
-    lines.push(`• [${m.score}%] ${j.title} — ${j.companyName} | ${j.location}\n  ${m.cat}${lvl} | ${m.reason}\n  ${(j.link || '').split('?')[0]}\n  ${ok ? '✅ הועלה ל-Personal OS' : '⚠️ העלאה נכשלה'}`);
+    // Applicant window: known count ≤25 → advertise the open window.
+    const appTag = (typeof j.applicants === 'number' && j.applicants <= MAX_APPLICANTS) ? ` 👥${j.applicants} — חלון פתוח!` : '';
+    lines.push(`• [${m.score}%] ${j.title} — ${j.companyName} | ${j.location}${appTag}\n  ${m.cat}${lvl} | ${m.reason}\n  ${(j.link || '').split('?')[0]}\n  ${ok ? '✅ הועלה ל-Personal OS' : '⚠️ העלאה נכשלה'}`);
   }
   state.uploaded = [...seen].slice(-300);
   saveState(state);

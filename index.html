@@ -4238,7 +4238,7 @@ function executeClientTool(toolName,input){
     case'add_goal':       return P.addGoal({text:input.text||input.title,emoji:input.emoji});
     case'add_idea':       return P.addIdea({text:input.text||input.title,cat:input.cat});
     case'add_journal':    return P.addJournal({text:input.text||input.content});
-    case'add_job':        return P.addJob({title:input.title,company:input.company,status:input.status,link:input.link,match:input.match,source:input.source,description:input.description,location:input.location,posted_at:input.posted_at||input.published_at||input.posted,category:input.category,user_status:input.user_status,cv_summary:input.cv_summary,cv_bullets:input.cv_bullets,cv_file:input.cv_file,missing_keywords:input.missing_keywords,matched_keywords:input.matched_keywords});
+    case'add_job':        return P.addJob({title:input.title,company:input.company,status:input.status,link:input.link,match:input.match,source:input.source,description:input.description,location:input.location,posted_at:input.posted_at||input.published_at||input.posted,category:input.category,user_status:input.user_status,cv_summary:input.cv_summary,cv_bullets:input.cv_bullets,cv_file:input.cv_file,missing_keywords:input.missing_keywords,matched_keywords:input.matched_keywords,applicants:input.applicants});
     case'update_project': return P.updateProject({id:input.id||input.name,progress:input.progress});
   }
 }
@@ -4407,6 +4407,7 @@ window.POS = (function(){
         job_type:a.job_type||'',
         category:a.category||(typeof classifyJobCategory==='function'?classifyJobCategory({title:title,description_summary:a.description||''}):''),
         posted_at:a.posted_at||a.published_at||a.posted||null,
+        applicants:(typeof a.applicants==='number')?a.applicants:(a.applicants!=null&&a.applicants!==''&&Number.isFinite(Number(a.applicants))?Number(a.applicants):null),
         user_status:_ustat,
         cv_file:a.cv_file||'',
         cv_summary:a.cv_summary||'',
@@ -6985,8 +6986,8 @@ function liJobsUrl(keywords){
   p.set('keywords',keywords||'');
   p.set('location','Israel');p.set('geoId',LI_ISRAEL_GEO);
   p.set('f_E','1,2,3');      // Intern, Entry, Associate
-  p.set('f_TPR','r604800');  // posted in the last week (early-applicant edge)
-  p.set('sortBy','DD');      // most recent first
+  p.set('f_TPR','r86400');   // posted in the last 24h — freshest = fewest applicants proxy
+  p.set('sortBy','DD');      // most recent first (newest)
   return 'https://www.linkedin.com/jobs/search/?'+p.toString();
 }
 function liPeopleUrl(query){return 'https://www.linkedin.com/search/results/people/?keywords='+encodeURIComponent(query)+'&origin=GLOBAL_SEARCH_HEADER';}
@@ -7853,6 +7854,9 @@ function interviewChance(job){
   const ageH=ref>0?(Date.now()-ref)/3600000:9999;
   let mult=ageH<24?1.5:ageH<72?1.0:ageH<168?0.6:0.25;
   if(ageH>720)mult*=0.3; // ghost-job penalty (>30 days)
+  // applicant-crowding multiplier: ≤25 boost, 26–100 neutral, >100 penalty; unknown → neutral
+  const ap=job.applicants;
+  if(typeof ap==='number')mult*=ap<=25?1.3:ap<=100?1.0:0.6;
   return Math.max(1,Math.min(40,Math.round(base*mult)||1));
 }
 window.interviewChance=interviewChance;
@@ -7892,6 +7896,7 @@ function dqRowHTML(job){
         <span class="dq-chip dq-fresh${fr.hot?' hot':''}">${fr.label}</span>
         <span class="dq-chip dq-match ${mc}">${job.match_score||0}% התאמה</span>
         <span class="dq-chip dq-ic">סיכוי לראיון ~${ic}%</span>
+        ${typeof job.applicants==='number'?`<span class="dq-chip dq-app" style="${job.applicants<=25?'background:var(--green);color:#fff':'opacity:.6'}">👥 ${job.applicants} מגישים</span>`:''}
         ${hasCV?'<span class="dq-chip dq-cv">📄 קו״ח מוכן</span>':''}
         ${job.user_status==='ready_to_apply'?'<span class="dq-chip dq-ready">🟢 מוכן להגשה</span>':''}
       </div>
@@ -7938,9 +7943,12 @@ function openSubmitCard(jobId){
   const desc=(job.description_full||'')+' '+(job.description_summary||'');
   const emailM=desc.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
   const knock=(job.missing_keywords||[]).filter(k=>/שנות ניסיון|years/i.test(String(k)));
-  const icExp=fr.ageH<24?'משרה טרייה (פחות מ-24 שעות) + '+m+'% התאמה — חלון הזהב להגשה':
+  let icExp=fr.ageH<24?'משרה טרייה (פחות מ-24 שעות) + '+m+'% התאמה — חלון הזהב להגשה':
     fr.ageH<168?'המשרה עדיין רלוונטית ('+fr.label+') עם '+m+'% התאמה — כדאי להגיש היום':
     'משרה ותיקה ('+fr.label+') — הסיכוי יורד עם הזמן, עדיף להתמקד בטריות';
+  if(typeof job.applicants==='number')
+    icExp+=job.applicants<=25?' · רק '+job.applicants+' הגישו — חלון פתוח':
+      job.applicants<=100?' · '+job.applicants+' מגישים':' · '+job.applicants+' מגישים — צפוף מאוד';
   const box=document.getElementById('sub-card');
   if(!box)return;
   box.innerHTML=`
