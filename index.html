@@ -7746,9 +7746,11 @@ function deleteDSExam(id){
 /* ===== HUNT/MANAGE v2 (Phase 1) ===== */
 // Two page modes: 'hunt' (daily submission queue) / 'manage' (pipeline kanban).
 // Persisted in localStorage pos_job_mode. All markup hooks carry the same marker comment.
-let jobMode=(()=>{try{return localStorage.getItem('pos_job_mode')||'hunt';}catch(e){return'hunt';}})();
-let jmShowArchive=false;
-let submitCardJobId=null;
+// var (not let): init() runs mid-script (line ~5640) and may call renderJobsPage()
+// before these lines execute — var hoists safely (undefined) instead of TDZ-crashing.
+var jobMode=(()=>{try{return localStorage.getItem('pos_job_mode')||'hunt';}catch(e){return'hunt';}})();
+var jmShowArchive=false;
+var submitCardJobId=null;
 
 function setJobMode(m){
   jobMode=(m==='manage')?'manage':'hunt';
@@ -7759,7 +7761,7 @@ function setJobMode(m){
 
 // Central page renderer — decides which sections are visible per mode.
 function renderJobsPage(){
-  const hunt=jobMode==='hunt';
+  const hunt=(typeof jobMode==='undefined'||!jobMode)?true:jobMode!=='manage'; // default hunt pre-init
   const bh=document.getElementById('jmode-btn-hunt'),bm=document.getElementById('jmode-btn-manage');
   if(bh)bh.classList.toggle('on',hunt);
   if(bm)bm.classList.toggle('on',!hunt);
