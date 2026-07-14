@@ -182,6 +182,12 @@ P(ראיון) = base(match) × freshness × crowding × referral × ghost
 3. **סיכום שבועי**: כרטיס ב-Manage — הוגשו/תגובות/ראיונות/% המרה מ-`stage_history` (7 ימים אחרונים).
 4. **ניקיונות**: תיקון תווית "מרכז הפיקוד"→"דשבורד" בפאנל הצייד; איחוד תיעוד לו"ז ב-SETUP.md.
 
+### שלב 5 — תיקונים ומקורות ✅ **בוצע ואומת חי (14/7/2026, commit 8fb2c94)**
+1. **קו״ח עמוד אחד**: פרומפט `tailor` ב-`api/ai.js` קיבל תקציב קשיח (≤320 מילים / 2200 תווים, תקציר ≤2 שורות, ≤3 תפקידים × ≤3 בולטים, "לחתוך לא לדחוס"). חלון ההדפסה (`printTailoredCV`) קיבל auto-fit: מדידת גובה `#sheet` והקטנת פונט 11pt→8.6pt עד שנכנס ל-A4 יחיד. קובץ ה-Word + `renderTailoredCVDoc` יושרו לאותו עיצוב (A4, 0.5in, 10.5pt, קווי סקשן). **אומת: 247 מילים, גובה 481px « 1027px (A4), חתך תפקידים לא רלוונטיים.**
+2. **תיקון תקיעה**: `downloadTailoredCV` + `findReferrers` קיבלו timeout 60s (`AbortController`), נעילת in-flight (`_cvTailorInFlight`), ושחרור ב-`finally`. `submitCardTailorCV` מציג loading state בכפתור ונחסם בזמן ריצה. אין יותר מצב תקוע/בקשה כפולה.
+3. **Comeet עבר ל-Vercel**: הבוט ב-Railway מת (אפס משרות לוחות שבועות). `scanComeetBoards()` נוסף ל-`api/get-agent-results.js` (import מ-`job-hunt-config.js`, 9 לוחות מאומתים, טוקן נפתר בזמן ריצה — אפס סודות בגיט), רץ רק ב-`force`/cron, מתמזג לפני ניקוד Haiku, timeout per-fetch, fallback שקט. **אומת חי: boardsScanned 9/9, shared-config, משרות אמיתיות (Port/Team8/Guideline) עם ניקוד וקישור הגשה.**
+- TODO שנותרו: מקורות דרושים/AllJobs · ריטואל ONE datAI (צירוף PDF + שליחה ב-Gmail) · אפשר לכבות/למחוק את הבוט ב-Railway (מיותר כעת).
+
 ### קריטריוני קבלה (לכל שלב)
 ci-validate עובר · אין רגרסיה בקנבן/טבלה/Drawer · מובייל תקין (viewport 380px) · כל פיצ'ר חדש עובד גם בלי מפתחות API (fallback שקט) · עברית RTL תקינה.
 
