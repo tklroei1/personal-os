@@ -52,18 +52,29 @@ Quick start:
 
 ---
 
-## Auto Job Search — `/api/cron/job-hunt`
+## Job Hunt — the daily schedule (single source of truth)
 
-The endpoint exists, but **Vercel Hobby plan does NOT support cron jobs**, so the schedule was removed from `vercel.json`. To run it daily:
+All Israel local time (Asia/Jerusalem).
 
-**Option A — Upgrade to Vercel Pro** (~$20/mo) and re-add to `vercel.json`:
+| Time (Israel) | What runs | Where | Notes |
+|---|---|---|---|
+| **07:30** | Job scan #1 (Apify LinkedIn + Greenhouse/Lever/Comeet) | Railway bot — `whatsapp-bot/job-hunt-agent.js` | Scores against the profile, tailors the CV for ≥70 matches, uploads via webhook |
+| **08:00** | Daily briefing + push ("התור היומי שלך מוכן") | Vercel cron — `api/cron/job-hunt.js` | The handler **gates on `israelHour === 8`** and silently skips at any other hour |
+| **13:00** | Job scan #2 | Railway bot | Same pipeline as the morning scan |
+
+### Vercel cron wiring
+`vercel.json` fires the endpoint at **05:00 and 06:00 UTC**:
+
 ```json
 "crons": [
+  { "path": "/api/cron/job-hunt", "schedule": "0 5 * * *" },
   { "path": "/api/cron/job-hunt", "schedule": "0 6 * * *" }
 ]
 ```
 
-**Option B — External scheduler (free)**: use cron-job.org or GitHub Actions to ping the endpoint daily. The endpoint requires the `Authorization: Bearer <CRON_SECRET>` header to authorize.
+Two entries because Vercel crons are UTC-only and Israel switches between UTC+3 (IDT, summer) and UTC+2 (IST, winter). One of them always lands on 08:00 Israel; the other hits the `israelHour !== 8` guard in `api/cron/job-hunt.js` and returns `{skipped:...}` without doing any work. **Do not "fix" the duplicate — it is the DST guard.**
+
+Manual trigger (requires the `Authorization: Bearer <CRON_SECRET>` header):
 
 ```
 curl -H "Authorization: Bearer YOUR_CRON_SECRET" \
@@ -71,6 +82,21 @@ curl -H "Authorization: Bearer YOUR_CRON_SECRET" \
 ```
 
 Requires `TAVILY_API_KEY` and `CRON_SECRET` env vars.
+
+### Railway bot schedule
+The 07:30 / 13:00 scans are scheduled inside the Railway worker (`whatsapp-bot/`). "חפש משרות" over WhatsApp triggers the same scan on demand.
+
+---
+
+## Job list cloud sync (KV) — `fn=jobs_get` / `fn=jobs_put`
+
+`S.jobsV2` is mirrored to Upstash / Vercel KV so the pipeline survives a device change.
+
+- Routes: `/api/jobs-get` → `api/ai.js?fn=jobs_get`, `/api/jobs-put` → `api/ai.js?fn=jobs_put` (no new serverless function — Hobby is capped at 12).
+- Key: `pos_jobs_{userId}` (userId = the Google `sub`, same source as backup/restore; `anon` when signed out).
+- Client: pulls on boot, pushes debounced 5s from `save()`. localStorage stays the cache / instant-read source of truth.
+- Env vars: `KV_REST_API_URL` + `KV_REST_API_TOKEN` (also accepts `UPSTASH_REDIS_REST_*` / `STORAGE_KV_REST_API_*`).
+- **Without KV env vars** the endpoints return `{ok:false, reason:'no_kv'}` and the client silently ignores it — the app works exactly as before, fully local.
 
 ---
 

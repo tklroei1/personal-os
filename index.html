@@ -33,8 +33,31 @@
   --purple:#7c3aed;--purple-bg:#ede9fe;
   --pink:#db2777;--pink-bg:#fce7f3;
   --radius:14px;--radius-sm:9px;--radius-xs:6px;
+  --radius-lg:18px;
+  --spring:cubic-bezier(.34,1.56,.64,1);
   --shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 12px rgba(0,0,0,0.04);
   --shadow-md:0 2px 8px rgba(0,0,0,0.08),0 8px 24px rgba(0,0,0,0.06);
+}
+/* ===== Phase 4: DARK MODE — follows the OS setting. Every surface is token-based,
+   so redefining the palette flips the whole app (job components included). ===== */
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#141310;--bg2:#1c1b17;--bg3:#25231e;--bg4:#312e27;
+    --border:#34312a;--border2:#48443b;
+    --text:#f2efe9;--text2:#b5afa3;--text3:#867f74;
+    --accent:#8b83ff;--accent2:#7a72f0;--accent-light:#2b2747;
+    --green:#4ade80;--green-bg:#0f3320;
+    --amber:#fbbf24;--amber-bg:#3a2a08;
+    --red:#f87171;--red-bg:#3a1818;
+    --blue:#60a5fa;--blue-bg:#152a4a;
+    --teal:#2dd4bf;--teal-bg:#0c3330;
+    --orange:#fb923c;--orange-bg:#3a2410;
+    --purple:#a78bfa;--purple-bg:#2b2146;
+    --pink:#f472b6;--pink-bg:#3d1b2c;
+    --shadow:0 1px 3px rgba(0,0,0,.45),0 4px 12px rgba(0,0,0,.30);
+    --shadow-md:0 2px 8px rgba(0,0,0,.55),0 10px 28px rgba(0,0,0,.40);
+  }
+  html{color-scheme:dark}
 }
 body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
 /* LAYOUT */
@@ -408,9 +431,9 @@ select.inp{cursor:pointer}
 .kb-card-company{font-size:11px;color:var(--text2)}
 .kb-card-meta{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;align-items:center}
 .kb-match{font-size:11px;font-weight:700;padding:2px 6px;border-radius:10px}
-.kb-match-high{background:#dcfce7;color:#16a34a}
-.kb-match-mid{background:#fef3c7;color:#d97706}
-.kb-match-low{background:#fee2e2;color:#dc2626}
+.kb-match-high{background:var(--green-bg);color:var(--green)}
+.kb-match-mid{background:var(--amber-bg);color:var(--amber)}
+.kb-match-low{background:var(--red-bg);color:var(--red)}
 .kb-source{font-size:9px;padding:2px 5px;border-radius:8px;background:var(--bg4);color:var(--text2);font-weight:500}
 .kb-days{font-size:9px;color:var(--text3);margin-right:auto}
 .kb-card-desc{font-size:10px;color:var(--text3);line-height:1.4;margin-top:4px}
@@ -506,9 +529,9 @@ table.jt tr.jt-row:hover{background:var(--bg3)}
 .pd-divider{height:1px;background:var(--border);margin:2px 0}
 /* ── MATCH SCORE BADGE ── */
 .match-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700}
-.match-high{background:#dcfce7;color:#15803d}
-.match-mid{background:#fef3c7;color:#b45309}
-.match-low{background:#fee2e2;color:#dc2626}
+.match-high{background:var(--green-bg);color:var(--green)}
+.match-mid{background:var(--amber-bg);color:var(--amber)}
+.match-low{background:var(--red-bg);color:var(--red)}
 /* ── MIN MATCH SLIDER ── */
 .match-slider-wrap{display:flex;align-items:center;gap:8px;padding:6px 0}
 input[type=range].match-slider{flex:1;accent-color:var(--accent)}
@@ -693,18 +716,19 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 .soon-tag{font-size:9px;background:var(--amber-bg);color:var(--amber);border-radius:4px;padding:0 4px;margin-right:3px;font-weight:700}
 .fchip.on .soon-tag{background:rgba(255,255,255,.25);color:#fff}
 /* Daily queue */
-.dq-row{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow);transition:transform .2s ease,box-shadow .2s ease}
+.dq-row{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease;animation:dqIn .26s ease backwards}
 .dq-row:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
+@keyframes dqIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .dq-main{flex:1;min-width:0;cursor:pointer}
 .dq-title{font-size:14px;font-weight:700;margin-bottom:2px}
 .dq-co{font-size:12px;color:var(--text2);margin-bottom:7px}
 .dq-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .dq-chip{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);white-space:nowrap}
 .dq-fresh.hot{background:var(--orange-bg);color:var(--orange);border-color:var(--orange)}
-.dq-match.kb-match-high{background:var(--green-bg);color:var(--green);border-color:var(--green)}
-.dq-match.kb-match-mid{background:var(--amber-bg);color:var(--amber);border-color:var(--amber)}
-.dq-match.kb-match-low{background:var(--red-bg);color:var(--red);border-color:var(--red)}
-.dq-ic{background:var(--accent-light);color:var(--accent);border-color:var(--accent)}
+.dq-match.kb-match-high{background:linear-gradient(135deg,var(--green-bg),var(--bg2));color:var(--green);border-color:var(--green)}
+.dq-match.kb-match-mid{background:linear-gradient(135deg,var(--amber-bg),var(--bg2));color:var(--amber);border-color:var(--amber)}
+.dq-match.kb-match-low{background:linear-gradient(135deg,var(--red-bg),var(--bg2));color:var(--red);border-color:var(--red)}
+.dq-ic{background:linear-gradient(135deg,var(--accent-light),var(--bg3));color:var(--accent);border-color:var(--accent)}
 .dq-cv{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
 .dq-ready{background:var(--green-bg);color:var(--green);border-color:var(--green)}
 .dq-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
@@ -718,7 +742,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 .sub-card-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
 .sub-card-bg.open{display:flex}
 @keyframes subPop{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
-.sub-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;position:relative;box-shadow:var(--shadow-md)}
+.sub-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;position:relative;box-shadow:var(--shadow-md)}
 .sub-card-bg.open .sub-card{animation:subPop .24s cubic-bezier(.34,1.56,.64,1)}
 .sub-close{position:absolute;top:14px;left:14px;background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:13px;color:var(--text2);line-height:1}
 .sub-title{font-size:18px;font-weight:800;margin-bottom:3px;padding-left:34px}
@@ -750,7 +774,100 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
 .ref-link{display:inline-block;font-size:11.5px;color:var(--accent);text-decoration:none;margin:2px 0 6px}
 .ref-msg{font-size:12px;line-height:1.6;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;white-space:pre-wrap;margin-bottom:6px}
 .ref-copy{font-size:11px}
-@media(max-width:768px){.sub-card-bg{padding:0;align-items:flex-end}.sub-card{max-height:94vh;border-radius:20px 20px 0 0;max-width:none}}
+@media(max-width:768px){
+  .sub-card-bg{padding:0;align-items:flex-end}
+  .sub-card{max-height:94vh;border-radius:16px 16px 0 0;max-width:none;padding-top:14px}
+  .sub-card::before{content:'';display:block;width:38px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 12px} /* drag-handle bar */
+  .sub-card-bg.open .sub-card{animation:subSheet .24s cubic-bezier(.34,1.2,.64,1)}
+  @keyframes subSheet{from{transform:translateY(100%)}to{transform:none}}
+}
+/* ===== Phase 4 polish: mode-switch fade + agents accordion + weekly summary ===== */
+@keyframes jmFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.jm-fade{animation:jmFade .18s ease}
+.jchat-acc{margin-top:8px}
+.jchat-summary{cursor:pointer;list-style:none;font-size:14px;font-weight:700;color:var(--text);background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:12px 16px;box-shadow:var(--shadow);user-select:none;transition:background .18s ease}
+.jchat-summary:hover{background:var(--bg3)}
+.jchat-summary::-webkit-details-marker{display:none}
+.jchat-summary::after{content:'▾';float:left;color:var(--text3);transition:transform .18s ease}
+.jchat-acc[open] .jchat-summary::after{transform:rotate(180deg)}
+.jchat-acc[open] .jchat-summary{border-radius:16px 16px 0 0}
+.jchat-acc .g2{margin-top:10px}
+.wk-summary{background:var(--bg2);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:12px 14px;margin-bottom:12px;animation:jmFade .18s ease}
+.wk-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:8px}
+.wk-cells{display:flex;gap:8px}
+.wk-cell{flex:1;text-align:center;background:var(--bg3);border-radius:12px;padding:9px 4px}
+.wk-n{font-size:17px;font-weight:800;color:var(--text);display:flex;align-items:center;justify-content:center;gap:4px}
+.wk-l{font-size:10.5px;color:var(--text2);margin-top:2px}
+.wk-up{font-size:11px;color:var(--green)}
+.wk-dn{font-size:11px;color:var(--red)}
+.wk-eq{font-size:11px;color:var(--text3)}
+@media(max-width:480px){.wk-n{font-size:15px}.wk-cell{padding:8px 2px}}
+/* ═══ Phase 4 — Apple-grade polish for page-jobs (existing tokens only, RTL-safe) ═══
+   One meaning per colour: green = מוכן להגשה · blue = הוגש · teal = בתהליך · gold(amber) = הצעה */
+:root{
+  --stage-discovered:var(--text3);--stage-saved:var(--green);--stage-applied:var(--blue);
+  --stage-phone:var(--teal);--stage-interview:var(--teal);--stage-offer:var(--amber);--stage-archive:var(--border2);
+}
+/* Job-card status banner (was hard-coded hex → tokens, so dark mode stays legible) */
+.jsb{margin-top:5px;padding:3px 8px;border-radius:8px;font-size:10px;font-weight:600;line-height:1.55}
+.jsb-applied{background:var(--blue-bg);color:var(--blue)}
+.jsb-ready{background:var(--green-bg);color:var(--green)}
+/* Kanban — layered surfaces, one soft shadow, spring press */
+.kb-col{border-radius:var(--radius-lg)}
+.kb-col-hdr{padding:11px 13px;border-bottom-width:2px}
+.kb-card{border-radius:16px;padding:11px 12px;box-shadow:var(--shadow);
+  transition:transform .18s var(--spring),box-shadow .18s ease,border-color .18s ease}
+.kb-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--accent)}
+.kb-card:active{transform:scale(.985);transition-duration:.1s}
+.kb-card.sortable-chosen{transform:scale(1.03);box-shadow:var(--shadow-md);opacity:.9}
+.kb-match{border-radius:999px;padding:2px 8px}
+/* Drawer — blurred scrim + spring slide */
+.job-drawer-bg{background:rgba(0,0,0,.32);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.job-drawer{border-radius:0 var(--radius-lg) var(--radius-lg) 0;box-shadow:var(--shadow-md);
+  transition:transform .25s var(--spring)}
+@media(max-width:768px){.job-drawer{border-radius:var(--radius-lg) var(--radius-lg) 0 0}}
+/* Daily queue — blue is reserved for "הוגש", so the "קו״ח מוכן" chip goes neutral */
+.dq-cv{background:var(--bg4);color:var(--text2);border-color:var(--border2)}
+.dq-row{border-radius:var(--radius-lg);transition:transform .2s var(--spring),box-shadow .2s ease,border-color .2s ease}
+.dq-row:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--accent)}
+.dq-row:active{transform:scale(.99);transition-duration:.1s}
+/* Submit card modal */
+.sub-card-bg{background:rgba(0,0,0,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.sub-card{border-radius:20px;box-shadow:var(--shadow-md)}
+.sub-score-row{border-radius:18px}
+.sub-cv-block{border-radius:14px}
+.ref-card{border-radius:14px;transition:border-color .18s ease,transform .18s var(--spring)}
+.ref-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+/* Mode / view toggles — spring + real tap targets */
+.jmode-seg{border-radius:16px}
+.jmode-btn{min-height:44px;transition:background .2s var(--spring),color .18s ease,transform .18s var(--spring)}
+.jmode-btn:active{transform:scale(.97)}
+.jview-btn{transition:background .18s ease,color .18s ease}
+/* Weekly summary strip */
+.wk-summary{border-radius:var(--radius-lg)}
+.wk-cell{transition:transform .18s var(--spring)}
+.wk-cell:hover{transform:translateY(-1px)}
+.wk-empty{font-size:12.5px;color:var(--text2);line-height:1.7;text-align:center;padding:8px 4px 4px}
+/* Mobile-first — everything usable at 380px, no horizontal overflow, tap targets ≥44px */
+@media(max-width:480px){
+  .kanban-wrap{padding:10px;gap:8px}
+  .kb-col{flex:0 0 78vw;max-width:300px}
+  .jmode-btn{font-size:13px;padding:11px 8px}
+  .dq-row{padding:12px 13px;gap:9px}
+  .dq-actions .btn{min-height:44px}
+  .sub-card{padding:16px 14px 22px}
+  .sub-title{font-size:16px;padding-left:52px}
+  .sub-close{width:44px;height:44px;font-size:15px}   /* ≥44px tap target */
+  .sub-score-row{flex-direction:column;align-items:center;text-align:center;gap:10px}
+  .sub-actions{flex-direction:column}
+  .sub-actions .btn,.sub-actions a.btn{min-height:44px}
+  .jview-btn{min-height:44px;padding:5px 14px}
+  .fchip{min-height:36px;display:inline-flex;align-items:center;padding:5px 11px}
+  .wk-cells{gap:6px}
+}
+@media(prefers-reduced-motion:reduce){
+  .kb-card,.dq-row,.jmode-btn,.job-drawer,.wk-cell,.ref-card{transition:none!important;animation:none!important}
+}
 </style>
 </head>
 <body>
@@ -1294,23 +1411,23 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
         <div class="kb-col-cnt" id="kb-discovered"></div>
       </div>
       <div class="kb-col" data-stage="saved">
-        <div class="kb-col-hdr">⭐ <span>שמורות</span><span class="nbadge" id="kb-cnt-saved" style="background:var(--blue)">0</span></div>
+        <div class="kb-col-hdr">⭐ <span>שמורות</span><span class="nbadge" id="kb-cnt-saved" style="background:var(--green)">0</span></div>
         <div class="kb-col-cnt" id="kb-saved"></div>
       </div>
       <div class="kb-col" data-stage="applied">
-        <div class="kb-col-hdr">📤 <span>הוגשו</span><span class="nbadge" id="kb-cnt-applied" style="background:var(--purple)">0</span></div>
+        <div class="kb-col-hdr">📤 <span>הוגשו</span><span class="nbadge" id="kb-cnt-applied" style="background:var(--blue)">0</span></div>
         <div class="kb-col-cnt" id="kb-applied"></div>
       </div>
       <div class="kb-col" data-stage="phone_screen">
-        <div class="kb-col-hdr">📞 <span>טלפוני</span><span class="nbadge" id="kb-cnt-phone_screen" style="background:var(--amber)">0</span></div>
+        <div class="kb-col-hdr">📞 <span>טלפוני</span><span class="nbadge" id="kb-cnt-phone_screen" style="background:var(--teal)">0</span></div>
         <div class="kb-col-cnt" id="kb-phone_screen"></div>
       </div>
       <div class="kb-col" data-stage="interview">
-        <div class="kb-col-hdr">🎤 <span>ראיון</span><span class="nbadge" id="kb-cnt-interview" style="background:var(--orange)">0</span></div>
+        <div class="kb-col-hdr">🎤 <span>ראיון</span><span class="nbadge" id="kb-cnt-interview" style="background:var(--teal)">0</span></div>
         <div class="kb-col-cnt" id="kb-interview"></div>
       </div>
       <div class="kb-col" data-stage="offer">
-        <div class="kb-col-hdr">💼 <span>הצעה</span><span class="nbadge" id="kb-cnt-offer" style="background:var(--green)">0</span></div>
+        <div class="kb-col-hdr">💼 <span>הצעה</span><span class="nbadge" id="kb-cnt-offer" style="background:var(--amber)">0</span></div>
         <div class="kb-col-cnt" id="kb-offer"></div>
       </div>
       <div class="kb-col" data-stage="archive">
@@ -1320,7 +1437,9 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
     </div>
   </div>
 
-  <!-- Dual Agents -->
+  <!-- Dual Agents — collapsed accordion (Phase 4: reduce page clutter) -->
+  <details class="jchat-acc">
+    <summary class="jchat-summary">🤖 צ'אט סוכנים</summary>
   <div class="g2">
     <!-- Job Hunter Agent -->
     <div class="card">
@@ -1365,6 +1484,7 @@ input[type=range].match-slider{flex:1;accent-color:var(--accent)}
       </div>
     </div>
   </div>
+  </details>
 </div>
 
 <!-- UPSELLES -->
@@ -2320,6 +2440,7 @@ function save(){
   localStorage.setItem(storageKey(), JSON.stringify(S));
   posSyncPush();
   cloudBackupDebounced();
+  if(typeof jobsCloudPushDebounced==='function')jobsCloudPushDebounced(); // Phase 4: KV job-list sync (silent, guarded)
 }
 // Auto-open the sync setup dialog if the URL has ?sync=1
 try {
@@ -2605,6 +2726,8 @@ function init(){
   if((S.newsTopics||[]).length)setTimeout(dashFetchNews,1500);
   // Auto-run job/apartment agent on load (throttled to once per 3h)
   setTimeout(autoRefreshAgentResults,2500);
+  // Phase 4: pull the job list from KV once the localStorage state is loaded (guarded, silent)
+  setTimeout(()=>{if(typeof jobsCloudPull==='function')jobsCloudPull();},1800);
   // Maintain the 2x/day job-check reminders (re-armed daily)
   if(typeof ensureJobCheckReminders==='function')ensureJobCheckReminders();
   // WhatsApp command polling + deadline state push
@@ -3817,7 +3940,7 @@ function alertStrongMatches(data){
   const today=new Date().toISOString().split('T')[0];
   if(!S.reminders.some(r=>r.strongAlert&&r.date===today)){
     const now=new Date();const t=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    S.reminders.push({id:Date.now(),strongAlert:true,text:'🔥 '+msg+' — מרכז הפיקוד',date:today,time:t,done:false,notified:true});
+    S.reminders.push({id:Date.now(),strongAlert:true,text:'🔥 '+msg+' — דשבורד',date:today,time:t,done:false,notified:true});
     save();renderDashReminders&&renderDashReminders();
   }
 }
@@ -5118,9 +5241,9 @@ function jobShortDesc(job){
 // Status banner on the job card: drives the apply pipeline UI.
 function jobStatusBanner(job){
   if(job.stage==='applied'||job.user_status==='applied')
-    return`<div style="margin-top:5px;padding:3px 7px;border-radius:5px;font-size:10px;font-weight:600;background:#E7F6EC;color:#1E7A3C">✅ הוגש${job.applied_at?' · '+new Date(job.applied_at).toLocaleDateString('he-IL'):''}</div>`;
+    return`<div class="jsb jsb-applied">✅ הוגש${job.applied_at?' · '+new Date(job.applied_at).toLocaleDateString('he-IL'):''}</div>`;
   if(job.user_status==='ready_to_apply')
-    return`<div style="margin-top:5px;padding:3px 7px;border-radius:5px;font-size:10px;font-weight:600;background:#E8F0FE;color:#1A56DB">🟢 מוכן — היכנס כדי להגיש${job.cv_file?' · 📄 קו״ח מוכן':''}</div>`;
+    return`<div class="jsb jsb-ready">🟢 מוכן — היכנס כדי להגיש${job.cv_file?' · 📄 קו״ח מוכן':''}</div>`;
   return'';
 }
 function kanbanCardHTML(job){
@@ -5258,14 +5381,14 @@ function openJobDrawer(jobId){
       <span class="bdg bdg-gr">${escH(job.source_label||job.source||'')}</span>
       ${days>0?`<span class="bdg bdg-gr">${days} ימים בשלב</span>`:''}
     </div>
-    ${(job.stage==='applied'&&days>=5)?`<div style="background:#f59e0b22;color:#b45309;border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:10px;font-size:12px;line-height:1.6">⏰ הוגש לפני ${days} ימים ללא תשובה — שווה פולואו-אפ. לחץ <b>✍️ מייל פולואו-אפ</b> למטה.</div>`:''}
+    ${(job.stage==='applied'&&days>=5)?`<div style="background:var(--amber-bg);color:var(--amber);border-radius:12px;padding:8px 10px;margin-bottom:10px;font-size:12px;line-height:1.6">⏰ הוגש לפני ${days} ימים ללא תשובה — שווה פולואו-אפ. לחץ <b>✍️ מייל פולואו-אפ</b> למטה.</div>`:''}
     ${job.match_explanation?`<div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:10px;line-height:1.6">💡 ${escH(job.match_explanation)}</div>`:''}
     ${jobBreakdownHTML(job.match_breakdown)}
     ${job.matched_keywords?.length?`<div style="margin-bottom:8px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">מיומנויות שנמצאו</div><div style="display:flex;gap:5px;flex-wrap:wrap">${job.matched_keywords.map(k=>`<span class="bdg bdg-g">${escH(k)}</span>`).join('')}</div></div>`:''}
     ${job.missing_keywords?.length?`<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">מיומנויות חסרות</div><div style="display:flex;gap:5px;flex-wrap:wrap">${job.missing_keywords.map(k=>`<span class="bdg bdg-a">${escH(k)}</span>`).join('')}</div></div>`:''}
     ${job.description_summary?`<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">תיאור</div><div style="font-size:12px;color:var(--text2);line-height:1.6">${escH(job.description_summary)}</div></div>`:''}
-    ${(job.cv_summary||(job.cv_bullets&&job.cv_bullets.length))?`<div style="margin-bottom:12px;background:#E7F6EC;border:1px solid #c8ebd5;border-radius:var(--radius-xs);padding:9px 11px">
-      <div style="font-size:10px;text-transform:uppercase;color:#1E7A3C;margin-bottom:5px;font-weight:700">📄 קו״ח מותאם (אמת בלבד — השלם [add %])</div>
+    ${(job.cv_summary||(job.cv_bullets&&job.cv_bullets.length))?`<div style="margin-bottom:12px;background:var(--green-bg);border:1px solid var(--green);border-radius:14px;padding:9px 11px">
+      <div style="font-size:10px;text-transform:uppercase;color:var(--green);margin-bottom:5px;font-weight:700">📄 קו״ח מותאם (אמת בלבד — השלם [add %])</div>
       ${job.cv_summary?`<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:6px">${escH(job.cv_summary)}</div>`:''}
       ${(job.cv_bullets&&job.cv_bullets.length)?`<ul style="margin:0 0 8px;padding-inline-start:18px;font-size:12px;color:var(--text2);line-height:1.6">${job.cv_bullets.map(b=>`<li>${escH(b)}</li>`).join('')}</ul>`:''}
       <button class="btn bs bsm" onclick="downloadTailoredCV('${job.id}')">⬇️ הורד קו״ח מותאם (Word)</button>
@@ -7986,6 +8109,11 @@ function setJobMode(m){
   try{localStorage.setItem('pos_job_mode',jobMode);}catch(e){}
   if(jobMode==='manage'&&typeof setJobView==='function')setJobView('kanban'); // manage opens on the pipeline board
   renderJobsPage();
+  // Phase 4: gentle 180ms fade of the section that just became visible
+  try{
+    const vis=jobMode==='manage'?document.getElementById('job-pipeline-card'):document.getElementById('daily-queue-card');
+    if(vis){vis.classList.remove('jm-fade');void vis.offsetWidth;vis.classList.add('jm-fade');}
+  }catch(e){}
 }
 
 // Central page renderer — decides which sections are visible per mode.
@@ -8007,6 +8135,7 @@ function renderJobsPage(){
   renderKanban(); // keeps the stat counters (#j-total etc.) fresh in both modes
   if(hunt)renderDailyQueue();
   else if(typeof setJobView==='function')setJobView(jobView); // respects table/kanban pref (backward compat)
+  try{renderWeeklySummary();}catch(e){} // Phase 4: manage-only weekly strip (self-hides in hunt)
 }
 
 function toggleManageArchive(){
@@ -8054,12 +8183,13 @@ function dqFilteredJobs(){
   }).sort((a,b)=>interviewChance(b)-interviewChance(a)||(b.match_score||0)-(a.match_score||0));
 }
 
-function dqRowHTML(job){
+function dqRowHTML(job,idx){
   const mc=matchClass(job.match_score||0);
   const fr=jobFreshness(job);
   const ic=interviewChance(job);
   const hasCV=!!(job.cv_summary||(job.cv_bullets&&job.cv_bullets.length));
-  return`<div class="dq-row" data-id="${job.id}">
+  const delay=Math.min((idx||0)*20,300); // staggered fade-slide-up, capped at 300ms total
+  return`<div class="dq-row" data-id="${job.id}" style="animation-delay:${delay}ms">
     <div class="dq-main" onclick="openSubmitCard('${job.id}')">
       <div class="dq-title">${escH(job.title)}</div>
       <div class="dq-co">${escH(job.company||'—')}${job.location?' · '+escH(job.location):''}</div>
@@ -8087,7 +8217,7 @@ function renderDailyQueue(){
   const jobs=dqFilteredJobs();
   const cnt=document.getElementById('dq-count');
   if(cnt)cnt.textContent=jobs.length?jobs.length+' משרות בתור • ממוין לפי סיכוי לראיון':'';
-  wrap.innerHTML=jobs.length?jobs.map(dqRowHTML).join(''):'<div class="dq-empty">🎉 התור ריק!<br>הסוכן יוסיף משרות חדשות בסריקה הבאה, או הרחב את הפילטרים / הוסף ידנית.</div>';
+  wrap.innerHTML=jobs.length?jobs.map((j,i)=>dqRowHTML(j,i)).join(''):'<div class="dq-empty">🎉 התור ריק!<br>הסוכן יוסיף משרות חדשות בסריקה הבאה, או הרחב את הפילטרים / הוסף ידנית.</div>';
 }
 
 function dqSave(id){moveJobToStage(id,'saved');renderDailyQueue();}
@@ -8213,6 +8343,125 @@ async function genCoverNote(jobId){
   try{r=await callGemini([{role:'user',content:p}],'ענה בעברית. 3 שורות בלבד.');}catch(e){}
   if(!r){try{r=await claude(p,SYS.jobs);}catch(e){}}
   if(out)out.textContent=r||'לא הצלחתי לנסח כרגע — נסה שוב.';
+}
+
+/* ===== Phase 4: KV job-list sync + weekly summary ===== */
+// Bi-directional cloud sync of S.jobsV2 via /api/jobs-put + /api/jobs-get
+// (Upstash/Vercel KV, keyed pos_jobs_{userId}). localStorage stays the cache /
+// instant-read source of truth. Fully guarded: with no KV env vars the server
+// answers {ok:false,reason:'no_kv'} and every call is swallowed — zero console
+// noise, app fully functional offline.
+function jobsCloudUserId(){
+  try{return (typeof currentUser!=='undefined'&&currentUser&&currentUser.sub)||'anon';}catch(e){return 'anon';}
+}
+// Last-modified stamp of a single job: updated_at, else the newest stage_history entry, else added_at.
+function jobLastMod(j){
+  if(!j)return 0;
+  let t=0;
+  const at=x=>{const n=new Date(x||0).getTime();return isNaN(n)?0:n;};
+  t=Math.max(t,at(j.updated_at));
+  const h=Array.isArray(j.stage_history)?j.stage_history:[];
+  for(let i=0;i<h.length;i++)t=Math.max(t,at(h[i]&&h[i].at));
+  t=Math.max(t,at(j.applied_at),at(j.added_at),at(j.created_at),at(j.date_added));
+  return t;
+}
+var _jobsCloudT=null; // var (not let): save() can fire during init(), before this line executes → no TDZ
+function jobsCloudPushDebounced(){try{clearTimeout(_jobsCloudT);_jobsCloudT=setTimeout(jobsCloudPush,5000);}catch(e){}}
+async function jobsCloudPush(){
+  try{
+    if(typeof S==='undefined'||!Array.isArray(S.jobsV2))return;
+    const ts=Date.now();
+    const r=await fetch('/api/jobs-put',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({userId:jobsCloudUserId(),jobs:S.jobsV2,updatedAt:ts})});
+    const d=await r.json().catch(()=>null);
+    if(d&&d.ok){
+      S.jobsUpdatedAt=d.updatedAt||ts;
+      // persist the stamp WITHOUT calling save() — save() re-arms this push (infinite loop).
+      try{localStorage.setItem(storageKey(),JSON.stringify(S));}catch(e){}
+    }
+  }catch(e){} // fire-and-forget, silent
+}
+async function jobsCloudPull(){
+  try{
+    if(typeof S==='undefined')return;
+    const r=await fetch('/api/jobs-get',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({userId:jobsCloudUserId()})});
+    const d=await r.json().catch(()=>null);
+    if(!d||d.ok===false)return;                       // no KV / error ⇒ silent no-op
+    const srv=Array.isArray(d.jobs)?d.jobs:null;
+    if(!srv||!srv.length)return;
+    const remoteTs=+(d.updatedAt||0),localTs=+(S.jobsUpdatedAt||0);
+    const local=Array.isArray(S.jobsV2)?S.jobsV2:[];
+    // Nothing newer on the server and no unseen ids ⇒ skip entirely.
+    const localIds={};local.forEach(j=>{if(j&&j.id)localIds[j.id]=1;});
+    const hasNewIds=srv.some(j=>j&&j.id&&!localIds[j.id]);
+    if(remoteTs<=localTs&&!hasNewIds&&local.length)return;
+    // Merge: union of ids, per-job the record with the newer last-modified wins.
+    const byId={};
+    local.forEach(j=>{if(j&&j.id)byId[j.id]=j;});
+    let changed=false;
+    srv.forEach(sj=>{
+      if(!sj||!sj.id)return;
+      const lj=byId[sj.id];
+      if(!lj){byId[sj.id]=sj;changed=true;return;}    // id only on the server
+      if(jobLastMod(sj)>jobLastMod(lj)){byId[sj.id]=sj;changed=true;} // else the local edit is newer
+    });
+    if(!changed)return;
+    S.jobsV2=Object.keys(byId).map(k=>byId[k]);
+    S.jobsUpdatedAt=Math.max(remoteTs,localTs);
+    try{localStorage.setItem(storageKey(),JSON.stringify(S));}catch(e){}
+    try{if(typeof renderJobs==='function')renderJobs();}catch(e){}
+    try{if(typeof renderKanban==='function')renderKanban();}catch(e){}
+    try{if(typeof renderJobsPage==='function')renderJobsPage();}catch(e){}
+  }catch(e){} // silent — offline / no KV ⇒ no-op
+}
+
+// ── Weekly summary strip (Manage mode) ──
+// Counts stage_history transitions inside a [olderMs, newerMs) window.
+function _whWindow(jobs,olderMs,newerMs){
+  let applied=0,responses=0,interviews=0;
+  (jobs||[]).forEach(j=>{
+    (j.stage_history||[]).forEach(h=>{
+      const t=new Date(h.at).getTime();
+      if(!(t>=olderMs&&t<newerMs))return;
+      if(h.stage==='applied')applied++;
+      if(h.stage==='phone_screen'||h.stage==='interview'||h.stage==='offer')responses++;
+      if(h.stage==='interview')interviews++;
+    });
+  });
+  return{applied,responses,interviews};
+}
+// Conversion = ראיונות ÷ הוגשו (guarded: no submissions ⇒ "—", never NaN).
+function renderWeeklySummary(){
+  const pipe=document.getElementById('job-pipeline-card');
+  if(!pipe||!pipe.parentNode)return;
+  let el=document.getElementById('weekly-summary');
+  const manage=(typeof jobMode!=='undefined'&&jobMode==='manage');
+  if(!manage){if(el)el.style.display='none';return;}
+  if(!el){el=document.createElement('div');el.id='weekly-summary';el.className='wk-summary';pipe.parentNode.insertBefore(el,pipe);}
+  el.style.display='';
+  const jobs=(typeof getJobsV2==='function'?getJobsV2():[])||[];
+  const now=Date.now(),D=864e5;
+  const cur=_whWindow(jobs,now-7*D,now+1000);
+  const prev=_whWindow(jobs,now-14*D,now-7*D);
+  if(!cur.applied&&!cur.responses&&!cur.interviews){
+    el.innerHTML=`<div class="wk-title">📊 שבוע אחרון</div>
+      <div class="wk-empty">עוד לא הוגשה משרה השבוע — כל הגשה מהתור היומי תיספר כאן 🎯</div>`;
+    return;
+  }
+  const convN=cur.applied>0?Math.round(cur.interviews/cur.applied*100):null;   // null ⇒ "—"
+  const prevConvN=prev.applied>0?Math.round(prev.interviews/prev.applied*100):null;
+  const conv=convN===null?'—':convN+'%';
+  const arr=(c,p)=>c>p?'<span class="wk-up">▲</span>':c<p?'<span class="wk-dn">▼</span>':'<span class="wk-eq">→</span>';
+  const convArr=(convN===null||prevConvN===null)?'<span class="wk-eq">→</span>':arr(convN,prevConvN);
+  el.innerHTML=`
+    <div class="wk-title">📊 שבוע אחרון · לעומת הקודם</div>
+    <div class="wk-cells">
+      <div class="wk-cell"><div class="wk-n">${cur.applied} ${arr(cur.applied,prev.applied)}</div><div class="wk-l">הוגשו</div></div>
+      <div class="wk-cell"><div class="wk-n">${cur.responses} ${arr(cur.responses,prev.responses)}</div><div class="wk-l">תגובות</div></div>
+      <div class="wk-cell"><div class="wk-n">${cur.interviews} ${arr(cur.interviews,prev.interviews)}</div><div class="wk-l">ראיונות</div></div>
+      <div class="wk-cell"><div class="wk-n">${conv} ${convArr}</div><div class="wk-l">% המרה</div></div>
+    </div>`;
 }
 
 // Apply the saved mode on first load (init and setJobView already ran above).
@@ -8356,7 +8605,7 @@ function renderJobHuntPanel(){
       </div>
     </div>
     <div style="font-size:11px;color:var(--text2);line-height:1.7;padding:0 2px 4px">
-      הסוכן סורק לינקדאין + דפי דרושים של חברות AI/לונגיביטי/סטארטאפ/VC, מנקד מול הפרופיל והקו״ח שלך, ומעלה התאמות. רץ אוטומטית בכל פתיחת מערכת וב-11:00 בבוקר. התוצאות מופיעות ב"מרכז הפיקוד".
+      הסוכן סורק לינקדאין + דפי דרושים של חברות AI/לונגיביטי/סטארטאפ/VC, מנקד מול הפרופיל והקו״ח שלך, ומעלה התאמות. סריקה אוטומטית ב-07:30 וב-13:00, ובריפינג התור היומי ב-08:00. התוצאות מופיעות בדשבורד.
       ${c.cv?'<span class="bdg bdg-g" style="font-size:9px">קו״ח טעונים — הסוכן משתמש בהם ישירות</span>':'<span class="bdg bdg-a" style="font-size:9px">אין קו״ח — העלה קובץ בכוונון לדיוק מרבי</span>'}
       ${connected?'<span class="bdg bdg-g" style="font-size:9px">סנכרון וואטסאפ פעיל</span>':'<span class="bdg bdg-gr" style="font-size:9px">סנכרון וואטסאפ כבוי (לא חובה)</span>'}
     </div>
@@ -8407,7 +8656,7 @@ async function runJobHuntNow(){
     let added=0;jobs.forEach(j=>{if(j.url&&!seen[j.url]){seen[j.url]=Date.now();added++;}});
     try{localStorage.setItem(SEEN,JSON.stringify(seen));}catch(e){}
     const strong=d.strongCount||jobs.filter(j=>(j.match||0)>=75).length;
-    const msg='✅ הריצה הסתיימה: סרקתי '+sources+' חיפושים/אתרים, מצאתי '+jobs.length+' משרות ('+strong+' בהתאמה גבוהה), '+added+' חדשות נוספו למרכז הפיקוד.';
+    const msg='✅ הריצה הסתיימה: סרקתי '+sources+' חיפושים/אתרים, מצאתי '+jobs.length+' משרות ('+strong+' בהתאמה גבוהה), '+added+' חדשות נוספו לדשבורד.';
     if(sumEl)sumEl.textContent=msg;
     showNotif(msg);
   }

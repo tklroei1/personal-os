@@ -27,9 +27,11 @@ export default async function handler(req, res) {
   if (fn === 'transcribe') return transcribeHandler(req, res);
   if (fn === 'backup') return backupHandler(req, res);
   if (fn === 'restore') return restoreHandler(req, res);
+  if (fn === 'jobs_get') return jobsGetHandler(req, res);
+  if (fn === 'jobs_put') return jobsPutHandler(req, res);
   if (fn === 'vapid-public') return res.status(200).json({ publicKey: process.env.VAPID_PUBLIC || '' });
   if (fn === 'push-subscribe') return pushSubscribeHandler(req, res);
-  return res.status(400).json({ error: 'unknown fn (expected gemini|coach|transcribe|backup|restore|vapid-public|push-subscribe)' });
+  return res.status(400).json({ error: 'unknown fn (expected gemini|coach|transcribe|backup|restore|jobs_get|jobs_put|vapid-public|push-subscribe)' });
 }
 
 // ───── Web Push subscription storage (send happens in the cron; web-push lib isolated there) ─────
@@ -73,6 +75,54 @@ async function restoreHandler(req, res) {
   if (out._noenv) return res.status(200).json({ error: 'no KV configured', fallback: true });
   const tsOut = await kvCmd(['GET', 'pos_backup_ts:' + key]);
   return res.status(200).json({ data: (out && out.result) || null, ts: (tsOut && tsOut.result) ? +tsOut.result : 0 });
+}
+
+// ───── Job-list cloud sync (Phase 4) — key pos_jobs_{userId} on the same KV as backup/restore.
+// Inert without KV env vars: replies {ok:false,reason:'no_kv'} and never throws / never 500s.
+// The stored blob is {jobs:[...],updatedAt:<ms>}; a legacy bare array is still readable.
+function jobsKey(b) {
+  const uid = String((b && b.userId) || 'default').replace(/[^a-zA-Z0-9_.\-]/g, '').slice(0, 120) || 'default';
+  return 'pos_jobs_' + uid;
+}
+async function jobsGetHandler(req, res) {
+  const out = await kvCmd(['GET', jobsKey(req.body || {})]);
+  if (out._noenv) return res.status(200).json({ ok: false, reason: 'no_kv', jobs: null, fallback: true });
+  if (out.error) return res.status(200).json({ ok: false, reason: 'kv_error', jobs: null });
+  let jobs = null, updatedAt = 0;
+  try {
+    const raw = (out && out.result) || null;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) { jobs = parsed; }                                   // legacy shape
+      else if (parsed && Array.isArray(parsed.jobs)) { jobs = parsed.jobs; updatedAt = +parsed.updatedAt || 0; }
+    }
+  } catch (e) { jobs = null; updatedAt = 0; }
+  if (!Array.isArray(jobs)) return res.status(200).json({ ok: true, jobs: null });     // nothing stored yet
+  return res.status(200).json({ ok: true, jobs: jobs, updatedAt: updatedAt });
+}
+async function jobsPutHandler(req, res) {
+  const b = req.body || {};
+  let jobs = Array.isArray(b.jobs) ? b.jobs : null;
+  if (!jobs) return res.status(200).json({ ok: false, reason: 'no_jobs' });
+  const updatedAt = +b.updatedAt || Date.now();
+  // trim oversized description_full (>2000 chars) per job before storing
+  jobs = jobs.map(function (j) {
+    if (j && typeof j.description_full === 'string' && j.description_full.length > 2000) {
+      const c = Object.assign({}, j); c.description_full = j.description_full.slice(0, 2000); return c;
+    }
+    return j;
+  });
+  let val = JSON.stringify({ jobs: jobs, updatedAt: updatedAt });
+  // hard cap ~900KB — if still over, drop description_full entirely
+  if (val.length > 900000) {
+    jobs = jobs.map(function (j) { if (j && j.description_full) { const c = Object.assign({}, j); delete c.description_full; return c; } return j; });
+    val = JSON.stringify({ jobs: jobs, updatedAt: updatedAt });
+  }
+  if (val.length > 900000) return res.status(200).json({ ok: false, reason: 'too_large', bytes: val.length });
+  const out = await kvCmd(['SET', jobsKey(b), val]);
+  if (out._noenv) return res.status(200).json({ ok: false, reason: 'no_kv', fallback: true });
+  if (out.error) return res.status(200).json({ ok: false, reason: 'kv_error' });
+  return res.status(200).json({ ok: true, updatedAt: updatedAt, bytes: val.length, count: jobs.length });
 }
 
 // ───── Zoro conversation layer: Gemini 2.5 → Groq → (client falls back to Claude) ─────

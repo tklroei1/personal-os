@@ -20,6 +20,8 @@
     { "src": "/api/vapid-public", "dest": "/api/ai.js?fn=vapid-public" },
     { "src": "/api/push-subscribe", "dest": "/api/ai.js?fn=push-subscribe" },
     { "src": "/api/restore", "dest": "/api/ai.js?fn=restore" },
+    { "src": "/api/jobs-get", "dest": "/api/ai.js?fn=jobs_get" },
+    { "src": "/api/jobs-put", "dest": "/api/ai.js?fn=jobs_put" },
     { "src": "/api/search", "dest": "/api/search.js" },
     { "src": "/api/webhook", "dest": "/api/webhook.js" },
     { "src": "/api/fetch-page", "dest": "/api/util.js?fn=fetch-page" },
