@@ -182,18 +182,40 @@ async function scanCompanies(day, runIdx) {
 }
 
 // ── Comeet career pages — FREE scanning via public Comeet API ─────────────────
-// Companies with a `comeet:{uid,token}` config expose their live positions at
-// https://www.comeet.co/careers-api/2.0/company/{uid}/positions?token=...&details=true
-// (uid + token are embedded in the public careers page source). Same job shape +
-// filters as scanCompanies. Errors are skipped silently (non-200 → skip).
+// Companies with a `comeet:{slug,uid}` config expose their live positions at
+// https://www.comeet.com/careers-api/2.0/company/{uid}/positions?token=...&details=true
+//
+// The token is NOT stored in this repo. It is a short-lived public token that
+// Comeet embeds in the careers page itself, so we resolve it at scan time:
+//   GET https://www.comeet.com/jobs/{slug}/{uid}  →  "token":"…"  in the HTML.
+// This keeps zero secrets in git and self-heals when Comeet rotates tokens.
+// Same job shape + filters as scanCompanies. Errors are skipped silently.
+const _comeetTokenCache = new Map(); // `${slug}/${uid}` → token (per process run)
+
+async function comeetToken(slug, uid) {
+  const key = `${slug}/${uid}`;
+  if (_comeetTokenCache.has(key)) return _comeetTokenCache.get(key);
+  const r = await fetch(`https://www.comeet.com/jobs/${slug}/${uid}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PersonalOS-JobHunt/1.0)' },
+  });
+  if (!r.ok) return null;
+  const html = await r.text();
+  const m = html.match(/"token"\s*:\s*"([A-Za-z0-9_-]{16,64})"/);
+  const tok = m ? m[1] : null;
+  if (tok) _comeetTokenCache.set(key, tok);
+  return tok;
+}
+
 async function scanComeet() {
-  const withComeet = COMPANIES.filter(c => c.comeet && c.comeet.uid && c.comeet.token);
+  const withComeet = COMPANIES.filter(c => c.comeet && c.comeet.uid && c.comeet.slug);
   const jobs = [];
   const scannedNames = [];
   let okCount = 0;
   for (const c of withComeet) {
     try {
-      const r = await fetch(`https://www.comeet.co/careers-api/2.0/company/${c.comeet.uid}/positions?token=${c.comeet.token}&details=true`);
+      const token = await comeetToken(c.comeet.slug, c.comeet.uid);
+      if (!token) { console.error('[jobhunt] comeet: no token for', c.name); continue; }
+      const r = await fetch(`https://www.comeet.com/careers-api/2.0/company/${c.comeet.uid}/positions?token=${token}&details=true`);
       if (!r.ok) continue;
       const d = await r.json();
       const list = Array.isArray(d) ? d : (Array.isArray(d && d.positions) ? d.positions : []);
@@ -202,7 +224,7 @@ async function scanComeet() {
       for (const p of list) {
         const title = p.name || p.position_name || '';
         const loc = p.location
-          ? (p.location.name || [p.location.city, p.location.country].filter(Boolean).join(', '))
+          ? (p.location.displayName || p.location.name || [p.location.city, p.location.country].filter(Boolean).join(', '))
           : '';
         const link = p.url_comeet_hosted_page || p.url_active_page || p.url || '';
         if (!LOCATION_ALLOW.test(loc)) continue;

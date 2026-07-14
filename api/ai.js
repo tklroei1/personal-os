@@ -242,16 +242,24 @@ async function coachHandler(req, res) {
       : '';
     prompt =
       'You are an expert resume writer performing ATS keyword mirroring. Below is a candidate\'s COMPLETE base CV and a job description.\n' +
-      'Return the candidate\'s COMPLETE tailored CV — every section, top to bottom: the header/name line, a PROFESSIONAL SUMMARY, ALL experience entries (each with its bullet points), EDUCATION, and SKILLS. Output the WHOLE document, never a fragment or excerpt.\n' +
+      'Return a tailored, STRICTLY ONE-PAGE CV — header/name line, PROFESSIONAL SUMMARY, EXPERIENCE, EDUCATION, SKILLS. A complete document, never a fragment.\n' +
+      '\n' +
+      'HARD ONE-PAGE BUDGET (a violation makes the output unusable — obey exactly):\n' +
+      '• TOTAL: max 320 words / 2200 characters across the whole CV.\n' +
+      '• PROFESSIONAL SUMMARY: max 2 lines (≤240 characters total).\n' +
+      '• EXPERIENCE: at most the 3 MOST RELEVANT roles for this job. Each role: 1 title/company/date line + at most 3 bullets. Each bullet ≤ 150 characters, one line.\n' +
+      '• EDUCATION: max 2 lines. SKILLS: max 2 lines (comma-separated, grouped).\n' +
+      '• CUT, do not compress everything: drop the least relevant roles/bullets entirely rather than shorten every line into noise. Older or unrelated roles may be omitted (or collapsed into one "EARLIER" line).\n' +
+      '\n' +
       'STRICT RULES:\n' +
       '1. Strictly truthful. Never invent a job, title, employer, achievement, skill, metric, or date that is not already in the base CV.\n' +
       '2. Only reorder, re-emphasize, and rephrase existing facts so the most job-relevant content comes first.\n' +
       '3. Embed the EXACT keywords and phrases from the job description wherever they truthfully apply to the candidate (ATS mirroring) — use the job\'s own wording.\n' +
-      '4. Keep it to ONE page of content, concise and professional.\n' +
-      '5. Write in English (same language as the base CV). Keep all dates exactly as in the base CV.\n' +
-      '6. For any metric/number the candidate has not provided, write the literal placeholder "[add %]" — never fabricate a figure.\n' +
-      'FORMAT of the "cv" string: plain text with \\n line breaks. Section headings in ALL CAPS on their own line (e.g. PROFESSIONAL SUMMARY, EXPERIENCE, EDUCATION, SKILLS). Bullet lines start with "• ".\n' +
-      'Return ONLY valid JSON: {"cv":"<full tailored CV text with \\n line breaks>","keywords":["exact job keywords you embedded"],"note":"<one short sentence on what was reordered/emphasized>"}\n\n' +
+      '4. Write in English (same language as the base CV). Keep all dates exactly as in the base CV.\n' +
+      '5. For any metric/number the candidate has not provided, write the literal placeholder "[add %]" — never fabricate a figure.\n' +
+      '6. ATS-safe: no tables, no columns, no graphics, no emoji, plain text only.\n' +
+      'FORMAT of the "cv" string: plain text with \\n line breaks. Section headings in ALL CAPS on their own line (PROFESSIONAL SUMMARY, EXPERIENCE, EDUCATION, SKILLS). Bullet lines start with "• ". No blank line between a heading and its first line.\n' +
+      'Return ONLY valid JSON: {"cv":"<one-page tailored CV text with \\n line breaks>","keywords":["exact job keywords you embedded"],"note":"<one short sentence on what was cut/emphasized>"}\n\n' +
       '=== BASE CV (complete) ===\n' + cv + '\n\n' + jobLine + kwLine;
   } else {
     maxTokens = 1300;

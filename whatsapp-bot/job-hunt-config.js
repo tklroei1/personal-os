@@ -92,17 +92,25 @@ export const LOCATION_ALLOW = /(tel.?aviv|ramat.?gan|givatayim|herzliya|petah|pe
 
 // COMPANIES — interest: 3=dream/startup-relevant, 2=great, 1=solid.
 // ats: { type: 'greenhouse'|'lever', slug } → scanned automatically (free public API).
-// comeet: { uid, token } → scanned automatically via the Comeet careers API
-//   (GET https://www.comeet.co/careers-api/2.0/company/{uid}/positions?token={token}&details=true).
-//   Both values are PUBLIC and embedded in the company's careers-page source: open the
-//   careers page → View Source / DevTools Network → look for a request to
-//   `careers-api/2.0/company/<uid>/positions?token=<token>` and copy uid + token here.
-//   Example (fill the token from the page source — UIDs verified from comeet.com/jobs):
-//     { name: 'CommIT', domain: 'devtools', interest: 2, comeet: { uid: '76.008', token: 'TODO_PUBLIC_TOKEN' } },
-//     { name: 'Port',   domain: 'devtools', interest: 2, comeet: { uid: '59.004', token: 'TODO_PUBLIC_TOKEN' } },
-//   TODO: paste the public `token` for 2-3 Comeet-using Israeli companies to enable free Comeet scanning.
+// comeet: { slug, uid } → scanned automatically via the Comeet careers API.
+//   NO TOKEN IS STORED HERE. The bot resolves the public, rotating token at scan time from
+//   https://www.comeet.com/jobs/{slug}/{uid} (see comeetToken() in job-hunt-agent.js), then calls
+//   GET https://www.comeet.com/careers-api/2.0/company/{uid}/positions?token=<resolved>&details=true
+//   To add a company: find its board at comeet.com/jobs/<slug>/<uid> and copy slug + uid. That's it.
+//   All slug/uid pairs below were verified live (14/7/2026) and return positions.
 // Companies without ats/comeet are kept for reference / future scraping.
 export const COMPANIES = [
+  // ── Comeet boards (verified live — free public API, token resolved at runtime) ──
+  { name: 'Port', domain: 'product', interest: 3, comeet: { slug: 'port', uid: '59.004' } },
+  { name: 'Dream (AI security)', domain: 'ai', interest: 3, comeet: { slug: 'dreamgroup', uid: '99.002' } },
+  { name: 'Arpeely', domain: 'data', interest: 3, comeet: { slug: 'arpeely', uid: '57.001' } },
+  { name: 'Team8 (portfolio)', domain: 'vc', interest: 3, comeet: { slug: 'team8', uid: '61.003' } },
+  { name: 'DealHub', domain: 'product', interest: 2, comeet: { slug: 'dealhub', uid: '86.005' } },
+  { name: 'Bounce AI', domain: 'fintech', interest: 2, comeet: { slug: 'bounce', uid: 'E9.00C' } },
+  { name: 'CommIT', domain: 'data', interest: 2, comeet: { slug: 'comm-it', uid: '76.008' } },
+  { name: 'Guideline Group', domain: 'fintech', interest: 2, comeet: { slug: 'guideline', uid: '89.009' } },
+  { name: 'Cust2Mate', domain: 'data', interest: 2, comeet: { slug: 'cust2mate', uid: '6A.00D' } },
+
   // ── AI-first / hot startups (interest 3) ──
   { name: 'AI21 Labs', domain: 'ai', interest: 3, ats: { type: 'greenhouse', slug: 'ai21labs' } },
   { name: 'Lightricks', domain: 'ai', interest: 3, ats: { type: 'greenhouse', slug: 'lightricks' } },

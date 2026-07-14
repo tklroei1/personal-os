@@ -169,7 +169,14 @@ P(ראיון) = base(match) × freshness × crowding × referral × ghost
 3. **מנוע ממליצים**: ב-`api/get-agent-results.js` — פונקציה `findReferrers(company)` עם 2 שאילתות Tavily: `site:linkedin.com/in "{company}" (analyst OR data OR talent OR recruiter)` + `site:linkedin.com/in "{company}" "Bar-Ilan"`. Claude Haiku מסווג: שם, תפקיד, סוג קשר, ניסוח הודעה ≤300 תווים (תבניות Ospovat — עמית/TL/מגייסת, בעברית). טריגר: משרות match≥80. תוצאה נשמרת בשדה `referrers[]` במשרה ומוצגת בכרטיסיית ההגשה וב-Drawer.
 4. **מכתב מקדים**: כבר קיים בסיס בשלב 1 — לחבר לתבנית קבועה: 3 שורות, שורה 1 מיפוי לדרישה מרכזית, שורה 2 הוכחה (Upselles/תואר), שורה 3 הנעה לפעולה.
 
-### שלב 4 — ליטוש (פירוט ביצוע)
+### שלב 4 — ליטוש ✅ **בוצע ואומת חי (14/7/2026, commit 6b1b618)**
+- **KV**: `fn=jobs_get`/`fn=jobs_put` ב-`api/ai.js` (שורות ~80–126) + routes `/api/jobs-get`,`/api/jobs-put` ב-`vercel.json`. קליינט: `jobsCloudPush/Pull` + מיזוג union-by-id newest-wins (index.html ~8350–8417), debounce 5s ב-`save()` (~2443), pull ב-init (~2730). **אומת חי: 46 משרות נשמרו ונשלפו מה-KV** (מפתחות ה-KV כבר מוגדרים ב-Vercel).
+- **עיצוב**: בלוק ליטוש (index.html ~805–872) — סמנטיקת צבע אחת (`--stage-*`), radius 16–20, spring `cubic-bezier(.34,1.56,.64,1)`, blur, `prefers-reduced-motion`, מדיה ≤480px. **Dark mode לא היה קיים בקובץ כלל — נוסף עכשיו** (~35–61).
+- **סיכום שבועי**: `renderWeeklySummary` + `#weekly-summary` במצב ניהול (הוגשו/תגובות/ראיונות/% המרה מ-`stage_history`, 7 ימים, empty-state ללא NaN).
+- **ניקיונות**: תוויות לו"ז → 07:30+13:00 + בריפינג 08:00; `docs/SETUP.md` עודכן (כולל הסבר שה-2 crons ב-UTC 5/6 הם הגנת DST). תווית הסייד-בר "מרכז הפיקוד" **לא** שונתה — היא מובילה ל-`page-agent` (קונסולת פקודות), ויש כבר פריט "דשבורד" נפרד.
+- **אימות חי (Chrome)**: תור יומי + כרטיסיית הגשה תקינים ב-viewport 376px, אפס גלישה אופקית, קונסול נקי (רק אזהרת פופאפ של Google GSI, לא קשורה).
+
+#### מפרט מקורי (לתיעוד)
 1. **KV**: להרחיב את handlers ה-backup ב-`api/ai.js` ל-`fn=jobs_get/jobs_put` על Upstash (`pos_jobs_{userId}`) — sync דו-כיווני ב-`save()` (debounce 5s) וב-load. localStorage נשאר cache.
 2. **עיצוב**: מעבר על כל page-jobs עם משתני העיצוב הקיימים — blur, radius 16-20, spring. Dark mode קיים — לוודא קונטרסט בכל הרכיבים החדשים.
 3. **סיכום שבועי**: כרטיס ב-Manage — הוגשו/תגובות/ראיונות/% המרה מ-`stage_history` (7 ימים אחרונים).

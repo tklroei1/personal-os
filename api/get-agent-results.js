@@ -72,6 +72,177 @@ function tavily(key, query, max) {
     .catch(function () { return { results: [] }; });
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  COMEET COMPANY-BOARD SCANNER  (migrated from the Railway bot — 07/2026)
+//  Free public API, zero keys. The token is NOT stored anywhere: it is a public,
+//  rotating token that Comeet embeds in the careers page, resolved at scan time:
+//    1) GET https://www.comeet.com/jobs/{slug}/{uid}   → "token":"…" in the HTML
+//    2) GET https://www.comeet.com/careers-api/2.0/company/{uid}/positions
+//          ?token=<resolved>&details=true              → JSON array of positions
+//  Purely ADDITIVE: every failure path returns an empty list, so if Comeet is
+//  down / blocks us / changes shape, this endpoint behaves exactly as before.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// The board list + filters live in whatsapp-bot/job-hunt-config.js (single source
+// of truth, shared with the bot). It is imported dynamically so that a bundling /
+// resolution failure on Vercel can never break this endpoint — we just fall back
+// to the inline list below.
+const FALLBACK_COMEET_BOARDS = [
+  { name: 'Port', slug: 'port', uid: '59.004', interest: 3, domain: 'product' },
+  { name: 'Dream (AI security)', slug: 'dreamgroup', uid: '99.002', interest: 3, domain: 'ai' },
+  { name: 'Arpeely', slug: 'arpeely', uid: '57.001', interest: 3, domain: 'data' },
+  { name: 'Team8 (portfolio)', slug: 'team8', uid: '61.003', interest: 3, domain: 'vc' },
+  { name: 'DealHub', slug: 'dealhub', uid: '86.005', interest: 2, domain: 'product' },
+  { name: 'Bounce AI', slug: 'bounce', uid: 'E9.00C', interest: 2, domain: 'fintech' },
+  { name: 'CommIT', slug: 'comm-it', uid: '76.008', interest: 2, domain: 'data' },
+  { name: 'Guideline Group', slug: 'guideline', uid: '89.009', interest: 2, domain: 'fintech' },
+  { name: 'Cust2Mate', slug: 'cust2mate', uid: '6A.00D', interest: 2, domain: 'data' },
+];
+const FALLBACK_BLOCKLIST = /\b(senior|sr\.?|staff|principal|lead|head|director|vp|chief|architect|expert|manager(?!.*(junior|associate|intern))|frontend|backend|fullstack|full-stack|devops|qa|embedded|hardware|mechanical|electrical|attorney|lawyer|nurse|physician)\b/i;
+const FALLBACK_LOCATION_ALLOW = /(tel.?aviv|ramat.?gan|givatayim|herzliya|petah|petach|ra'?anana|raanana|bnei.?brak|holon|rosh.?ha'?ayin|or.?yehuda|kfar.?saba|netanya|israel|tlv|תל אביב|רמת גן|הרצליה|פתח|רעננה|ישראל)/i;
+const FALLBACK_TITLE_MATCH = /(analyst|analytics|data|business intelligence|\bbi\b|\bai\b|genai|generative|\bllm\b|prompt|machine learning|\bml\b|product manager|product owner|product analyst|product operations|product ops|product associate|product specialist|\bapm\b|growth|marketing|monetization|user acquisition|business development|bizdev|bizops|revops|revenue operations|operations|strategy|investment|venture|\bvc\b|private equity|equity research|financial analyst|fp&a|m&a|corporate development|economist|credit|portfolio|fintech|research|chief of staff|partnerships|intern|internship|student|junior|associate)/i;
+
+let _jhCfg = null;
+async function comeetConfig() {
+  if (_jhCfg) return _jhCfg;
+  try {
+    const m = await import('../whatsapp-bot/job-hunt-config.js');
+    const boards = (m.COMPANIES || [])
+      .filter(function (c) { return c && c.comeet && c.comeet.slug && c.comeet.uid; })
+      .map(function (c) { return { name: c.name, slug: c.comeet.slug, uid: c.comeet.uid, interest: c.interest || 2, domain: c.domain || '' }; });
+    if (boards.length) {
+      _jhCfg = {
+        boards: boards,
+        block: m.TITLE_BLOCKLIST || FALLBACK_BLOCKLIST,
+        loc: m.LOCATION_ALLOW || FALLBACK_LOCATION_ALLOW,
+        match: typeof m.buildTitleRegex === 'function' ? m.buildTitleRegex() : FALLBACK_TITLE_MATCH,
+        cfgSource: 'shared-config',
+      };
+      return _jhCfg;
+    }
+  } catch (e) {}
+  _jhCfg = { boards: FALLBACK_COMEET_BOARDS, block: FALLBACK_BLOCKLIST, loc: FALLBACK_LOCATION_ALLOW, match: FALLBACK_TITLE_MATCH, cfgSource: 'fallback' };
+  return _jhCfg;
+}
+
+const _comeetTokenCache = new Map(); // `${slug}/${uid}` → token (warm per lambda instance)
+
+function fetchT(url, ms) {
+  const ac = new AbortController();
+  const t = setTimeout(function () { ac.abort(); }, ms);
+  if (t && typeof t.unref === 'function') t.unref();
+  return fetch(url, { signal: ac.signal, headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PersonalOS-JobHunt/1.0)' } })
+    .then(function (r) { clearTimeout(t); return r; })
+    .catch(function (e) { clearTimeout(t); throw e; });
+}
+
+function withTimeout(p, ms) {
+  return Promise.race([
+    p,
+    new Promise(function (resolve) { const t = setTimeout(function () { resolve(null); }, ms); if (t && typeof t.unref === 'function') t.unref(); }),
+  ]);
+}
+
+function comeetLoc(p) {
+  const l = p && p.location;
+  if (!l) return '';
+  if (typeof l === 'string') return l;
+  return String(l.displayName || l.name || [l.city, l.country].filter(Boolean).join(', ') || '');
+}
+
+function comeetDesc(p) {
+  let txt = '';
+  const det = Array.isArray(p && p.details) ? p.details : [];
+  det.forEach(function (d) {
+    if (!d) return;
+    if (typeof d === 'string') { txt += ' ' + d; return; }
+    const v = d.value != null ? d.value : (d.text != null ? d.text : (d.content != null ? d.content : ''));
+    if (v) txt += ' ' + String(v);
+  });
+  if (!txt.trim()) txt = [p && p.description, p && p.summary, p && p.department, p && p.experienceLevel, p && p.employmentType].filter(Boolean).join(' · ');
+  return String(txt)
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&rsquo;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function comeetDate(p) {
+  const raw = (p && (p.time_updated || p.date_published || p.updated_at || p.time_created)) || null;
+  if (!raw) return null;
+  const t = new Date(raw).getTime();
+  return isNaN(t) ? null : new Date(t).toISOString();
+}
+
+// Scan ONE board. Returns an array of jobs on success, or null when the board
+// failed (so we can report an honest "N of M boards scanned" counter).
+async function scanComeetBoard(b, cfg) {
+  const ck = b.slug + '/' + b.uid;
+  let token = _comeetTokenCache.get(ck) || null;
+  if (!token) {
+    const hr = await fetchT('https://www.comeet.com/jobs/' + encodeURIComponent(b.slug) + '/' + encodeURIComponent(b.uid), 6000);
+    if (!hr.ok) return null;
+    const html = await hr.text();
+    const m = html.match(/"token"\s*:\s*"([A-Za-z0-9_-]{16,64})"/);
+    token = m ? m[1] : null;
+    if (!token) return null;
+    _comeetTokenCache.set(ck, token);
+  }
+  const pr = await fetchT('https://www.comeet.com/careers-api/2.0/company/' + encodeURIComponent(b.uid) + '/positions?token=' + encodeURIComponent(token) + '&details=true', 8000);
+  if (!pr.ok) { _comeetTokenCache.delete(ck); return null; } // token probably rotated → re-resolve next run
+  const d = await pr.json();
+  const list = Array.isArray(d) ? d : (d && Array.isArray(d.positions) ? d.positions : []);
+  const out = [];
+  list.forEach(function (p) {
+    if (!p) return;
+    const title = String(p.name || p.position_name || '').trim();
+    const url = String(p.url_comeet_hosted_page || p.url_active_page || p.url || '').trim();
+    const loc = comeetLoc(p);
+    if (!title || !/^https?:\/\//i.test(url)) return;
+    if (!cfg.loc.test(loc)) return;          // Israel / center only
+    if (cfg.block.test(title)) return;       // senior / irrelevant roles out
+    if (!cfg.match.test(title)) return;      // must match Roei's role taxonomy
+    const desc = comeetDesc(p);
+    const hay = title + ' ' + (p.experienceLevel || '') + ' ' + desc;
+    out.push({
+      title: title,
+      company: b.name,
+      url: url,
+      heading: title,
+      snippet: (desc || [p.department, p.experienceLevel, loc].filter(Boolean).join(' · ')).slice(0, 220),
+      type: TYPE_HE[guessType(hay)] || '',
+      baseFit: 2, // real board listing with a direct apply link — outranks web-search hits
+      source: 'comeet',
+      published_date: comeetDate(p),
+      location: loc,
+    });
+  });
+  return out;
+}
+
+// Scan all configured Comeet boards in parallel. Never throws.
+async function scanComeetBoards(limit) {
+  const empty = { jobs: [], scanned: 0, total: 0, cfgSource: 'none' };
+  try {
+    const cfg = await comeetConfig();
+    const boards = cfg.boards || [];
+    if (!boards.length) return empty;
+    const settled = await Promise.allSettled(
+      boards.map(function (b) { return withTimeout(scanComeetBoard(b, cfg), 14000); })
+    );
+    const jobs = [];
+    let scanned = 0;
+    settled.forEach(function (s) {
+      if (s.status !== 'fulfilled' || !Array.isArray(s.value)) return; // null = timeout/non-200/throw → skip silently
+      scanned++;
+      s.value.forEach(function (j) { jobs.push(j); });
+    });
+    return { jobs: jobs.slice(0, limit || 12), scanned: scanned, total: boards.length, cfgSource: cfg.cfgSource };
+  } catch (e) {
+    return empty;
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -156,6 +327,10 @@ export default async function handler(req, res) {
 
   const authed = req.headers['authorization'] === ('Bearer ' + process.env.CRON_SECRET);
   const force = authed || String(body.fresh || q.fresh || '') === '1';
+  // Company-board scan is expensive (≈18 extra fetches) → only on a FULL hunt:
+  // the 08:00 cron (authed) or "הפעל ציד עכשיו" (fresh=1). A plain app load reads
+  // the cached result instead. Opt out explicitly with boards=0.
+  const doBoards = force && String(body.boards != null ? body.boards : (q.boards != null ? q.boards : '1')) !== '0';
 
   const cvSig = cv ? (cv.length + ':' + cv.slice(0, 40)) : '';
   const sig = JSON.stringify({ broad: broad, startupFocus: startupFocus, roles: roles, companies: companies, seniority: seniority, skills: skills, cvSig: cvSig });
@@ -193,7 +368,14 @@ export default async function handler(req, res) {
     queries.push({ q: 'Israel startup ' + senPhrase + ' (AI OR longevity OR product OR analyst) open positions careers 2026', role: '', startup: true });
   }
 
-  const responses = await Promise.all(queries.map(function (qq) { return tavily(key, qq.q, broad ? 5 : 4).then(function (d) { return { qq: qq, d: d }; }); }));
+  // Tavily searches + Comeet company boards run in PARALLEL — the board scan is
+  // capped at ~14s per board and adds ~0 wall time on top of the web searches.
+  const settledAll = await Promise.all([
+    Promise.all(queries.map(function (qq) { return tavily(key, qq.q, broad ? 5 : 4).then(function (d) { return { qq: qq, d: d }; }); })),
+    doBoards ? scanComeetBoards(12) : Promise.resolve({ jobs: [], scanned: 0, total: 0, cfgSource: 'skipped' }),
+  ]);
+  const responses = settledAll[0];
+  const comeet = settledAll[1];
   const skillRx = skills.length ? new RegExp(skills.map(function (s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|'), 'i') : null;
 
   const rawJobs = [];
@@ -221,11 +403,16 @@ export default async function handler(req, res) {
       });
   });
 
+  // Merge Comeet board jobs BEFORE dedup + Haiku scoring, so they get real match
+  // scores exactly like the Tavily jobs. Board jobs come first → on a URL clash the
+  // direct apply link wins over the web-search hit. Their slots are added on top of
+  // the normal cap so they never displace search results.
+  const comeetJobs = (comeet && Array.isArray(comeet.jobs)) ? comeet.jobs : [];
   const seen = new Set();
-  let jobs = rawJobs
+  let jobs = comeetJobs.concat(rawJobs)
     .filter(function (j) { return seen.has(j.url) ? false : (seen.add(j.url), true); })
     .sort(function (a, b) { return b.baseFit - a.baseFit; })
-    .slice(0, broad ? 28 : 16);
+    .slice(0, (broad ? 28 : 16) + comeetJobs.length);
 
   if (anthropic && jobs.length) {
     try {
@@ -241,7 +428,9 @@ export default async function handler(req, res) {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': anthropic, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1500, messages: [{ role: 'user', content: prompt }] }),
+        // scale the budget with the list size (board jobs can push it past 28 items) —
+        // a truncated JSON array would silently lose ALL the scores.
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: Math.min(4000, 800 + jobs.length * 90), messages: [{ role: 'user', content: prompt }] }),
       });
       const d = await r.json();
       const txt = (d.content && d.content[0] && d.content[0].text) || '';
@@ -276,9 +465,20 @@ export default async function handler(req, res) {
   if (jobs.length) {
     const top = jobs.slice(0, 3).map(function (j) { return j.heading + (j.company ? ' @' + j.company : '') + ' (' + (j.match || 0) + '%)'; }).join(' | ');
     summary = strong.length ? ('🔥 ' + strong.length + ' משרות עם התאמה גבוהה. מובילות: ' + top) : ('נמצאו ' + jobs.length + ' משרות. מובילות: ' + top);
+    if (comeet.scanned) summary += ' · ' + comeet.scanned + ' לוחות חברה נסרקו (' + comeetJobs.length + ' משרות ישירות)';
   }
 
-  const result = { jobs: jobs, apartments: apartments, summary: summary, strongCount: strong.length, queriesCount: queries.length, broad: broad, startupFocus: startupFocus, usedCV: !!cv, profile: userProfile, ts: new Date().toISOString() };
+  // queriesCount feeds the client's "סרקתי N חיפושים/אתרים" line → include the boards.
+  const result = {
+    jobs: jobs, apartments: apartments, summary: summary, strongCount: strong.length,
+    queriesCount: queries.length + (comeet.scanned || 0),
+    searchesCount: queries.length,
+    boardsScanned: comeet.scanned || 0,
+    boardsTotal: comeet.total || 0,
+    boardJobs: comeetJobs.length,
+    boardsConfig: comeet.cfgSource || 'skipped',
+    broad: broad, startupFocus: startupFocus, usedCV: !!cv, profile: userProfile, ts: new Date().toISOString(),
+  };
   cacheMap.set(sig, { data: result, ts: Date.now() });
   return res.status(200).json(result);
 }

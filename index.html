@@ -5431,6 +5431,10 @@ function openJobDrawer(jobId){
 //  caches the full result on job.cv_full, and renders a COMPLETE Word document.
 //  NEVER renders the old 3-bullet skeleton.
 // ═══════════════════════════════════════════════════════════════════════════
+// In-flight guard: a second click while the tailor call is running used to fire a
+// second request and leave the UI frozen with no feedback. One job at a time.
+var _cvTailorInFlight = null;
+
 async function downloadTailoredCV(jobId){
   const jobs=getJobsV2();
   const job=jobs.find(j=>j.id===jobId);
@@ -5440,12 +5444,19 @@ async function downloadTailoredCV(jobId){
   // (b) base CV must exist
   const baseCV=(typeof ensureJHC==='function'?(ensureJHC().cv||''):'').trim();
   if(!baseCV){showNotif&&showNotif('אין קו״ח בסיס במערכת — הדבק אותו בהגדרות הצייד');return;}
-  // (c) call the tailor endpoint (same one jobTailorCV uses)
-  showNotif&&showNotif('🎯 מתאים קו״ח למשרה — כמה שניות...');
+  // (c) already running for this job? don't stack requests.
+  if(_cvTailorInFlight===jobId){showNotif&&showNotif('⏳ כבר מתאים קו״ח למשרה הזו — רגע...');return;}
+  _cvTailorInFlight=jobId;
+  showNotif&&showNotif('🎯 מתאים קו״ח למשרה — עד דקה...');
   const desc=job.description_full||job.description_summary||job.description||'';
   let fullCV='',warn=false;
+  // (d) hard timeout — the request used to hang forever if the API stalled,
+  //     which is what made the system look stuck. 60s, then abort cleanly.
+  const ctl=(typeof AbortController!=='undefined')?new AbortController():null;
+  const killer=setTimeout(()=>{try{ctl&&ctl.abort();}catch(e){}},60000);
   try{
     const r=await fetch('/api/job-coach',{method:'POST',headers:{'Content-Type':'application/json'},
+      signal:ctl?ctl.signal:undefined,
       body:JSON.stringify({mode:'tailor',cv:baseCV,jobTitle:job.title||'',jobCompany:job.company||'',jobDesc:desc,
         matchedKeywords:job.matched_keywords||[],missingKeywords:job.missing_keywords||[]})});
     const d=await r.json();
@@ -5455,14 +5466,19 @@ async function downloadTailoredCV(jobId){
       job.cv_keywords=d.keywords||[];
       job.updated_at=new Date().toISOString();
       S.jobsV2=jobs;save(); // persist the cached full CV
-      showNotif&&showNotif('✓ קו״ח מותאם מוכן'+(d.keywords&&d.keywords.length?` · ${d.keywords.length} מילות מפתח`:''));
+      showNotif&&showNotif('✓ קו״ח מותאם מוכן (עמוד אחד)'+(d.keywords&&d.keywords.length?` · ${d.keywords.length} מילות מפתח`:''));
     }else{
       warn=true;fullCV=baseCV;
       showNotif&&showNotif('⚠️ ההתאמה נכשלה — מוריד קו״ח בסיס');
     }
   }catch(err){
     warn=true;fullCV=baseCV;
-    showNotif&&showNotif('⚠️ ההתאמה נכשלה — מוריד קו״ח בסיס');
+    showNotif&&showNotif(err&&err.name==='AbortError'
+      ? '⏱️ ההתאמה נתקעה (60 שניות) — מוריד קו״ח בסיס, נסה שוב'
+      : '⚠️ ההתאמה נכשלה — מוריד קו״ח בסיס');
+  }finally{
+    clearTimeout(killer);
+    _cvTailorInFlight=null; // always released — no permanent stuck state
   }
   renderTailoredCVDoc(job,fullCV,warn);
 }
@@ -5488,18 +5504,22 @@ function renderTailoredCVDoc(job,fullText,warn){
   const closeList=()=>{if(inList){bodyHtml+='</ul>';inList=false;}};
   for(let i=startIdx;i<lines.length;i++){
     const t=lines[i].trim();
-    if(!t){closeList();bodyHtml+='<div style="height:6px"></div>';continue;}
-    if(isHeading(t)){closeList();bodyHtml+=`<h3 style="color:#1F3355;border-bottom:1px solid #1F3355;margin:12px 0 5px;font-size:13px;text-transform:uppercase">${e(t)}</h3>`;continue;}
-    if(/^[•\-]/.test(t)){if(!inList){bodyHtml+='<ul style="margin:3px 0 6px;padding-inline-start:20px">';inList=true;}bodyHtml+=`<li style="margin:2px 0">${e(t.replace(/^[•\-]\s*/,''))}</li>`;continue;}
-    closeList();bodyHtml+=`<div style="margin:2px 0">${e(t)}</div>`;
+    if(!t){closeList();bodyHtml+='<div style="height:3pt"></div>';continue;}
+    if(isHeading(t)){closeList();bodyHtml+=`<h3 style="color:#1F3355;border-bottom:1px solid #c7d2e4;margin:9pt 0 3pt;padding-bottom:1pt;font-size:10.5pt;text-transform:uppercase;letter-spacing:.6px">${e(t)}</h3>`;continue;}
+    if(/^[•\-]/.test(t)){if(!inList){bodyHtml+='<ul style="margin:2pt 0 4pt;padding-inline-start:15pt">';inList=true;}bodyHtml+=`<li style="margin:1pt 0">${e(t.replace(/^[•\-]\s*/,''))}</li>`;continue;}
+    closeList();bodyHtml+=`<div style="margin:1pt 0">${e(t)}</div>`;
   }
   closeList();
   const warnBanner=warn?`<div style="background:#fde68a;color:#92400e;padding:6px 9px;border-radius:4px;margin-bottom:8px;font-size:11px">⚠️ ההתאמה נכשלה — זהו קו״ח הבסיס</div>`:'';
-  const html=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body style="font-family:Calibri,Arial,sans-serif;color:#1b2330;font-size:12px;line-height:1.5">
+  // One-page Word layout: A4, 0.5in margins, 10.5pt body — matches the print/PDF sheet.
+  const html=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'>
+  <style>@page{size:A4;margin:0.5in} body{font-family:Calibri,Arial,sans-serif;color:#12181f;font-size:10.5pt;line-height:1.32}</style>
+  </head><body style="font-family:Calibri,Arial,sans-serif;color:#12181f;font-size:10.5pt;line-height:1.32">
   ${warnBanner}
-  <h1 style="margin:0;color:#1F3355;font-size:22px">${e(name)}</h1>
+  <h1 style="margin:0 0 2pt;color:#1F3355;font-size:19pt;letter-spacing:.4px">${e(name)}</h1>
+  <div style="font-size:9pt;color:#41506a;border-bottom:2px solid #1F3355;padding-bottom:4pt;margin-bottom:8pt">tklroei1@gmail.com · +972-54-3329092 · Hod HaSharon, Israel</div>
   ${bodyHtml}
-  <p style="color:#888;font-size:10px;margin-top:12px">⚠️ נוצר מהתאמת המערכת, מבוסס על קורות החיים האמיתיים בלבד. החלף כל [add %] בנתון אמיתי לפני שליחה.</p>
+  <p style="color:#8a94a6;font-size:8pt;margin-top:10pt">⚠️ נוצר מהתאמת המערכת, מבוסס על קורות החיים האמיתיים בלבד. החלף כל [add %] בנתון אמיתי לפני שליחה.</p>
   </body></html>`;
   try{const blob=new Blob(['﻿'+html],{type:'application/msword'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -5546,26 +5566,58 @@ function printTailoredCV(jobId){
   closeList();
   const win=window.open('','_blank');
   if(!win){showNotif&&showNotif('חלון ההדפסה נחסם — אפשר חלונות קופצים (popups) ונסה שוב');return;}
+  // ── ONE-PAGE GUARANTEE (2026-07-14) ──────────────────────────────────────
+  // A4 usable height with 0.5in margins ≈ 10.7in ≈ 1027px @96dpi. #sheet is
+  // measured after layout; if it overflows, an auto-fit loop shrinks the root
+  // font-size (11pt → 8.6pt) and line-height until it fits, then prints. ATS
+  // stays intact: single column, real text, no tables/graphics.
   win.document.write(`<html><head><meta charset="UTF-8"><title>${e(name)} — CV</title>
   <style>
-    @page{margin:0.6in}
+    @page{size:A4;margin:0.5in}
     *{box-sizing:border-box}
-    body{font-family:Calibri,Arial,sans-serif;color:#000;font-size:11pt;line-height:1.4;margin:0;max-width:7.3in}
-    h1{font-size:20pt;color:#1F3355;margin:0 0 2pt}
-    .contact{font-size:9.5pt;color:#333;margin:0 0 10pt}
-    h2{font-size:12pt;color:#1F3355;border-bottom:1.5px solid #1F3355;padding-bottom:2pt;margin:12pt 0 5pt;text-transform:uppercase}
-    p{margin:2pt 0}
-    ul{margin:3pt 0 6pt;padding-inline-start:18pt}
-    li{margin:2pt 0}
+    html{font-size:11pt}
+    body{font-family:Calibri,"Segoe UI",Arial,sans-serif;color:#12181f;font-size:1em;line-height:1.34;margin:0}
+    #sheet{width:7.5in;padding:0}
+    header{border-bottom:2px solid #1F3355;padding-bottom:5pt;margin-bottom:9pt}
+    h1{font-size:1.85em;color:#1F3355;margin:0;letter-spacing:.4px;font-weight:700}
+    .contact{font-size:.83em;color:#41506a;margin-top:3pt}
+    h2{font-size:1.02em;color:#1F3355;border-bottom:1px solid #c7d2e4;padding-bottom:1.5pt;
+       margin:9pt 0 4pt;text-transform:uppercase;letter-spacing:.6px;font-weight:700;break-after:avoid}
+    section{break-inside:avoid}
+    p{margin:1.5pt 0}
+    ul{margin:2pt 0 4pt;padding-inline-start:15pt}
+    li{margin:1.5pt 0}
     @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   </style></head><body>
-  <h1>${e(name)}</h1>
-  <div class="contact">tklroei1@gmail.com · +972-54-3329092 · Hod HaSharon, Israel</div>
-  ${bodyHtml}
-  <script>setTimeout(function(){window.print();},400)<\/script>
+  <div id="sheet">
+    <header>
+      <h1>${e(name)}</h1>
+      <div class="contact">tklroei1@gmail.com · +972-54-3329092 · Hod HaSharon, Israel</div>
+    </header>
+    ${bodyHtml}
+  </div>
+  <script>
+  (function(){
+    var MAX = 1027;                       // A4 height − 0.5in margins, in px @96dpi
+    var sheet = document.getElementById('sheet');
+    var size = 11, lh = 1.34;
+    function h(){ return sheet.getBoundingClientRect().height; }
+    while (h() > MAX && size > 8.6) {     // shrink type until one page
+      size = Math.round((size - 0.25) * 100) / 100;
+      lh   = Math.max(1.12, lh - 0.012);
+      document.documentElement.style.fontSize = size + 'pt';
+      document.body.style.lineHeight = lh;
+    }
+    if (h() > MAX) {                      // still long → tighten vertical rhythm
+      document.querySelectorAll('h2').forEach(function(x){ x.style.margin = '6pt 0 3pt'; });
+      document.querySelectorAll('li,p').forEach(function(x){ x.style.margin = '0.5pt 0'; });
+    }
+    setTimeout(function(){ window.print(); }, 350);
+  })();
+  <\/script>
   </body></html>`);
   win.document.close();
-  showNotif&&showNotif('🖨️ חלון הדפסה נפתח — בחר "שמור כ-PDF"');
+  showNotif&&showNotif('🖨️ חלון הדפסה נפתח (עמוד אחד) — בחר "שמור כ-PDF"');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -5650,8 +5702,12 @@ async function findReferrers(jobId,ctx){
   const cid=(ctx==='drawer'?'drawer-ref-wrap':'sub-ref-wrap');
   const wrap=document.getElementById(cid);
   if(wrap)wrap.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">🔎 מחפש ממליצים בלינקדאין...</div>';
+  // 60s hard timeout — a stalled Tavily/Haiku call used to leave the spinner forever.
+  const ctl=(typeof AbortController!=='undefined')?new AbortController():null;
+  const killer=setTimeout(()=>{try{ctl&&ctl.abort();}catch(e){}},60000);
   try{
     const r=await fetch('/api/get-agent-results',{method:'POST',headers:{'Content-Type':'application/json'},
+      signal:ctl?ctl.signal:undefined,
       body:JSON.stringify({mode:'referrers',company:job.company||'',title:job.title||''})});
     const d=await r.json();
     job.referrers=Array.isArray(d.referrers)?d.referrers:[];
@@ -5660,8 +5716,8 @@ async function findReferrers(jobId,ctx){
     showNotif&&showNotif(job.referrers.length?('✓ נמצאו '+job.referrers.length+' ממליצים'):'לא נמצאו ממליצים כרגע');
   }catch(e){
     job.referrers=[];
-    showNotif&&showNotif('⚠️ חיפוש הממליצים נכשל — נסה שוב');
-  }
+    showNotif&&showNotif(e&&e.name==='AbortError'?'⏱️ חיפוש הממליצים נתקע — נסה שוב':'⚠️ חיפוש הממליצים נכשל — נסה שוב');
+  }finally{ clearTimeout(killer); }
   // re-render the host card so the cached result shows
   if(ctx==='drawer'){if(typeof drawerJobId!=='undefined'&&drawerJobId===jobId&&typeof openJobDrawer==='function')openJobDrawer(jobId);}
   else{if(typeof submitCardJobId!=='undefined'&&submitCardJobId===jobId&&typeof openSubmitCard==='function')openSubmitCard(jobId);}
@@ -8287,7 +8343,7 @@ function openSubmitCard(jobId){
       }
       return `<div class="sub-sec-lbl">📄 קו״ח מותאם</div>
       <div class="sub-cv-block">
-        <button class="btn bp bsm" onclick="submitCardTailorCV('${job.id}')">🎯 צור קו״ח מותאם מלא</button>
+        <button class="btn bp bsm" onclick="submitCardTailorCV('${job.id}',this)">🎯 צור קו״ח מותאם (עמוד אחד)</button>
       </div>`+skelBlock;
     })()}
     <div class="sub-sec-lbl">לפני הגשה — בדיקת ATS</div>
@@ -8325,8 +8381,19 @@ function closeSubmitCard(){
 }
 
 // ═══ TAILORED-CV: generate full mirrored CV from the submit card, then re-render ═══
-async function submitCardTailorCV(jobId){
-  await downloadTailoredCV(jobId); // generates + caches job.cv_full + downloads
+// The button now shows its own progress + is disabled while running, and is ALWAYS
+// restored in finally() — previously a slow/failed API call left the card looking frozen.
+async function submitCardTailorCV(jobId,btn){
+  btn=btn||(window.event&&window.event.target);
+  const old=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='⏳ מתאים קו״ח...';}
+  try{
+    await downloadTailoredCV(jobId); // generates + caches job.cv_full + downloads
+  }catch(e){
+    showNotif&&showNotif('⚠️ שגיאה ביצירת הקו״ח — נסה שוב');
+  }finally{
+    if(btn&&btn.isConnected){btn.disabled=false;btn.textContent=old;}
+  }
   if(submitCardJobId===jobId)openSubmitCard(jobId); // re-render with the new preview
 }
 
