@@ -4,3 +4,8 @@ node_modules/
 *.bak
 *.new
 *.tmp
+
+# Secrets - never commit (this is a public repository)
+.env
+.env.*
+!.env.example
